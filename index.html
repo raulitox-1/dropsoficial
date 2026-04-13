@@ -1014,8 +1014,10 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
     <div id="step2" style="display:none;">
       <div class="steps"><div class="sd done"></div><div class="sd active"></div><div class="sd"></div></div>
       <div class="card"><div class="sec">Números</div><div id="s2-nums" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div><div class="row"><span style="font-size:13px;color:var(--tx2);">Total</span><span style="font-size:20px;font-weight:700;color:var(--g);" id="s2-total"></span></div></div>
-      <label>Nombre completo</label><input type="text" id="part-name" placeholder="Ej: Jordi Martínez"/>
-      <label>Teléfono (para notificarte si ganas)</label><input type="tel" id="part-phone" placeholder="Ej: 612 345 678"/>
+      <div id="part-form-wrap">
+        <label>Nombre completo</label><input type="text" id="part-name" placeholder="Ej: Jordi Martínez"/>
+        <label>Teléfono (para notificarte si ganas)</label><input type="tel" id="part-phone" placeholder="Ej: 612 345 678"/>
+      </div>
       <button class="btn btn-g" style="width:100%;" id="btn-reservar" onclick="reservar()">Confirmar reserva</button>
       <button class="btn btn-neu" style="width:100%;margin-top:6px;" onclick="showStep(1)">← Cambiar números</button>
     </div>
@@ -2697,9 +2699,9 @@ window.dpReservarNums=async function(){
       showDpCompletoOverlay(dp,recaudacion,comision,neto);
       // Notif al vendedor
       if(currentUser?.username===dp.vendedor?.username){
-        addNotif(currentUser.username,dp.commId,{icon:'🎯',text:'¡Tu drop está completo!',sub:'Sube el comprobante de la comisión para abrir el cobro',link:'dp-part:'+dp.id});
+        addNotif(currentUser.uid||currentUser.username,dp.commId,{icon:'🎯',text:'¡Tu drop está completo!',sub:'Sube el comprobante de la comisión para abrir el cobro',link:'dp-part:'+dp.id});
       } else if(currentUser){
-        addNotif(currentUser.username,dp.commId,{icon:'🎉',text:'¡Drop completado!',sub:'El admin abrirá el cobro en breve. Tus números están reservados.',link:'dp-part:'+dp.id});
+        addNotif(currentUser.uid||currentUser.username,dp.commId,{icon:'🎉',text:'¡Drop completado!',sub:'El admin abrirá el cobro en breve. Tus números están reservados.',link:'dp-part:'+dp.id});
       }
     }
 
@@ -3952,7 +3954,7 @@ function updateHeroStats(){
             }
           }catch(e){
             if(currentUser){
-              addNotif(currentUser.username,_commId,{
+              addNotif(currentUser.uid||currentUser.username,_commId,{
                 icon:'🎰',
                 text:'¡Esta noche el sorteo'+(subName?' de '+subName:'')+' a las 21:25h!',
                 sub:totalPagados+'/'+_total+' pagados · ¡Mucha suerte! 🍀',
@@ -4084,7 +4086,17 @@ window.goStep2=function(){
   const price=communities[currentCommId]?.subs?.[currentSubId]?.config?.price||12;
   const el=document.getElementById('s2-nums');el.innerHTML='';
   cart.forEach(n=>{const s=document.createElement('span');s.className='badge b-c';s.style.fontSize='13px';s.textContent='Nº '+(n<10?'0'+n:n);el.appendChild(s);});
-  document.getElementById('s2-total').textContent=(cart.length*price)+'€';showStep(2);
+  document.getElementById('s2-total').textContent=(cart.length*price)+'€';
+  const formWrap=document.getElementById('part-form-wrap');
+  if(currentUser?.name){
+    // Logueado — rellenar silenciosamente y ocultar formulario
+    document.getElementById('part-name').value=currentUser.name;
+    document.getElementById('part-phone').value=currentUser.phone||'';
+    if(formWrap)formWrap.style.display='none';
+  }else{
+    if(formWrap)formWrap.style.display='block';
+  }
+  showStep(2);
 };
 
 window.showStep=function(n){[1,2,3,4].forEach(i=>document.getElementById('step'+i).style.display=i===n?'block':'none');};
@@ -4146,7 +4158,7 @@ window.reservar=async function(){
           sub:'Nº '+partReservedNums.map(n=>String(n).padStart(2,'0')).join(', ')+' · '+(partReservedNums.length*price)+'€ · Recibirás aviso cuando se abra el pago',
           link:'participar',
           tipo:'info',
-          dedupKey:'reserva-'+currentUser.username+'-'+currentCommId+'-'+currentSubId+'-'+Date.now()
+          dedupKey:'reserva-'+(currentUser.uid||currentUser.username)+'-'+currentCommId+'-'+currentSubId+'-'+Date.now()
         });
       }
     }
@@ -5144,7 +5156,7 @@ window.enviarPago=async function(){
         dedupKey:'comprobante-pendiente-'+(currentUser.uid||currentUser.username)+'-'+currentCommId+'-'+currentSubId
       });
       // Borrar el sticky de pago pendiente completamente de Firestore
-      borrarStickyPago(currentCommId, currentUser.username, currentSubId);
+      borrarStickyPago(currentCommId, currentUser.uid||currentUser.username, currentSubId);
     }
     showStep(4);chosenFile=null;
     // Volver automáticamente a la rifa a los 4 segundos
@@ -6462,6 +6474,7 @@ window.cerrarRifa=async function(){
       num:sorteoWinner.num,
       phone:sorteoWinner.phone||'',
       username:sorteoWinner.username||'',
+      uid:sorteoWinner.uid||'',
       drawUrl:drawUrl||'',
       premios:cfg.premios||''
     };
@@ -7571,7 +7584,7 @@ async function buildSugerencias(){
     const docs=[]; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
     docs.sort((a,b)=>(b.likes||0)-(a.likes||0)||(b.ts?.seconds||0)-(a.ts?.seconds||0)).slice(0,30).forEach(s=>{
       const likes=s.likes||0;
-      const yaLike=currentUser&&(s.likedBy||[]).includes(currentUser.username);
+      const yaLike=currentUser&&(s.likedBy||[]).includes(currentUser.uid||currentUser.username);
       const div=document.createElement('div');
       div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:10px 12px;margin-bottom:8px;';
       div.innerHTML=
@@ -7635,7 +7648,7 @@ window.likeSugerencia=async function(id){
       // Quitar like
       await updateDoc(ref,{
         likes:(data.likes||1)-1,
-        likedBy:likedBy.filter(u=>u!==currentUser.username)
+        likedBy:likedBy.filter(u=>u!==(currentUser.uid||currentUser.username))
       });
     }else{
       // Dar like

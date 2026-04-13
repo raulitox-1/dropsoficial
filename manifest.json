@@ -1,0 +1,17 @@
+{
+  "name": "Drops Oficial",
+  "short_name": "Drops",
+  "description": "Rifas y drops de pesca",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a86b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/maps/local_offer/materialicons/48dp/2x/baseline_local_offer_black_48dp.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

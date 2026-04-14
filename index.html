@@ -740,6 +740,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         <button class="notif-btn" id="ss-notif-btn" onclick="openNotifPanel()" style="display:none;">
           🔔<span class="notif-badge" id="ss-notif-badge"></span>
         </button>
+        <button id="ss-push-btn" onclick="pedirPermisoNotificaciones()" style="display:none;background:var(--g);border:none;border-radius:99px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;padding:5px 10px;white-space:nowrap;">🔔 Activar notis</button>
         <button onclick="openInfoModal()" style="background:var(--bg2);border:1px solid var(--bd);border-radius:99px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;padding:5px 10px;white-space:nowrap;">ℹ️ Info</button>
         <button id="ss-admin-btn" onclick="openAdminFromSelector()" style="display:none;" class="btn btn-s btn-neu">⚙️ Admin</button>
         <button id="ss-profile-btn" onclick="openProfileModal()" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:99px;font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;padding:5px 10px;">👤 Perfil</button>
@@ -4542,7 +4543,14 @@ function afterLogin(){
   if(pn && !pn.value) pn.value = currentUser.name;
   if(pp && !pp.value) pp.value = currentUser.phone||'';
   // Guardar pushToken si ya tiene permiso
-  setTimeout(()=>{ if(typeof saveTokenIfPermitted==='function')saveTokenIfPermitted(); },2000);
+  setTimeout(()=>{
+    if(typeof saveTokenIfPermitted==='function')saveTokenIfPermitted();
+    // Mostrar botón si no tiene permiso
+    if('Notification' in window && Notification.permission==='default'){
+      const btn=document.getElementById('ss-push-btn');
+      if(btn)btn.style.display='block';
+    }
+  },2000);
 
   if(currentCommId){
     enterAfterPin(currentCommId);
@@ -9136,43 +9144,88 @@ onAuthStateChanged(auth, async (firebaseUser)=>{
 // VAPID key — cámbiala por la tuya de Firebase Console → Project Settings → Cloud Messaging
 const VAPID_KEY = 'BEPpN5tc-5h5WDcvhNcqATOX2K5TtjnDxmg7lbYdKLWAYbAsrpWTyV2lI94IXsqIKv2ZH1QY47831hS4rLgVE8A';
 
+// Convertir VAPID key a Uint8Array (necesario para iOS)
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
 async function initPushNotifications(){
   if(!('serviceWorker' in navigator)){console.warn('SW no soportado');return;}
   if(!('Notification' in window)){console.warn('Notificaciones no soportadas');return;}
   try{
-    // Registrar SW
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
     console.log('SW listo');
-
     if(Notification.permission === 'granted'){
+      // Ya tiene permiso — guardar token silenciosamente
       await saveToken(reg);
+      // Ocultar botón
+      const btn=document.getElementById('ss-push-btn');
+      if(btn)btn.style.display='none';
     } else if(Notification.permission === 'default'){
-      const askPerm = async () => {
-        const perm = await Notification.requestPermission();
-        console.log('Permiso notificaciones:', perm);
-        if(perm === 'granted') await saveToken(reg);
-        document.removeEventListener('click', askPerm);
-      };
-      document.addEventListener('click', askPerm, {once: true});
+      // Mostrar botón para que el usuario lo pulse conscientemente
+      const btn=document.getElementById('ss-push-btn');
+      if(btn&&currentUser)btn.style.display='block';
     }
   }catch(e){console.warn('Push init error:', e.message);}
 }
 
+window.pedirPermisoNotificaciones=async function(){
+  const btn=document.getElementById('ss-push-btn');
+  if(btn)btn.textContent='⏳ Activando...';
+  try{
+    const perm = await Notification.requestPermission();
+    console.log('Permiso:', perm);
+    if(perm === 'granted'){
+      if(btn)btn.style.display='none';
+      const reg = await navigator.serviceWorker.ready;
+      await saveToken(reg);
+      toast('✅ Notificaciones activadas');
+    } else {
+      if(btn){btn.textContent='🔔 Activar notis';btn.style.display='block';}
+      toast('Las notificaciones están bloqueadas. Actívalas en Ajustes.');
+    }
+  }catch(e){
+    console.warn('pedirPermiso error:',e.message);
+    if(btn)btn.textContent='🔔 Activar notis';
+  }
+};
+
 async function saveToken(swReg){
   try{
-    if(!currentUser){console.warn('saveToken: no hay usuario');return;}
+    if(!currentUser){console.warn('saveToken: sin usuario');return;}
     const userId = currentUser.uid||currentUser.username;
-    if(!userId){console.warn('saveToken: no hay userId');return;}
+    if(!userId){console.warn('saveToken: sin userId');return;}
 
     const {getMessaging, getToken} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
     const messaging = getMessaging(fbApp);
+
+    // Convertir VAPID a Uint8Array para iOS
+    const vapidUint8 = urlBase64ToUint8Array(VAPID_KEY);
+
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: swReg
     });
 
-    if(!token){console.warn('No se obtuvo pushToken');return;}
+    if(!token){
+      // Fallback: intentar con pushManager nativo
+      try{
+        const sub = await swReg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidUint8
+        });
+        console.log('PushManager sub:', JSON.stringify(sub));
+      }catch(pe){console.warn('pushManager fallback:', pe.message);}
+      console.warn('No se obtuvo FCM token');
+      return;
+    }
+
     console.log('✅ pushToken:', token.slice(0,20)+'...');
 
     // Guardar en users global
@@ -9192,7 +9245,7 @@ async function saveToken(swReg){
       }
     }catch(e){console.warn('saveToken communities:',e.message);}
 
-    console.log('✅ pushToken guardado para',userId);
+    console.log('✅ pushToken guardado para', userId);
   }catch(e){
     console.warn('saveToken error:', e.message);
   }
@@ -9207,7 +9260,6 @@ async function saveTokenIfPermitted(){
   }
 }
 
-// Inicializar push
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', initPushNotifications);
 }else{

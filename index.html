@@ -8095,9 +8095,10 @@ window.cerrarDropCompleto=function(){
 let _notifUnsub=null;
 
 function getNotifCollection(){
-  if(!currentCommId||!currentUser)return null;
+  if(!currentUser)return null;
   const userId=currentUser.uid||currentUser.username;
-  return collection(db,'communities',currentCommId,'users',userId,'notificaciones');
+  if(!userId)return null;
+  return collection(db,'users',userId,'notificaciones');
 }
 
 // ── addNotif mejorado ──────────────────────────────────────────────
@@ -8109,29 +8110,25 @@ function getNotifCollection(){
 // dedup: usa dedupKey para evitar duplicados permanentes en Firestore (no solo en sesión)
 async function addNotif(username,commId,{icon,text,sub,link,tipo,dedupKey,stickyResolveField,expiresAt}){
   const tipoFinal=tipo||(link&&link!=='participar'?'accion':'info');
-  // username puede ser uid (Firebase Auth) o username legacy
+  // Guardar en users global para que lleguen sin importar la comunidad activa
+  const notifCol=collection(db,'users',username,'notificaciones');
   try{
     if(dedupKey){
-      const existing=await getDocs(
-        query(collection(db,'communities',commId,'users',username,'notificaciones'),
-          where('dedupKey','==',dedupKey))
-      );
+      const existing=await getDocs(query(notifCol,where('dedupKey','==',dedupKey)));
       if(!existing.empty){
         const doc0=existing.docs[0];
         const data=doc0.data();
         if(data.tipo==='sticky'){
-          if(data.ejecutada){
-            await deleteDoc(doc0.ref);
-            return;
-          }
+          if(data.ejecutada){await deleteDoc(doc0.ref);return;}
           await updateDoc(doc0.ref,{sub:sub||'',ts:serverTimestamp()});
           return;
         }
         return;
       }
     }
-    await addDoc(collection(db,'communities',commId,'users',username,'notificaciones'),{
+    await addDoc(notifCol,{
       icon,text,sub:sub||'',link:link||'',tipo:tipoFinal,
+      commId:commId||null,
       leida:false,ejecutada:false,
       dedupKey:dedupKey||null,
       stickyResolveField:stickyResolveField||null,
@@ -8144,9 +8141,9 @@ async function addNotif(username,commId,{icon,text,sub,link,tipo,dedupKey,sticky
 // Marcar notif sticky como ejecutada (la borra automáticamente del panel)
 // Eliminar stickies de pago de Firestore completamente (no solo marcar ejecutada)
 async function borrarStickyPago(commId, username, subId){
-  if(!commId||!username)return;
+  if(!username)return;
   try{
-    const col=collection(db,'communities',commId,'users',username,'notificaciones');
+    const col=collection(db,'users',username,'notificaciones');
     const snap=await getDocs(query(col,where('tipo','==','sticky')));
     const batch=writeBatch(db);
     let found=0;
@@ -8163,7 +8160,7 @@ async function borrarStickyPago(commId, username, subId){
 }
 
 async function resolveSticky(dedupKey){
-  if(!currentCommId||!currentUser)return;
+  if(!currentUser)return;
   try{
     const col=getNotifCollection();
     if(!col)return;
@@ -8217,9 +8214,9 @@ window.borrarTodasNotifs=async function(){
   // Buscar commId y username de todas las formas posibles
   const cid=currentCommId;
   const uid=currentUser?.uid||currentUser?.username;
-  if(!cid||!uid){toast('Error: no se pudo identificar tu cuenta');return;}
+  if(!uid){toast('Error: no se pudo identificar tu cuenta');return;}
   try{
-    const col=collection(db,'communities',cid,'users',uid,'notificaciones');
+    const col=collection(db,'users',uid,'notificaciones');
     const snap=await getDocs(col);
     if(snap.empty){toast('No hay notificaciones');return;}
     const batch=writeBatch(db);

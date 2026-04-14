@@ -1785,6 +1785,7 @@ const firebaseConfig = {
   authDomain: "drops-oficial.firebaseapp.com",
   projectId: "drops-oficial",
   storageBucket: "drops-oficial.firebasestorage.app",
+  messagingSenderId: "725158698993",
   appId: "1:725158698993:web:d7e1ecbb73bfcefc676e50"
 };
 
@@ -9197,7 +9198,12 @@ window.pedirPermisoNotificaciones=async function(){
 
 async function saveToken(swReg){
   try{
-    if(!currentUser){toast('Error: no hay usuario');return;}
+    if(!currentUser){
+      // Esperar hasta 5 segundos a que el usuario esté logueado
+      let waited=0;
+      while(!currentUser&&waited<10){await new Promise(r=>setTimeout(r,500));waited++;}
+      if(!currentUser){toast('Error: inicia sesión primero');return;}
+    }
     const userId = currentUser.uid||currentUser.username;
     if(!userId){toast('Error: no hay userId');return;}
     toast('Obteniendo token para: '+userId.slice(0,8)+'...');

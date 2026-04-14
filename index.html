@@ -9180,32 +9180,30 @@ window.pedirPermisoNotificaciones=async function(){
   if(btn)btn.textContent='⏳ Activando...';
   try{
     const perm = await Notification.requestPermission();
-    console.log('Permiso:', perm);
     if(perm === 'granted'){
       if(btn)btn.style.display='none';
+      toast('✅ Permiso concedido — guardando token...');
       const reg = await navigator.serviceWorker.ready;
       await saveToken(reg);
-      toast('✅ Notificaciones activadas');
     } else {
       if(btn){btn.textContent='🔔 Activar notis';btn.style.display='block';}
-      toast('Las notificaciones están bloqueadas. Actívalas en Ajustes.');
+      toast('❌ Permiso denegado. Actívalo en Ajustes → Drops Oficial → Notificaciones');
     }
   }catch(e){
-    console.warn('pedirPermiso error:',e.message);
+    toast('Error: '+e.message);
     if(btn)btn.textContent='🔔 Activar notis';
   }
 };
 
 async function saveToken(swReg){
   try{
-    if(!currentUser){console.warn('saveToken: sin usuario');return;}
+    if(!currentUser){toast('Error: no hay usuario');return;}
     const userId = currentUser.uid||currentUser.username;
-    if(!userId){console.warn('saveToken: sin userId');return;}
+    if(!userId){toast('Error: no hay userId');return;}
+    toast('Obteniendo token para: '+userId.slice(0,8)+'...');
 
     const {getMessaging, getToken} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
     const messaging = getMessaging(fbApp);
-
-    // Convertir VAPID a Uint8Array para iOS
     const vapidUint8 = urlBase64ToUint8Array(VAPID_KEY);
 
     const token = await getToken(messaging, {
@@ -9220,18 +9218,20 @@ async function saveToken(swReg){
           userVisibleOnly: true,
           applicationServerKey: vapidUint8
         });
-        console.log('PushManager sub:', JSON.stringify(sub));
-      }catch(pe){console.warn('pushManager fallback:', pe.message);}
-      console.warn('No se obtuvo FCM token');
+        toast('PushManager OK pero sin FCM token');
+      }catch(pe){toast('Error pushManager: '+pe.message);}
+      toast('❌ No se obtuvo FCM token');
       return;
     }
 
-    console.log('✅ pushToken:', token.slice(0,20)+'...');
+    toast('Token obtenido — guardando...');
 
     // Guardar en users global
     await setDoc(doc(db,'users',userId),{
       pushToken:token, pushTokenUpdated:Date.now()
     },{merge:true});
+
+    toast('✅ ¡Notificaciones activadas!');
 
     // Guardar en comunidades del usuario
     try{
@@ -9245,9 +9245,8 @@ async function saveToken(swReg){
       }
     }catch(e){console.warn('saveToken communities:',e.message);}
 
-    console.log('✅ pushToken guardado para', userId);
   }catch(e){
-    console.warn('saveToken error:', e.message);
+    toast('❌ Error token: '+e.message);
   }
 }
 

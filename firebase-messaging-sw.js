@@ -5,39 +5,50 @@ firebase.initializeApp({
   apiKey: "AIzaSyBoh-OnF_G4_N8YwhWHOAsqIOS1B1tzkkA",
   authDomain: "drops-oficial.firebaseapp.com",
   projectId: "drops-oficial",
-  storageBucket: "drops-oficial.firebasestorage.app",
+  storageBucket: "drops-oficial.appspot.com",
   messagingSenderId: "725158698993",
   appId: "1:725158698993:web:d7e1ecbb73bfcefc676e50"
 });
 
 const messaging = firebase.messaging();
 
-// Manejar mensajes en background — payload solo tiene data, no notification
-// Esto evita duplicados cuando la app está abierta
-messaging.onBackgroundMessage(function(payload) {
-  // Verificar si la app está abierta — si lo está, no mostrar push
-  // (la app ya muestra la notificación internamente)
-  const title = payload.data?.title || 'Drops Oficial';
-  const body = payload.data?.body || '';
-  
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.PNG',
-    badge: '/icon-192.PNG',
+// Notificaciones en background (app cerrada o en segundo plano)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] Mensaje background recibido:', payload);
+  const { title, body } = payload.notification || {};
+  const link = payload.data?.link || '';
+
+  self.registration.showNotification(title || 'Drops Oficial', {
+    body: body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [200, 100, 200],
-    data: payload.data || {},
+    data: { link },
     requireInteraction: payload.data?.tipo === 'sticky'
   });
 });
 
-self.addEventListener('notificationclick', function(event) {
+// Al pulsar la notificación — navegar al sitio correcto
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const link = event.notification.data?.link || '';
+  const url = 'https://dropsoficial.com';
+
   event.waitUntil(
-    clients.matchAll({type:'window', includeUncontrolled:true}).then(function(list) {
-      for(const client of list){
-        if(client.url.includes('dropsoficial') && 'focus' in client) return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si la app ya está abierta, enviarle el link y enfocarla
+      for (const client of clientList) {
+        if (client.url.includes('dropsoficial.com') && 'focus' in client) {
+          client.focus();
+          if (link) {
+            client.postMessage({ type: 'NOTIF_CLICK', link });
+          }
+          return;
+        }
       }
-      if(clients.openWindow) return clients.openWindow('https://dropsoficial.com');
+      // Si no está abierta, abrirla y guardar el link en la URL como param
+      const openUrl = link ? `${url}?notif_link=${encodeURIComponent(link)}` : url;
+      return clients.openWindow(openUrl);
     })
   );
 });

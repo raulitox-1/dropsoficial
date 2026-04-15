@@ -846,6 +846,22 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         <label>¿Te ha invitado alguien? <span style="font-weight:400;color:var(--tx3);">(opcional)</span></label>
         <input type="text" id="reg-embajador" placeholder="Ej: pescador_bcn" autocomplete="off"/>
       </div>
+      <!-- AVISO LEGAL OBLIGATORIO -->
+      <div id="reg-legal-box" style="background:var(--bg2);border-radius:var(--rads);padding:14px 16px;margin-bottom:16px;border:1.5px solid var(--bd);transition:border-color .2s;">
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">⚖️ Aviso legal y condiciones</div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:12px;">
+          Drops Oficial es una <strong>plataforma de gestión de drops</strong>. Antes de crear tu cuenta debes saber que:<br><br>
+          • Realizamos una <strong>verificación exhaustiva</strong> de los datos proporcionados (nombre, email, teléfono, dirección y fecha de nacimiento) para garantizar la seguridad de todos los participantes.<br><br>
+          • Cada drop es organizado <strong>de forma independiente por el administrador de la comunidad</strong>. Drops Oficial no es responsable si el administrador no cumple con los términos publicados.<br><br>
+          • Las transacciones del mercadillo se realizan entre particulares. Actuamos como <strong>intermediario técnico</strong>, sin asumir responsabilidad sobre el estado de productos o envíos.<br><br>
+          • Tus datos se usan <strong>exclusivamente para la gestión de drops</strong> y nunca se ceden a terceros.
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;" onclick="toggleLegalCheck()">
+          <div id="reg-legal-check" style="width:20px;height:20px;min-width:20px;border-radius:5px;border:2px solid var(--bd);background:var(--bg);display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s;"></div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.5;">He leído y acepto las condiciones de uso y el <span onclick="event.stopPropagation();openModal('modal-aviso-legal')" style="color:var(--g);text-decoration:underline;cursor:pointer;">aviso legal completo</span></div>
+        </div>
+      </div>
+
       <button class="btn btn-g" style="width:100%;padding:14px;font-size:15px;" onclick="doRegister()">Crear cuenta →</button>
       <div class="login-toggle">¿Ya tienes cuenta? <span onclick="showLogin()">Entrar</span></div>
       <button class="btn btn-neu" style="width:100%;margin-top:8px;" onclick="goHome()">← Volver</button>
@@ -4531,6 +4547,25 @@ window.doLogin = async function(){
   }
 };
 
+window.toggleLegalCheck = function(){
+  const box = document.getElementById('reg-legal-check');
+  const container = document.getElementById('reg-legal-box');
+  const accepted = box.dataset.accepted === '1';
+  if(!accepted){
+    box.dataset.accepted = '1';
+    box.innerHTML = '<span style="color:#fff;font-size:14px;font-weight:900;">✓</span>';
+    box.style.background = 'var(--g)';
+    box.style.borderColor = 'var(--g)';
+    container.style.borderColor = 'var(--g)';
+  } else {
+    box.dataset.accepted = '0';
+    box.innerHTML = '';
+    box.style.background = 'var(--bg)';
+    box.style.borderColor = 'var(--bd)';
+    container.style.borderColor = 'var(--bd)';
+  }
+};
+
 window.doRegister = async function(){
   const email = document.getElementById('reg-email').value.trim().toLowerCase();
   const username = document.getElementById('reg-user').value.trim().toLowerCase().replace(/\s+/g,'_');
@@ -4543,6 +4578,13 @@ window.doRegister = async function(){
   const embajador = document.getElementById('reg-embajador').value.trim().toLowerCase()||null;
 
   if(!email||!username||!name||!phone||!birth||!direccion||!pass){toast('Rellena todos los campos obligatorios');return;}
+  const legalCheck = document.getElementById('reg-legal-check');
+  if(legalCheck?.dataset.accepted !== '1'){
+    document.getElementById('reg-legal-box').style.borderColor='#ef4444';
+    document.getElementById('reg-legal-box').scrollIntoView({behavior:'smooth',block:'center'});
+    toast('⚖️ Debes aceptar el aviso legal para continuar');
+    return;
+  }
   if(pass!==pass2){toast('Las contraseñas no coinciden');return;}
   if(pass.length<6){toast('La contraseña debe tener mínimo 6 caracteres');return;}
 
@@ -4595,6 +4637,9 @@ function afterLogin(){
 
   if(currentCommId){
     enterAfterPin(currentCommId);
+    // Ejecutar link pendiente de notificación si hay
+    const pendingLink = sessionStorage.getItem('drops_pending_link');
+    if(pendingLink){ sessionStorage.removeItem('drops_pending_link'); setTimeout(()=>navigateFromNotif(pendingLink), 1000); }
   } else {
     document.getElementById('home').style.display='block';
     buildHome();
@@ -8480,6 +8525,12 @@ function renderNotifs(notifs){
   });
   const stickies=visibles.filter(n=>n.tipo==='sticky');
   const resto=visibles.filter(n=>n.tipo!=='sticky');
+  // Más nuevas primero
+  resto.sort((a,b)=>{
+    const ta=a.ts?.toDate?a.ts.toDate().getTime():(a.ts?.seconds||0)*1000;
+    const tb=b.ts?.toDate?b.ts.toDate().getTime():(b.ts?.seconds||0)*1000;
+    return tb-ta;
+  });
   const ordered=[...stickies,...resto]; // Sticky siempre arriba
 
   const unread=ordered.filter(n=>!n.leida).length;
@@ -8540,10 +8591,9 @@ function renderNotifs(notifs){
       : '';
 
     const xStyle=noBorrable
-      ? 'background:none;border:none;color:var(--bd2);cursor:not-allowed;font-size:14px;line-height:1;padding:2px 4px;'
-      : 'background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;';
+      ? 'background:none;border:none;color:var(--bd2);cursor:not-allowed;font-size:18px;line-height:1;padding:4px 6px;opacity:.4;'
+      : 'background:none;border:none;color:var(--tx2);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;';
     const xTitle=noBorrable?'No se puede eliminar hasta completar la acción':'Eliminar';
-    const xClick=noBorrable?'':'onclick="eliminarNotif(event,this.dataset.id,this.dataset.comm,this.dataset.user)"';
 
     const tiempoHtml=esSticky
       ? '<div class="notif-time" style="color:var(--r);font-weight:700;">🔴 Requiere acción — no desaparecerá hasta completarse</div>'
@@ -8559,12 +8609,21 @@ function renderNotifs(notifs){
         '</div>'+
         '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">'+
           dotHtml+
-          '<button data-id="'+n.id+'" data-comm="'+(currentCommId||'')+'" data-user="'+(currentUser?.username||'')+'" '+xClick+' style="'+xStyle+'" title="'+xTitle+'" '+(noBorrable?'disabled':'')+'>✕</button>'+
+          '<button class="notif-x-btn" data-id="'+n.id+'" data-comm="'+(currentCommId||'')+'" data-user="'+(currentUser?.username||'')+'" style="'+xStyle+'" title="'+xTitle+'" '+(noBorrable?'disabled':'')+'>✕</button>'+
         '</div>'+
       '</div>';
 
+    // X button — usar addEventListener para evitar problemas con inline onclick
+    const xBtn = d.querySelector('.notif-x-btn');
+    if(xBtn && !noBorrable){
+      xBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        eliminarNotif(e, n.id, currentCommId||'', currentUser?.username||'');
+      });
+    }
+
     d.onclick=function(e){
-      if(e.target.closest('button[data-id]'))return;
+      if(e.target.closest('.notif-x-btn'))return;
       if(!esSticky){
         try{updateDoc(doc(db,'communities',currentCommId,'users',currentUser.username,'notificaciones',n.id),{leida:true});}catch(_){}
       }
@@ -9202,6 +9261,28 @@ async function initPushNotifications(){
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
     console.log('SW listo');
+
+    // Escuchar mensajes del SW (notificación pulsada en background)
+    navigator.serviceWorker.addEventListener('message', (event)=>{
+      const data = event.data;
+      if(data && data.type === 'NOTIF_CLICK' && data.link){
+        // Si el usuario ya está logueado y en una comunidad, navegar directo
+        if(currentUser && currentCommId){
+          navigateFromNotif(data.link);
+        } else {
+          // Guardar el link para ejecutarlo tras el login
+          sessionStorage.setItem('drops_pending_link', data.link);
+        }
+      }
+    });
+
+    // Comprobar si hay un link pendiente de una notificación anterior
+    const pendingLink = sessionStorage.getItem('drops_pending_link');
+    if(pendingLink && currentUser && currentCommId){
+      sessionStorage.removeItem('drops_pending_link');
+      setTimeout(()=> navigateFromNotif(pendingLink), 800);
+    }
+
     if(Notification.permission === 'granted'){
       // Ya tiene permiso — guardar token silenciosamente
       await saveToken(reg);
@@ -9310,6 +9391,19 @@ if(document.readyState==='loading'){
 }else{
   initPushNotifications();
 }
+
+// Si la app se abrió desde una notificación con ?notif_link= en la URL
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const notifLink = params.get('notif_link');
+  if(notifLink){
+    // Limpiar el param de la URL sin recargar
+    const cleanUrl = window.location.pathname;
+    history.replaceState({}, '', cleanUrl);
+    // Guardar para ejecutar cuando el usuario esté logueado
+    sessionStorage.setItem('drops_pending_link', notifLink);
+  }
+})();
 </script>
 
 <!-- MERCADILLO -->

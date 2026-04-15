@@ -219,47 +219,49 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
 .bnav-item .bnav-icon{font-size:20px;line-height:1;}
 
 
-/* Extra mobile tweaks */
+/* ── MOBILE CARD SYSTEM ── */
 @media(max-width:768px){
   /* Notif form grid → stack */
   #panel-notificaciones .table-wrap{padding:14px;}
-  #panel-notificaciones .table-wrap > div[style*="grid"]{
-    grid-template-columns:1fr !important;
-  }
-
-  /* Action buttons in tables — stack vertically */
-  td div[style*="display:flex"]{
-    flex-wrap:wrap;
-    gap:4px;
-  }
 
   /* Stats grid en estadisticas — 2 col */
   #stats-detail-grid{grid-template-columns:1fr 1fr !important;}
 
-  /* Historial modal cards — 2 col */
-  #modal-hc-content > div[style*="grid-template-columns:1fr 1fr 1fr 1fr"]{
-    grid-template-columns:1fr 1fr !important;
-  }
-  #modal-cd-content > div[style*="grid-template-columns:1fr 1fr 1fr"]{
-    grid-template-columns:1fr 1fr 1fr !important;
-  }
-
   /* Topbar logout button smaller */
   .topbar .btn{padding:6px 10px;font-size:11px;}
 
-  /* Comprobantes foto más grande */
-  #fact-comprobantes img{width:70px;height:70px;}
+  /* Comprobantes */
+  #fact-comprobantes img{width:64px;height:64px;}
 
-  /* Modal plan grid → stack */
-  #modal-plan .modal > div[style*="grid"]{
-    grid-template-columns:1fr !important;
-  }
+  /* Ocultar tablas en móvil — usar cards */
+  .mobile-hide{display:none !important;}
+  .mobile-cards{display:flex !important;}
 
-  /* Table cells wrap text */
-  tbody td{white-space:normal;word-break:break-word;font-size:12px;}
-  thead th{font-size:9px;padding:8px 10px;}
-  tbody td{padding:8px 10px;}
+  /* Botones más táctiles */
+  .btn-sm{padding:8px 12px;font-size:12px;}
 }
+
+/* Cards para tablas en móvil */
+.mobile-cards{
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  padding:12px;
+}
+.mcard{
+  background:var(--bg3);
+  border:1px solid var(--bd);
+  border-radius:var(--rads);
+  padding:14px;
+}
+.mcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mcard-name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;}
+.mcard-sub{font-size:11px;color:var(--tx3);margin-top:2px;}
+.mcard-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid var(--bd);font-size:12px;}
+.mcard-row:last-of-type{border:none;}
+.mcard-lbl{color:var(--tx3);}
+.mcard-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.mcard-actions .btn{flex:1;justify-content:center;min-width:0;}
 </style>
 </head>
 <body>
@@ -752,12 +754,14 @@ async function loadComms(){
 function renderComms(comms){
   const el=document.getElementById('comm-list');
   if(!comms.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏘️</div>Sin comunidades</div>';return;}
-  el.innerHTML=`<table>
+  const subs_fn = c => c.subs?Object.values(c.subs):[];
+  el.innerHTML=`
+  <table class="mobile-hide">
     <thead><tr>
       <th>Comunidad</th><th>Secciones</th><th>PIN</th><th>Admin</th><th>Acciones</th>
     </tr></thead>
     <tbody>${comms.map(c=>{
-      const subs=c.subs?Object.values(c.subs):[];
+      const subs=subs_fn(c);
       return `<tr>
         <td><div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:20px;">${esc(c.emoji||'🎯')}</span>
@@ -774,7 +778,25 @@ function renderComms(comms){
         </div></td>
       </tr>`;
     }).join('')}</tbody>
-  </table>`;
+  </table>
+  <div class="mobile-cards">
+    ${comms.map(c=>{
+      const subs=subs_fn(c);
+      return `<div class="mcard">
+        <div class="mcard-top">
+          <div class="mcard-name"><span style="font-size:22px;">${esc(c.emoji||'🎯')}</span><div><div>${esc(c.name||c.id)}</div><div class="mcard-sub">${esc(c.desc||'')}</div></div></div>
+          <span class="badge badge-b">${subs.length} secc.</span>
+        </div>
+        <div class="mcard-row"><span class="mcard-lbl">PIN</span><code style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px;">${esc(c.pin||'—')}</code></div>
+        <div class="mcard-row"><span class="mcard-lbl">Admin</span><span>${esc(c.adminUser||'—')}</span></div>
+        <div class="mcard-actions">
+          <button class="btn btn-neu btn-sm" onclick="viewCommDetail('${c.id}')">👁 Ver</button>
+          <button class="btn btn-neu btn-sm" onclick="editComm('${c.id}')">✏️ Editar</button>
+          <button class="btn btn-r btn-sm" onclick="deleteComm('${c.id}','${esc(c.name||c.id)}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 window.filterComms=function(q){
@@ -916,7 +938,8 @@ async function loadUsers(){
 function renderUsers(users){
   const el=document.getElementById('user-list');
   if(!users.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>Sin usuarios</div>';return;}
-  el.innerHTML=`<table>
+  el.innerHTML=`
+  <table class="mobile-hide">
     <thead><tr>
       <th>Usuario</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Entradas</th><th>Acciones</th>
     </tr></thead>
@@ -934,7 +957,28 @@ function renderUsers(users){
         }
       </div></td>
     </tr>`).join('')}</tbody>
-  </table>`;
+  </table>
+  <div class="mobile-cards">
+    ${users.map(u=>`<div class="mcard">
+      <div class="mcard-top">
+        <div class="mcard-name"><div>
+          <div>@${esc(u.username||'—')}</div>
+          <div class="mcard-sub">${esc(u.name||'')}</div>
+        </div></div>
+        <span class="badge ${u.banned?'badge-r':'badge-g'}">${u.banned?'Baneado':'Activo'}</span>
+      </div>
+      <div class="mcard-row"><span class="mcard-lbl">Email</span><span style="font-size:11px;">${esc(u.email||'—')}</span></div>
+      <div class="mcard-row"><span class="mcard-lbl">Teléfono</span><span>${esc(u.phone||'—')}</span></div>
+      <div class="mcard-row"><span class="mcard-lbl">Entradas</span><span class="badge badge-g">${u.entradas||0}</span></div>
+      <div class="mcard-actions">
+        <button class="btn btn-neu btn-sm" onclick="viewUser('${u.uid}')">👁 Ver perfil</button>
+        ${u.banned
+          ? `<button class="btn btn-g btn-sm" onclick="toggleBan('${u.uid}',false)">✅ Desbanear</button>`
+          : `<button class="btn btn-r btn-sm" onclick="toggleBan('${u.uid}',true)">🚫 Banear</button>`
+        }
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 window.filterUsers=function(q){
@@ -1018,7 +1062,8 @@ window.loadDashboard=async function(){
   // Render dash comm list
   const el=document.getElementById('dash-comm-list');
   if(!allComms.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏘️</div>Sin comunidades</div>';return;}
-  el.innerHTML=`<table>
+  el.innerHTML=`
+  <table class="mobile-hide">
     <thead><tr><th>Comunidad</th><th>Secciones</th><th>Usuarios</th><th>Estado</th><th></th></tr></thead>
     <tbody>${allComms.slice(0,10).map(c=>{
       const subs=c.subs?Object.values(c.subs):[];
@@ -1031,7 +1076,23 @@ window.loadDashboard=async function(){
         <td><button class="btn btn-neu btn-sm" onclick="viewCommDetail('${c.id}')">Ver</button></td>
       </tr>`;
     }).join('')}</tbody>
-  </table>`;
+  </table>
+  <div class="mobile-cards">
+    ${allComms.slice(0,10).map(c=>{
+      const subs=c.subs?Object.values(c.subs):[];
+      const activos=subs.filter(s=>!s.pagosAbiertos).length;
+      return `<div class="mcard">
+        <div class="mcard-top">
+          <div class="mcard-name"><span style="font-size:22px;">${esc(c.emoji||'🎯')}</span>${esc(c.name||c.id)}</div>
+          <span class="badge ${activos>0?'badge-g':'badge-y'}">${activos} activos</span>
+        </div>
+        <div class="mcard-row"><span class="mcard-lbl">Secciones</span><span>${subs.length}</span></div>
+        <div class="mcard-actions">
+          <button class="btn btn-neu btn-sm" onclick="viewCommDetail('${c.id}')">👁 Ver detalle</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 };
 
 // ─── NOTIFICACIONES ──────────────────────────────────────

@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Drops Oficial · Super Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#111118;
+  --bg3:#1a1a24;
+  --bg4:#22222f;
+  --bd:#2a2a3a;
+  --tx:#f0f0f8;
+  --tx2:#9090b0;
+  --tx3:#555570;
+  --g:#16a86b;
+  --gd:#0d7a4e;
+  --r:#ef4444;
+  --rd:#b91c1c;
+  --y:#f59e0b;
+  --b:#3b82f6;
+  --pu:#8b5cf6;
+  --rad:12px;
+  --rads:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'JetBrains Mono',monospace;overflow:hidden;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--bg);}
+.login-wrap{width:100%;max-width:400px;padding:0 24px;}
+.login-logo{font-family:'Syne',sans-serif;font-size:48px;font-weight:900;text-align:center;margin-bottom:4px;letter-spacing:-2px;}
+.login-logo span{color:var(--g);}
+.login-sub{text-align:center;color:var(--tx3);font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:40px;}
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.login-field input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:12px 14px;color:var(--tx);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;}
+.login-field input:focus{border-color:var(--g);}
+.login-btn{width:100%;margin-top:20px;padding:14px;background:var(--g);border:none;border-radius:var(--rads);color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.05em;transition:background .15s;}
+.login-btn:hover{background:var(--gd);}
+.login-err{margin-top:10px;text-align:center;font-size:12px;color:var(--r);min-height:18px;}
+
+/* LAYOUT */
+#app{display:none;height:100vh;display:none;flex-direction:row;}
+#app.visible{display:flex;}
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:20px 0;}
+.sidebar-logo{font-family:'Syne',sans-serif;font-weight:900;font-size:16px;padding:0 20px 20px;border-bottom:1px solid var(--bd);letter-spacing:-.5px;}
+.sidebar-logo span{color:var(--g);}
+.sidebar-badge{font-size:9px;background:var(--r);color:#fff;border-radius:4px;padding:1px 5px;vertical-align:middle;margin-left:4px;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.nav-section{padding:16px 12px 6px;font-size:9px;color:var(--tx3);letter-spacing:.15em;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--tx2);border-left:2px solid transparent;transition:all .15s;}
+.nav-item:hover{color:var(--tx);background:var(--bg3);}
+.nav-item.active{color:var(--g);border-left-color:var(--g);background:rgba(22,168,107,.08);}
+.nav-icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--bd);font-size:11px;color:var(--tx3);}
+.sidebar-footer strong{color:var(--g);display:block;font-size:12px;margin-bottom:2px;}
+
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{padding:16px 28px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:10;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--g);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.content{padding:24px 28px;flex:1;}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;}
+.stat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.green::before{background:var(--g);}
+.stat-card.red::before{background:var(--r);}
+.stat-card.blue::before{background:var(--b);}
+.stat-card.yellow::before{background:var(--y);}
+.stat-card.purple::before{background:var(--pu);}
+.stat-label{font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;letter-spacing:-1px;}
+.stat-sub{font-size:11px;color:var(--tx3);margin-top:4px;}
+
+/* TABLES */
+.table-wrap{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;margin-bottom:20px;}
+.table-head{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;}
+.table-search{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:6px 12px;color:var(--tx);font-family:inherit;font-size:12px;outline:none;width:200px;}
+.table-search:focus{border-color:var(--g);}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:10px 16px;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--bd);}
+tbody tr{border-bottom:.5px solid var(--bd);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;}
+.badge-g{background:rgba(22,168,107,.15);color:var(--g);}
+.badge-r{background:rgba(239,68,68,.15);color:var(--r);}
+.badge-y{background:rgba(245,158,11,.15);color:var(--y);}
+.badge-b{background:rgba(59,130,246,.15);color:var(--b);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rads);border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;transition:all .15s;}
+.btn-g{background:var(--g);color:#fff;}
+.btn-g:hover{background:var(--gd);}
+.btn-r{background:var(--r);color:#fff;}
+.btn-r:hover{background:var(--rd);}
+.btn-neu{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd);}
+.btn-neu:hover{color:var(--tx);border-color:var(--tx3);}
+.btn-y{background:var(--y);color:#000;}
+.btn-sm{padding:4px 10px;font-size:11px;}
+
+/* PANELS */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:24px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+.modal label{display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin:12px 0 5px;}
+.modal input,.modal textarea,.modal select{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;}
+.modal input:focus,.modal textarea:focus{border-color:var(--g);}
+.modal textarea{resize:vertical;min-height:80px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+/* NOTIF COMPOSER */
+.notif-preview{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:14px;margin-top:14px;}
+.notif-preview-title{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--tx3);font-size:13px;gap:10px;}
+.spinner{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* EMPTY */
+.empty{padding:40px;text-align:center;color:var(--tx3);}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 20px;font-size:13px;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px;}
+
+/* COMM DETAIL */
+.comm-detail{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rad);padding:16px;margin-bottom:12px;}
+.comm-detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sub-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);font-size:12px;}
+.sub-row:last-child{border:none;}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{width:60px;min-width:60px;}
+  .sidebar-logo,.nav-section,.nav-item span,.sidebar-footer div{display:none;}
+  .nav-item{padding:12px;justify-content:center;}
+  .nav-icon{width:auto;}
+  .content{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-logo">DROPS<span>.</span></div>
+    <div class="login-sub">Super Admin Panel</div>
+    <div class="login-field">
+      <label>Contraseña de acceso</label>
+      <input type="password" id="login-pw" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Acceder →</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">DROPS<span>.</span><span class="sidebar-badge">SA</span></div>
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="goPanel('dashboard')">
+      <span class="nav-icon">📊</span><span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="goPanel('comunidades')">
+      <span class="nav-icon">🏘️</span><span>Comunidades</span>
+    </div>
+    <div class="nav-item" onclick="goPanel('usuarios')">
+      <span class="nav-icon">👥</span><span>Usuarios</span>
+    </div>
+    <div class="nav-section">Herramientas</div>
+    <div class="nav-item" onclick="goPanel('notificaciones')">
+      <span class="nav-icon">🔔</span><span>Notificaciones</span>
+    </div>
+    <div class="nav-item" onclick="goPanel('estadisticas')">
+      <span class="nav-icon">📈</span><span>Estadísticas</span>
+    </div>
+    <div class="nav-item" onclick="goPanel('facturacion')">
+      <span class="nav-icon">💶</span><span>Facturación</span>
+    </div>
+    <div class="sidebar-footer">
+      <strong>Super Admin</strong>
+      <div id="sb-time"></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <div style="font-size:11px;color:var(--tx3);">Firebase conectado</div>
+        <div class="status-dot"></div>
+        <button class="btn btn-neu btn-sm" onclick="doLogout()">Salir</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card green"><div class="stat-label">Comunidades</div><div class="stat-val" id="s-comms">—</div></div>
+          <div class="stat-card blue"><div class="stat-label">Usuarios totales</div><div class="stat-val" id="s-users">—</div></div>
+          <div class="stat-card yellow"><div class="stat-label">Drops activos</div><div class="stat-val" id="s-drops">—</div></div>
+          <div class="stat-card purple"><div class="stat-label">Drops particulares</div><div class="stat-val" id="s-dparts">—</div></div>
+          <div class="stat-card red"><div class="stat-label">Usuarios baneados</div><div class="stat-val" id="s-banned">—</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-head"><div class="table-title">Actividad reciente — Comunidades</div><button class="btn btn-neu btn-sm" onclick="loadDashboard()">↻ Refrescar</button></div>
+          <div id="dash-comm-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+      </div>
+
+      <!-- COMUNIDADES -->
+      <div class="panel" id="panel-comunidades">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">Comunidades</div>
+          <button class="btn btn-g" onclick="openModalNewComm()">+ Nueva comunidad</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-head">
+            <div class="table-title">Todas las comunidades</div>
+            <input class="table-search" placeholder="Buscar..." oninput="filterComms(this.value)" id="comm-search"/>
+          </div>
+          <div id="comm-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div class="panel" id="panel-usuarios">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">Usuarios</div>
+          <div style="font-size:12px;color:var(--tx3);" id="user-count-label">—</div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-head">
+            <div class="table-title">Todos los usuarios</div>
+            <input class="table-search" placeholder="Buscar por nombre/email/user..." oninput="filterUsers(this.value)" id="user-search"/>
+          </div>
+          <div id="user-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <div class="panel" id="panel-notificaciones">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:20px;">Enviar notificación</div>
+        <div class="table-wrap" style="padding:20px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <label style="display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Destino</label>
+              <select id="notif-dest" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;" onchange="loadNotifDest()">
+                <option value="all">🌍 Todas las comunidades</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Tipo</label>
+              <select id="notif-tipo" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;">
+                <option value="info">ℹ️ Información</option>
+                <option value="aviso">⚠️ Aviso importante</option>
+                <option value="promo">🎉 Promoción / Novedad</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <label style="display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Icono (emoji)</label>
+            <input id="notif-icon" value="🎯" style="width:80px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:20px;text-align:center;outline:none;"/>
+          </div>
+          <div style="margin-top:14px;">
+            <label style="display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Título *</label>
+            <input id="notif-title" placeholder="Ej: ¡Nueva funcionalidad disponible!" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;"/>
+          </div>
+          <div style="margin-top:14px;">
+            <label style="display:block;font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Mensaje</label>
+            <textarea id="notif-body" placeholder="Descripción opcional..." style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;resize:vertical;min-height:70px;"></textarea>
+          </div>
+          <div class="notif-preview">
+            <div class="notif-preview-title">Vista previa</div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <span style="font-size:24px;" id="prev-icon">🎯</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;" id="prev-title">Título de la notificación</div>
+                <div style="font-size:12px;color:var(--tx2);margin-top:2px;" id="prev-body">Mensaje aquí</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;">
+            <button class="btn btn-g" onclick="enviarNotifGlobal()" id="btn-enviar-notif">🚀 Enviar notificación</button>
+            <div style="font-size:11px;color:var(--tx3);align-self:center;" id="notif-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="panel" id="panel-estadisticas">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:20px;">Estadísticas globales</div>
+        <div class="stats-grid" id="stats-detail-grid">
+          <div class="loading"><div class="spinner"></div>Cargando...</div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-head"><div class="table-title">Top comunidades por participantes</div></div>
+          <div id="stats-top-comms"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-head"><div class="table-title">Top usuarios por entradas</div></div>
+          <div id="stats-top-users"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+
+      <!-- FACTURACIÓN -->
+      <div class="panel" id="panel-facturacion">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">Facturación</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-neu btn-sm" onclick="loadFacturacion()">↻ Refrescar</button>
+            <button class="btn btn-g" onclick="openModalAsignarPlan()">+ Asignar plan</button>
+          </div>
+        </div>
+
+        <!-- RESUMEN ECONÓMICO -->
+        <div class="stats-grid" id="fact-stats-grid" style="margin-bottom:20px;">
+          <div class="stat-card green"><div class="stat-label">Cobrado este mes</div><div class="stat-val" id="fs-cobrado">—</div><div class="stat-sub">Pagos confirmados</div></div>
+          <div class="stat-card red"><div class="stat-label">Pendiente de cobro</div><div class="stat-val" id="fs-pendiente">—</div><div class="stat-sub">Sin pagar</div></div>
+          <div class="stat-card blue"><div class="stat-label">Comunidades activas</div><div class="stat-val" id="fs-activas">—</div></div>
+          <div class="stat-card yellow"><div class="stat-label">MRR estimado</div><div class="stat-val" id="fs-mrr">—</div><div class="stat-sub">Ingresos mensuales recurrentes</div></div>
+        </div>
+
+        <!-- TABLA COMUNIDADES + PLAN -->
+        <div class="table-wrap" style="margin-bottom:20px;">
+          <div class="table-head">
+            <div class="table-title">Estado de pago por comunidad</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="fact-filter" onchange="renderFacturacion()" style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:5px 10px;color:var(--tx);font-family:inherit;font-size:12px;outline:none;">
+                <option value="all">Todas</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="pagado">Pagadas</option>
+                <option value="atrasado">Atrasadas</option>
+              </select>
+            </div>
+          </div>
+          <div id="fact-table"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+
+        <!-- COMPROBANTES PENDIENTES DE CONFIRMAR -->
+        <div class="table-wrap" style="margin-bottom:20px;border:2px solid var(--y);">
+          <div class="table-head" style="background:rgba(245,158,11,.08);">
+            <div class="table-title">⏳ Comprobantes pendientes de confirmar</div>
+            <button class="btn btn-neu btn-sm" onclick="loadComprobantes()">↻ Refrescar</button>
+          </div>
+          <div id="fact-comprobantes"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- HISTORIAL DE PAGOS -->
+        <div class="table-wrap">
+          <div class="table-head">
+            <div class="table-title">Historial de pagos recientes</div>
+          </div>
+          <div id="fact-historial"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMUNIDAD -->
+<div class="modal-bg" id="modal-comm" onclick="if(event.target===this)closeModal('modal-comm')">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-comm-title">Nueva comunidad</span>
+      <button onclick="closeModal('modal-comm')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <label>Nombre *</label>
+    <input id="mc-name" placeholder="Ej: Threefishh"/>
+    <label>Emoji</label>
+    <input id="mc-emoji" placeholder="🎯" style="width:80px;font-size:20px;text-align:center;"/>
+    <label>Descripción</label>
+    <input id="mc-desc" placeholder="Una descripción breve"/>
+    <label>PIN de acceso *</label>
+    <input id="mc-pin" placeholder="Ej: PESCA2024" style="text-transform:uppercase;"/>
+    <label>Contraseña admin *</label>
+    <input id="mc-pass" type="password" placeholder="Contraseña del admin de esta comunidad"/>
+    <label>Link WhatsApp</label>
+    <input id="mc-wa" placeholder="https://chat.whatsapp.com/..."/>
+    <div class="modal-actions">
+      <button class="btn btn-neu" onclick="closeModal('modal-comm')">Cancelar</button>
+      <button class="btn btn-g" onclick="saveComm()" id="btn-save-comm">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUARIO -->
+<div class="modal-bg" id="modal-user" onclick="if(event.target===this)closeModal('modal-user')">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-user-title">Editar usuario</span>
+      <button onclick="closeModal('modal-user')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-user-content"></div>
+    <div class="modal-actions" id="modal-user-actions"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE COMUNIDAD -->
+<div class="modal-bg" id="modal-comm-detail" onclick="if(event.target===this)closeModal('modal-comm-detail')">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">
+      <span id="modal-cd-title">Detalle comunidad</span>
+      <button onclick="closeModal('modal-comm-detail')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-cd-content"></div>
+  </div>
+</div>
+
+
+<!-- MODAL ASIGNAR PLAN -->
+<div class="modal-bg" id="modal-plan" onclick="if(event.target===this)closeModal('modal-plan')">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title">
+      <span id="modal-plan-title">Asignar plan</span>
+      <button onclick="closeModal('modal-plan')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <label>Comunidad</label>
+    <select id="mp-comm" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;" onchange="updatePlanPreview()">
+      <option value="">Selecciona comunidad...</option>
+    </select>
+    <label>Plan</label>
+    <select id="mp-plan" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;" onchange="updatePlanPreview()">
+      <option value="basico">Básico — 25€/rifa (1-3 rifas/mes)</option>
+      <option value="estandar">Estándar — 15€/rifa (5-10 rifas/mes)</option>
+      <option value="avanzado">Avanzado — 10€/rifa (+10 rifas/mes)</option>
+      <option value="pro">Pro Ilimitado — 150€/mes fijo (pago al inicio)</option>
+    </select>
+    <label>Rifas realizadas este mes</label>
+    <input id="mp-drops" type="number" min="0" value="0" placeholder="Nº de rifas completadas este mes" oninput="updatePlanPreview()"/>
+    <div id="mp-plan-desc" style="font-size:11px;color:var(--tx3);margin-top:4px;"></div>
+    <label>Nota interna (opcional)</label>
+    <input id="mp-nota" placeholder="Ej: Acordado descuento primer mes"/>
+    <div id="mp-preview" style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:14px;margin-top:14px;display:none;">
+      <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Importe a cobrar</div>
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--g);" id="mp-importe">—</div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:4px;" id="mp-calculo"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-neu" onclick="closeModal('modal-plan')">Cancelar</button>
+      <button class="btn btn-g" onclick="guardarPlan()" id="btn-guardar-plan">Guardar plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR PAGO -->
+<div class="modal-bg" id="modal-pago" onclick="if(event.target===this)closeModal('modal-pago')">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">
+      <span id="modal-pago-title">Registrar pago</span>
+      <button onclick="closeModal('modal-pago')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-pago-info" style="background:var(--bg3);border-radius:var(--rads);padding:12px;margin-bottom:14px;font-size:13px;"></div>
+    <label>Importe pagado (€)</label>
+    <input id="pago-importe" type="number" min="0" placeholder="Ej: 75"/>
+    <label>Método de pago</label>
+    <select id="pago-metodo" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;">
+      <option>Bizum</option>
+      <option>Transferencia</option>
+      <option>PayPal</option>
+      <option>Efectivo</option>
+      <option>Otro</option>
+    </select>
+    <label>Fecha de pago</label>
+    <input id="pago-fecha" type="date"/>
+    <label>Notas</label>
+    <input id="pago-notas" placeholder="Opcional..."/>
+    <div class="modal-actions">
+      <button class="btn btn-neu" onclick="closeModal('modal-pago')">Cancelar</button>
+      <button class="btn btn-g" onclick="confirmarPago()" id="btn-confirmar-pago">✅ Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL COMUNIDAD -->
+<div class="modal-bg" id="modal-hist-comm" onclick="if(event.target===this)closeModal('modal-hist-comm')">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">
+      <span id="modal-hc-title">Historial de pagos</span>
+      <button onclick="closeModal('modal-hist-comm')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-hc-content"></div>
+  </div>
+</div>
+
+<!-- MODAL ENVIAR AVISO PAGO -->
+<div class="modal-bg" id="modal-aviso-pago" onclick="if(event.target===this)closeModal('modal-aviso-pago')">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">
+      <span>Enviar aviso de pago</span>
+      <button onclick="closeModal('modal-aviso-pago')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-ap-info" style="font-size:13px;color:var(--tx2);margin-bottom:14px;"></div>
+    <label>Mensaje personalizado (opcional)</label>
+    <textarea id="aviso-msg" placeholder="Ej: Recuerda que tienes pendiente el pago de este mes. ¡Gracias!" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;resize:vertical;min-height:80px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-neu" onclick="closeModal('modal-aviso-pago')">Cancelar</button>
+      <button class="btn btn-y" onclick="enviarAvisoPago()" id="btn-enviar-aviso">⚠️ Enviar aviso</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, addDoc, query, orderBy, serverTimestamp, writeBatch, where, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const SUPER_PASS = 'dentonestwinpower5000';
+
+const app = initializeApp({
+  apiKey: "AIzaSyBoh-OnF_G4_N8YwhWHOAsqIOS1B1tzkkA",
+  authDomain: "drops-oficial.firebaseapp.com",
+  projectId: "drops-oficial",
+  storageBucket: "drops-oficial.firebasestorage.app",
+  messagingSenderId: "725158698993",
+  appId: "1:725158698993:web:d7e1ecbb73bfcefc676e50"
+});
+const db = getFirestore(app);
+
+// ─── STATE ───────────────────────────────────────────────
+let allComms = [];
+let allUsers = [];
+let currentPanel = 'dashboard';
+
+// ─── UTILS ───────────────────────────────────────────────
+function toast(msg, dur=2800){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+window.closeModal=closeModal;
+function openModal(id){document.getElementById(id).classList.add('open');}
+function fmtDate(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(ts.seconds*1000);return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});}
+function esc(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Clock
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('sb-time').textContent=n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+},1000);
+
+// ─── LOGIN ───────────────────────────────────────────────
+window.doLogin=function(){
+  const pw=document.getElementById('login-pw').value;
+  if(pw===SUPER_PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('login-err').textContent='Contraseña incorrecta';
+    document.getElementById('login-pw').value='';
+  }
+};
+
+window.doLogout=function(){
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pw').value='';
+};
+
+// ─── NAVIGATION ──────────────────────────────────────────
+window.goPanel=function(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+name)?.classList.add('active');
+  document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
+  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación'};
+  document.getElementById('topbar-title').textContent=titles[name]||name;
+  currentPanel=name;
+  if(name==='dashboard')loadDashboard();
+  else if(name==='comunidades')loadComms();
+  else if(name==='usuarios')loadUsers();
+  else if(name==='notificaciones')loadNotifPanel();
+  else if(name==='estadisticas')loadStats();
+  else if(name==='facturacion')loadFacturacion();
+};
+
+// ─── INIT ─────────────────────────────────────────────────
+async function initApp(){
+  await Promise.all([loadComms(), loadUsers()]);
+  loadDashboard();
+  loadNotifDestOptions();
+}
+
+// ─── LOAD COMMUNITIES ────────────────────────────────────
+async function loadComms(){
+  try{
+    const snap=await getDocs(collection(db,'communities'));
+    allComms=[];
+    snap.forEach(d=>allComms.push({id:d.id,...d.data()}));
+    renderComms(allComms);
+    return allComms;
+  }catch(e){toast('Error cargando comunidades: '+e.message);}
+}
+
+function renderComms(comms){
+  const el=document.getElementById('comm-list');
+  if(!comms.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏘️</div>Sin comunidades</div>';return;}
+  el.innerHTML=`<table>
+    <thead><tr>
+      <th>Comunidad</th><th>Secciones</th><th>PIN</th><th>Admin</th><th>Acciones</th>
+    </tr></thead>
+    <tbody>${comms.map(c=>{
+      const subs=c.subs?Object.values(c.subs):[];
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:20px;">${esc(c.emoji||'🎯')}</span>
+          <div><div style="font-weight:700;">${esc(c.name||c.id)}</div>
+          <div style="font-size:11px;color:var(--tx3);">${esc(c.desc||'')}</div></div>
+        </div></td>
+        <td><span class="badge badge-b">${subs.length} secciones</span></td>
+        <td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px;">${esc(c.pin||'—')}</code></td>
+        <td style="font-size:12px;color:var(--tx2);">${esc(c.adminUser||'—')}</td>
+        <td><div style="display:flex;gap:6px;">
+          <button class="btn btn-neu btn-sm" onclick="viewCommDetail('${c.id}')">Ver</button>
+          <button class="btn btn-neu btn-sm" onclick="editComm('${c.id}')">Editar</button>
+          <button class="btn btn-r btn-sm" onclick="deleteComm('${c.id}','${esc(c.name||c.id)}')">Eliminar</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+window.filterComms=function(q){
+  const f=allComms.filter(c=>(c.name||c.id).toLowerCase().includes(q.toLowerCase())||c.pin?.toLowerCase().includes(q.toLowerCase()));
+  renderComms(f);
+};
+
+// ─── VIEW COMM DETAIL ────────────────────────────────────
+window.viewCommDetail=async function(commId){
+  const c=allComms.find(x=>x.id===commId);
+  if(!c)return;
+  const subs=c.subs?Object.values(c.subs):[];
+  // Load participant counts per sub
+  document.getElementById('modal-cd-title').textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
+  document.getElementById('modal-cd-content').innerHTML='<div class="loading"><div class="spinner"></div>Cargando secciones...</div>';
+  openModal('modal-comm-detail');
+  try{
+    const subStats=await Promise.all(subs.map(async s=>{
+      const partSnap=await getDocs(collection(db,'communities',commId,'subs',s.id,'participants'));
+      const histSnap=await getDocs(collection(db,'communities',commId,'subs',s.id,'historial'));
+      return {sub:s,parts:partSnap.size,hist:histSnap.size};
+    }));
+    // drops particulares
+    const dpSnap=await getDocs(query(collection(db,'communities',commId,'drops-particulares'),orderBy('createdAt','desc')));
+    let dpHtml='<div style="color:var(--tx3);font-size:12px;">Sin drops particulares</div>';
+    if(!dpSnap.empty){
+      dpHtml=dpSnap.docs.slice(0,5).map(d=>{const dp=d.data();return `<div class="sub-row"><div>${esc(dp.titulo||'Drop')}</div><div><span class="badge ${dp.lleno?'badge-g':'badge-y'}">${dp.lleno?'Completo':'Activo'}</span></div></div>`;}).join('');
+    }
+    document.getElementById('modal-cd-content').innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Secciones</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;">${subs.length}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Drops hist.</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;">${subStats.reduce((a,s)=>a+s.hist,0)}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Drops part.</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;">${dpSnap.size}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Secciones</div>
+      ${subStats.length?subStats.map(({sub,parts,hist})=>`
+        <div class="sub-row">
+          <div>${esc(sub.emoji||'🎯')} <strong>${esc(sub.name)}</strong></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-b">${parts} participantes</span>
+            <span class="badge badge-y">${hist} drops</span>
+            <span style="font-size:11px;color:var(--tx3);">${sub.config?.price||12}€ · ${sub.config?.total||100} núm.</span>
+          </div>
+        </div>`).join(''):'<div style="color:var(--tx3);font-size:12px;">Sin secciones</div>'}
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 8px;">Drops particulares recientes</div>
+      ${dpHtml}
+    `;
+  }catch(e){document.getElementById('modal-cd-content').innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>';}
+};
+
+// ─── EDIT / NEW COMM ─────────────────────────────────────
+window.openModalNewComm=function(){
+  ['mc-name','mc-emoji','mc-desc','mc-pin','mc-pass','mc-wa'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('modal-comm-title').textContent='Nueva comunidad';
+  document.getElementById('btn-save-comm').dataset.editId='';
+  openModal('modal-comm');
+};
+
+window.editComm=function(commId){
+  const c=allComms.find(x=>x.id===commId);if(!c)return;
+  document.getElementById('mc-name').value=c.name||'';
+  document.getElementById('mc-emoji').value=c.emoji||'';
+  document.getElementById('mc-desc').value=c.desc||'';
+  document.getElementById('mc-pin').value=c.pin||'';
+  document.getElementById('mc-pass').value='';
+  document.getElementById('mc-wa').value=c.waLink||'';
+  document.getElementById('modal-comm-title').textContent='Editar comunidad';
+  document.getElementById('btn-save-comm').dataset.editId=commId;
+  openModal('modal-comm');
+};
+
+window.saveComm=async function(){
+  const btn=document.getElementById('btn-save-comm');
+  const editId=btn.dataset.editId;
+  const name=document.getElementById('mc-name').value.trim();
+  const pin=document.getElementById('mc-pin').value.trim().toUpperCase();
+  if(!name||!pin){toast('Nombre y PIN son obligatorios');return;}
+  btn.textContent='Guardando...';btn.disabled=true;
+  try{
+    const data={
+      name,pin,
+      emoji:document.getElementById('mc-emoji').value.trim()||'🎯',
+      desc:document.getElementById('mc-desc').value.trim(),
+      waLink:document.getElementById('mc-wa').value.trim(),
+    };
+    const pass=document.getElementById('mc-pass').value;
+    if(pass)data.adminPass=pass;
+    if(editId){
+      await updateDoc(doc(db,'communities',editId),data);
+      const idx=allComms.findIndex(x=>x.id===editId);
+      if(idx>=0)allComms[idx]={...allComms[idx],...data};
+      toast('✅ Comunidad actualizada');
+    } else {
+      const id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      data.subs={};data.adminUser='superadmin';
+      await setDoc(doc(db,'communities',id),data);
+      allComms.push({id,...data});
+      toast('✅ Comunidad creada');
+    }
+    closeModal('modal-comm');
+    renderComms(allComms);
+    loadDashboard();
+  }catch(e){toast('Error: '+e.message);}
+  btn.textContent='Guardar';btn.disabled=false;
+};
+
+window.deleteComm=async function(commId,name){
+  if(!confirm(`⚠️ ¿Eliminar la comunidad "${name}"?\n\nEsto borrará toda la configuración. No se puede deshacer.`))return;
+  try{
+    await deleteDoc(doc(db,'communities',commId));
+    allComms=allComms.filter(x=>x.id!==commId);
+    renderComms(allComms);
+    toast('🗑️ Comunidad eliminada');
+    loadDashboard();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+// ─── LOAD USERS ──────────────────────────────────────────
+async function loadUsers(){
+  try{
+    const snap=await getDocs(collection(db,'users'));
+    allUsers=[];
+    snap.forEach(d=>allUsers.push({uid:d.id,...d.data()}));
+    renderUsers(allUsers);
+    document.getElementById('user-count-label').textContent=`${allUsers.length} usuarios registrados`;
+    return allUsers;
+  }catch(e){toast('Error cargando usuarios: '+e.message);}
+}
+
+function renderUsers(users){
+  const el=document.getElementById('user-list');
+  if(!users.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>Sin usuarios</div>';return;}
+  el.innerHTML=`<table>
+    <thead><tr>
+      <th>Usuario</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Entradas</th><th>Acciones</th>
+    </tr></thead>
+    <tbody>${users.map(u=>`<tr>
+      <td><div style="font-weight:700;">@${esc(u.username||'—')}</div><div style="font-size:11px;color:var(--tx3);">${esc(u.name||'')}</div></td>
+      <td style="font-size:12px;">${esc(u.email||'—')}</td>
+      <td style="font-size:12px;">${esc(u.phone||'—')}</td>
+      <td><span class="badge ${u.banned?'badge-r':'badge-g'}">${u.banned?'Baneado':'Activo'}</span></td>
+      <td style="text-align:center;">${u.entradas||0}</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn btn-neu btn-sm" onclick="viewUser('${u.uid}')">Ver</button>
+        ${u.banned
+          ? `<button class="btn btn-g btn-sm" onclick="toggleBan('${u.uid}',false)">Desbanear</button>`
+          : `<button class="btn btn-r btn-sm" onclick="toggleBan('${u.uid}',true)">Banear</button>`
+        }
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+window.filterUsers=function(q){
+  const ql=q.toLowerCase();
+  const f=allUsers.filter(u=>
+    (u.username||'').toLowerCase().includes(ql)||
+    (u.email||'').toLowerCase().includes(ql)||
+    (u.name||'').toLowerCase().includes(ql)
+  );
+  renderUsers(f);
+};
+
+window.toggleBan=async function(uid,ban){
+  const u=allUsers.find(x=>x.uid===uid);
+  if(!u)return;
+  if(!confirm(`¿${ban?'Banear':'Desbanear'} a @${u.username}?`))return;
+  try{
+    await updateDoc(doc(db,'users',uid),{banned:ban});
+    u.banned=ban;
+    renderUsers(allUsers);
+    toast(ban?`🚫 @${u.username} baneado`:`✅ @${u.username} desbaneado`);
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.viewUser=function(uid){
+  const u=allUsers.find(x=>x.uid===uid);if(!u)return;
+  document.getElementById('modal-user-title').textContent='@'+esc(u.username||uid);
+  document.getElementById('modal-user-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;">
+        <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Entradas</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;">${u.entradas||0}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;">
+        <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Racha</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;">${u.rachaActual||0}🔥</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">Email</span><span>${esc(u.email||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">Nombre</span><span>${esc(u.name||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">Teléfono</span><span>${esc(u.phone||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">Dirección</span><span style="text-align:right;max-width:220px;font-size:12px;">${esc(u.direccion||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">F. nacimiento</span><span>${esc(u.birth||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--bd);"><span style="color:var(--tx3);">Embajador</span><span>${esc(u.embajador||'—')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--tx3);">Estado</span><span class="badge ${u.banned?'badge-r':'badge-g'}">${u.banned?'Baneado':'Activo'}</span></div>
+    </div>
+  `;
+  document.getElementById('modal-user-actions').innerHTML=`
+    <button class="btn btn-neu" onclick="closeModal('modal-user')">Cerrar</button>
+    ${u.banned
+      ? `<button class="btn btn-g" onclick="toggleBan('${u.uid}',false);closeModal('modal-user')">✅ Desbanear</button>`
+      : `<button class="btn btn-r" onclick="toggleBan('${u.uid}',true);closeModal('modal-user')">🚫 Banear usuario</button>`
+    }
+  `;
+  openModal('modal-user');
+};
+
+// ─── DASHBOARD ───────────────────────────────────────────
+window.loadDashboard=async function(){
+  document.getElementById('s-comms').textContent=allComms.length||'—';
+  document.getElementById('s-users').textContent=allUsers.length||'—';
+  document.getElementById('s-banned').textContent=allUsers.filter(u=>u.banned).length||'0';
+
+  // Count active drops & drops particulares
+  let dropsActivos=0, dparts=0;
+  for(const c of allComms){
+    const subs=c.subs?Object.values(c.subs):[];
+    for(const s of subs){
+      // A drop is active if pagosAbiertos is not true (still running)
+      if(!s.pagosAbiertos)dropsActivos++;
+    }
+    try{
+      const dpSnap=await getDocs(query(collection(db,'communities',c.id,'drops-particulares'),where('lleno','==',false)));
+      dparts+=dpSnap.size;
+    }catch(_){}
+  }
+  document.getElementById('s-drops').textContent=dropsActivos;
+  document.getElementById('s-dparts').textContent=dparts;
+
+  // Render dash comm list
+  const el=document.getElementById('dash-comm-list');
+  if(!allComms.length){el.innerHTML='<div class="empty"><div class="empty-icon">🏘️</div>Sin comunidades</div>';return;}
+  el.innerHTML=`<table>
+    <thead><tr><th>Comunidad</th><th>Secciones</th><th>Usuarios</th><th>Estado</th><th></th></tr></thead>
+    <tbody>${allComms.slice(0,10).map(c=>{
+      const subs=c.subs?Object.values(c.subs):[];
+      const activos=subs.filter(s=>!s.pagosAbiertos).length;
+      return `<tr>
+        <td><span style="font-size:18px;margin-right:8px;">${esc(c.emoji||'🎯')}</span><strong>${esc(c.name||c.id)}</strong></td>
+        <td>${subs.length}</td>
+        <td>${allUsers.filter(u=>u.communities?.includes(c.id)).length||'—'}</td>
+        <td><span class="badge ${activos>0?'badge-g':'badge-y'}">${activos} drops activos</span></td>
+        <td><button class="btn btn-neu btn-sm" onclick="viewCommDetail('${c.id}')">Ver</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+};
+
+// ─── NOTIFICACIONES ──────────────────────────────────────
+async function loadNotifDestOptions(){
+  const sel=document.getElementById('notif-dest');
+  if(!sel)return;
+  // Add communities
+  allComms.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.id;
+    opt.textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
+    sel.appendChild(opt);
+  });
+}
+
+window.loadNotifPanel=function(){
+  // Live preview
+  const fields=['notif-icon','notif-title','notif-body'];
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el._bound){
+      el._bound=true;
+      el.addEventListener('input',updatePreview);
+    }
+  });
+};
+
+function updatePreview(){
+  document.getElementById('prev-icon').textContent=document.getElementById('notif-icon').value||'🎯';
+  document.getElementById('prev-title').textContent=document.getElementById('notif-title').value||'Título de la notificación';
+  document.getElementById('prev-body').textContent=document.getElementById('notif-body').value||'Mensaje aquí';
+}
+
+window.enviarNotifGlobal=async function(){
+  const dest=document.getElementById('notif-dest').value;
+  const tipo=document.getElementById('notif-tipo').value;
+  const icon=document.getElementById('notif-icon').value.trim()||'🎯';
+  const title=document.getElementById('notif-title').value.trim();
+  const body=document.getElementById('notif-body').value.trim();
+  if(!title){toast('Escribe un título');return;}
+
+  const btn=document.getElementById('btn-enviar-notif');
+  btn.disabled=true;btn.textContent='⏳ Enviando...';
+  const statusEl=document.getElementById('notif-status');
+  statusEl.textContent='';
+
+  const notifData={
+    text:title,sub:body,icon,tipo,leida:false,
+    ts:serverTimestamp(),link:'',
+    from:'superadmin'
+  };
+
+  const targetComms=dest==='all'?allComms:allComms.filter(c=>c.id===dest);
+  let sent=0,errors=0;
+
+  for(const c of targetComms){
+    const userSnap=await getDocs(collection(db,'communities',c.id,'users')).catch(()=>null);
+    if(!userSnap)continue;
+    const batch=writeBatch(db);
+    let batchCount=0;
+    for(const ud of userSnap.docs){
+      const notifRef=doc(collection(db,'communities',c.id,'users',ud.id,'notificaciones'));
+      batch.set(notifRef,notifData);
+      batchCount++;
+      sent++;
+      if(batchCount>=450){
+        await batch.commit().catch(()=>{errors++;});
+        batchCount=0;
+      }
+    }
+    if(batchCount>0)await batch.commit().catch(()=>{errors++;});
+  }
+
+  btn.disabled=false;btn.textContent='🚀 Enviar notificación';
+  if(errors===0){
+    toast(`✅ Notificación enviada a ${sent} usuarios`);
+    statusEl.textContent=`✅ Enviada a ${sent} usuarios`;
+    document.getElementById('notif-title').value='';
+    document.getElementById('notif-body').value='';
+    updatePreview();
+  } else {
+    toast(`⚠️ Enviada con ${errors} errores`);
+    statusEl.textContent=`⚠️ ${errors} errores`;
+  }
+};
+
+// ─── STATS ───────────────────────────────────────────────
+window.loadStats=async function(){
+  const grid=document.getElementById('stats-detail-grid');
+  grid.innerHTML='<div class="loading"><div class="spinner"></div>Calculando...</div>';
+
+  let totalDrops=0, totalParticipants=0, totalHistorial=0, totalDparts=0;
+  const commStats=[];
+
+  for(const c of allComms){
+    const subs=c.subs?Object.values(c.subs):[];
+    let commParts=0,commHist=0;
+    for(const s of subs){
+      try{
+        const pSnap=await getDocs(collection(db,'communities',c.id,'subs',s.id,'participants'));
+        const hSnap=await getDocs(collection(db,'communities',c.id,'subs',s.id,'historial'));
+        commParts+=pSnap.size;
+        commHist+=hSnap.size;
+        totalParticipants+=pSnap.size;
+        totalHistorial+=hSnap.size;
+        totalDrops+=subs.length;
+      }catch(_){}
+    }
+    try{
+      const dpSnap=await getDocs(collection(db,'communities',c.id,'drops-particulares'));
+      totalDparts+=dpSnap.size;
+    }catch(_){}
+    commStats.push({c,commParts,commHist,subs:subs.length});
+  }
+
+  grid.innerHTML=`
+    <div class="stat-card green"><div class="stat-label">Participantes activos</div><div class="stat-val">${totalParticipants}</div><div class="stat-sub">En todos los drops</div></div>
+    <div class="stat-card blue"><div class="stat-label">Drops completados</div><div class="stat-val">${totalHistorial}</div><div class="stat-sub">En historial</div></div>
+    <div class="stat-card purple"><div class="stat-label">Drops particulares</div><div class="stat-val">${totalDparts}</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Secciones totales</div><div class="stat-val">${allComms.reduce((a,c)=>a+(c.subs?Object.keys(c.subs).length:0),0)}</div></div>
+    <div class="stat-card red"><div class="stat-label">Usuarios baneados</div><div class="stat-val">${allUsers.filter(u=>u.banned).length}</div></div>
+  `;
+
+  // Top comms
+  const topComms=commStats.sort((a,b)=>b.commParts-a.commParts).slice(0,8);
+  document.getElementById('stats-top-comms').innerHTML=`<table>
+    <thead><tr><th>Comunidad</th><th>Secciones</th><th>Participantes activos</th><th>Drops completados</th></tr></thead>
+    <tbody>${topComms.map(({c,subs,commParts,commHist})=>`<tr>
+      <td><span style="font-size:16px;margin-right:6px;">${esc(c.emoji||'🎯')}</span><strong>${esc(c.name||c.id)}</strong></td>
+      <td>${subs}</td>
+      <td><span class="badge badge-b">${commParts}</span></td>
+      <td><span class="badge badge-y">${commHist}</span></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+
+  // Top users
+  const topUsers=allUsers.filter(u=>u.entradas>0).sort((a,b)=>(b.entradas||0)-(a.entradas||0)).slice(0,8);
+  document.getElementById('stats-top-users').innerHTML=topUsers.length?`<table>
+    <thead><tr><th>Usuario</th><th>Entradas</th><th>Racha</th><th>Estado</th></tr></thead>
+    <tbody>${topUsers.map(u=>`<tr>
+      <td><strong>@${esc(u.username||'—')}</strong><div style="font-size:11px;color:var(--tx3);">${esc(u.name||'')}</div></td>
+      <td><span class="badge badge-g">${u.entradas}</span></td>
+      <td>${u.rachaActual||0}🔥</td>
+      <td><span class="badge ${u.banned?'badge-r':'badge-g'}">${u.banned?'Baneado':'Activo'}</span></td>
+    </tr>`).join('')}</tbody>
+  </table>`:'<div class="empty"><div class="empty-icon">🏆</div>Sin datos de entradas</div>';
+};
+
+// ─── COMPROBANTES PENDIENTES ──────────────────────────────
+window.loadComprobantes = async function(){
+  const el = document.getElementById('fact-comprobantes');
+  if(!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{
+    const snap = await getDocs(query(
+      collection(db,'superadmin','facturacion','pagos_rifa'),
+      orderBy('ts','desc')
+    ));
+    const pendientes = [];
+    snap.forEach(d=>{ if(d.data().estado==='pendiente') pendientes.push({id:d.id,...d.data()}); });
+
+    // Also update badge in sidebar
+    const badge = document.querySelector('.nav-item[onclick*="facturacion"] .sidebar-badge');
+
+    if(!pendientes.length){
+      el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>Sin comprobantes pendientes</div>';
+      return;
+    }
+
+    el.innerHTML = pendientes.map(p=>`
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:16px;border-bottom:.5px solid var(--bd);">
+        <img src="${p.comprobanteUrl}" onclick="window.open('${p.comprobanteUrl}','_blank')"
+          style="width:80px;height:80px;object-fit:cover;border-radius:var(--rads);cursor:pointer;flex-shrink:0;border:1px solid var(--bd);"/>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${esc(p.commEmoji||'🎯')} ${esc(p.commName||p.commId)}</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:2px;">${esc(p.rifaName||'Rifa')} · Rifa nº${p.nRifa||'?'} del mes</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:var(--y);margin:4px 0;">${p.precio||0}€</div>
+          <div style="font-size:11px;color:var(--tx3);">Admin: ${esc(p.adminUser||'—')} · ${p.ts?.toDate?p.ts.toDate().toLocaleDateString('es-ES'):'—'}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-g btn-sm" onclick="confirmarPagoRifa('${p.id}','${p.commId}','${p.subId}',${p.precio||0})">✅ Confirmar pago</button>
+            <button class="btn btn-r btn-sm" onclick="rechazarPagoRifa('${p.id}','${p.commId}','${p.adminUser||''}')">❌ Rechazar</button>
+            <a href="${p.comprobanteUrl}" target="_blank" class="btn btn-neu btn-sm">🔍 Ver foto</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }catch(e){
+    el.innerHTML = '<div style="color:var(--r);padding:16px;">Error: '+e.message+'</div>';
+  }
+};
+
+window.confirmarPagoRifa = async function(docId, commId, subId, precio){
+  if(!confirm(`¿Confirmar el pago de ${precio}€ y desbloquear el sorteo?`)) return;
+  try{
+    const c = allComms.find(x=>x.id===commId);
+    const mes = new Date().toISOString().slice(0,7);
+
+    // 1. Marcar comprobante como confirmado
+    await updateDoc(doc(db,'superadmin','facturacion','pagos_rifa',docId),{
+      estado: 'confirmado', confirmedAt: serverTimestamp()
+    });
+
+    // 2. Registrar en historial de pagos
+    const pagoData = await getDoc(doc(db,'superadmin','facturacion','pagos_rifa',docId));
+    const pd = pagoData.data();
+    await addDoc(collection(db,'superadmin','facturacion','pagos'),{
+      commId, commName:c?.name||commId,
+      planNombre: pd?.nRifa<=3?'Básico':pd?.nRifa<=10?'Estándar':'Avanzado',
+      rifaName: pd?.rifaName||'Rifa',
+      nRifa: pd?.nRifa||1,
+      importe: precio,
+      metodo: 'Comprobante app',
+      fecha: new Date().toLocaleDateString('es-ES'),
+      mes, ts: serverTimestamp()
+    });
+
+    // 3. Registrar rifa en log (para contador del mes)
+    await addDoc(collection(db,'superadmin','facturacion','rifas_log'),{
+      commId, commName:c?.name||commId, commEmoji:c?.emoji||'🎯',
+      subId, rifaName:pd?.rifaName||'Rifa',
+      ganador:'—', precioRifa:precio, mes, ts:serverTimestamp()
+    });
+
+    // 4. Actualizar contador en facturacion/comunidades
+    const factRef = doc(db,'superadmin','facturacion','comunidades',commId);
+    const factSnap = await getDoc(factRef);
+    const factActual = factSnap.exists() ? factSnap.data() : {};
+    const rifasAnt = (factActual.mes===mes) ? (factActual.drops||0) : 0;
+    const rifasNew = rifasAnt + 1;
+    const planKey = rifasNew<=3?'basico':rifasNew<=10?'estandar':'avanzado';
+    await setDoc(factRef,{
+      commId, commName:c?.name||commId, commEmoji:c?.emoji||'🎯',
+      plan:planKey, drops:rifasNew, mes,
+      bloqueada:false, estado:'al_dia', updatedAt:serverTimestamp()
+    },{merge:true});
+
+    // 5. Notificar al admin de la comunidad que ya puede sortear
+    const adminUser = pd?.adminUser;
+    if(adminUser){
+      await addDoc(collection(db,'communities',commId,'users',adminUser,'notificaciones'),{
+        icon:'✅', text:'¡Pago confirmado! Ya puedes realizar el sorteo',
+        sub:`Tu pago de ${precio}€ para la rifa "${pd?.rifaName||'Drop'}" ha sido confirmado. Entra en la sección y realiza el sorteo.`,
+        link:'participar', tipo:'info', leida:false, ts:serverTimestamp()
+      });
+    }
+
+    toast(`✅ Pago confirmado — sorteo desbloqueado para ${c?.name||commId}`);
+    loadComprobantes();
+    loadFacturacion();
+  }catch(e){ toast('Error: '+e.message); }
+};
+
+window.rechazarPagoRifa = async function(docId, commId, adminUser){
+  const motivo = prompt('Motivo del rechazo (se enviará al admin):');
+  if(motivo===null) return;
+  try{
+    await updateDoc(doc(db,'superadmin','facturacion','pagos_rifa',docId),{
+      estado:'rechazado', rechazadoAt:serverTimestamp(), motivoRechazo:motivo
+    });
+    const c = allComms.find(x=>x.id===commId);
+    if(adminUser){
+      await addDoc(collection(db,'communities',commId,'users',adminUser,'notificaciones'),{
+        icon:'❌', text:'Comprobante de pago rechazado',
+        sub:`Tu comprobante no ha sido aceptado. Motivo: ${motivo||'—'}. Vuelve a subir el comprobante correcto para poder sortear.`,
+        link:'', tipo:'info', leida:false, ts:serverTimestamp()
+      });
+    }
+    toast('❌ Comprobante rechazado');
+    loadComprobantes();
+  }catch(e){ toast('Error: '+e.message); }
+};
+
+// ─── LOAD NOTIF DEST (called on panel load) ──────────────
+window.loadNotifDest=function(){};
+
+// ─── FACTURACIÓN ─────────────────────────────────────────
+const PLANES = {
+  basico:   { nombre:'Básico',        precioRifa:25, desc:'1-3 rifas/mes · se cobra por rifa realizada',  fijo:false },
+  estandar: { nombre:'Estándar',      precioRifa:15, desc:'5-10 rifas/mes · se cobra por rifa realizada', fijo:false },
+  avanzado: { nombre:'Avanzado',      precioRifa:10, desc:'+10 rifas/mes · se cobra por rifa realizada',  fijo:false },
+  pro:      { nombre:'Pro Ilimitado', precioRifa:0,  mensual:150, desc:'Rifas ilimitadas · pago mensual fijo al inicio', fijo:true },
+};
+
+let factData = {}; // commId -> {plan, drops, estado, pagos:[]}
+let _pagoTarget = null;
+let _avisoTarget = null;
+
+function calcImporte(planKey, rifas){
+  // El plan se autoregula por volumen — el precio aplica a TODAS las rifas del mes
+  // No hace falta planKey para el cálculo, pero se respeta si es Pro fijo
+  const p = PLANES[planKey];
+  if(!p) return 0;
+  if(p.fijo) return p.mensual;
+  const n = rifas||0;
+  if(n === 0) return 0;
+  if(n <= 3)  return n * 25;  // Básico
+  if(n <= 10) return n * 15;  // Estándar
+  return n * 10;              // Avanzado
+}
+
+function planAutodetect(rifas){
+  // Detecta automáticamente el plan según las rifas
+  const n = rifas||0;
+  if(n <= 3)  return 'basico';
+  if(n <= 10) return 'estandar';
+  return 'avanzado';
+}
+
+function mesActual(){
+  const n=new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+}
+
+window.loadFacturacion = async function(){
+  document.getElementById('fact-table').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  // Load billing data from Firestore superadmin/facturacion
+  try{
+    const snap = await getDocs(collection(db,'superadmin','facturacion','comunidades'));
+    factData = {};
+    snap.forEach(d=>{ factData[d.id] = d.data(); });
+  }catch(e){ factData={}; }
+
+  // Load real rifa counts from app's automatic log
+  const mes = mesActual();
+  try{
+    const rifaLogSnap = await getDocs(collection(db,'superadmin','facturacion','rifas_log'));
+    const rifasByComm = {};
+    rifaLogSnap.forEach(d=>{
+      const r = d.data();
+      if(r.mes===mes){
+        rifasByComm[r.commId] = (rifasByComm[r.commId]||0)+1;
+      }
+    });
+    // Sync real rifa counts into factData
+    for(const [commId, count] of Object.entries(rifasByComm)){
+      if(factData[commId]){
+        factData[commId].drops = count;
+      }
+    }
+  }catch(_){}
+
+  // Ensure all communities have an entry
+  for(const c of allComms){
+    if(!factData[c.id]){
+      factData[c.id] = { commName:c.name||c.id, commEmoji:c.emoji||'🎯', plan:'basico', drops:0, estado:'pendiente', pagos:[], mes:mesActual() };
+    }
+  }
+
+  renderFacturacion();
+  await loadHistorialReciente();
+  await loadComprobantes();
+  calcResumenFacturacion();
+  poblarSelectComms();
+};
+
+function calcResumenFacturacion(){
+  let cobrado=0, pendiente=0, mrr=0, activas=0;
+  const mes = mesActual();
+  for(const [id, d] of Object.entries(factData)){
+    const importe = calcImporte(d.plan, d.drops);
+    if(d.estado==='pagado' && d.mes===mes) cobrado+=importe;
+    else if(d.estado!=='pagado') pendiente+=importe;
+    mrr += calcImporte(d.plan, PLANES[d.plan]?.fijo ? 1 : (d.drops||3));
+    activas++;
+  }
+  document.getElementById('fs-cobrado').textContent = cobrado+'€';
+  document.getElementById('fs-pendiente').textContent = pendiente+'€';
+  document.getElementById('fs-activas').textContent = activas;
+  document.getElementById('fs-mrr').textContent = '~'+mrr+'€';
+}
+
+window.renderFacturacion = function(){
+  const filter = document.getElementById('fact-filter')?.value||'all';
+  const el = document.getElementById('fact-table');
+  const mes = mesActual();
+
+  let rows = allComms.map(c=>{
+    const d = factData[c.id]||{plan:'basico',drops:0,estado:'pendiente',mes:mes};
+    const rifas = d.drops||0;
+    // Plan se autodetecta por volumen (salvo Pro que es fijo manual)
+    const autoKey = d.plan==='pro' ? 'pro' : planAutodetect(rifas);
+    const plan = PLANES[autoKey]||PLANES.basico;
+    const importe = calcImporte(d.plan, rifas);
+    const precioRifa = rifas<=3 ? 25 : rifas<=10 ? 15 : 10;
+    const esMesActual = d.mes===mes;
+    const estado = esMesActual ? (d.estado||'pendiente') : 'pendiente';
+    return { c, d, plan, importe, estado, rifas, precioRifa, autoKey };
+  });
+
+  if(filter!=='all') rows = rows.filter(r=>r.estado===filter);
+  if(!rows.length){ el.innerHTML='<div class="empty"><div class="empty-icon">💶</div>Sin resultados</div>'; return; }
+
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th>Comunidad</th><th>Plan</th><th>Rifas/mes</th><th>Importe</th><th>Estado</th><th>Acciones</th>
+    </tr></thead>
+    <tbody>${rows.map(({c,d,plan,importe,estado})=>`<tr>
+      <td><span style="font-size:18px;margin-right:6px;">${esc(c.emoji||'🎯')}</span><strong>${esc(c.name||c.id)}</strong></td>
+      <td><span class="badge badge-b">${esc(plan.nombre)}</span><div style="font-size:10px;color:var(--tx3);margin-top:2px;">${plan.fijo?'fijo mensual':precioRifa+'€/rifa'}</div></td>
+      <td style="text-align:center;">${plan.fijo ? '∞' : rifas+' rifas'}</td>
+      <td style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:${importe>0?'var(--g)':'var(--tx3)'};">${importe}€</td>
+      <td>
+        ${estado==='pagado'
+          ? '<span class="badge badge-g">✅ Pagado</span>'
+          : estado==='atrasado'
+          ? '<span class="badge badge-r">🔴 Atrasado</span>'
+          : '<span class="badge badge-y">⏳ Pendiente</span>'
+        }
+      </td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="btn btn-g btn-sm" onclick="abrirModalPago('${c.id}')">💶 Pago</button>
+        <button class="btn btn-y btn-sm" onclick="abrirAvisoPago('${c.id}')">⚠️ Avisar</button>
+        <button class="btn btn-neu btn-sm" onclick="abrirHistComm('${c.id}')">📋 Historial</button>
+        <button class="btn btn-neu btn-sm" onclick="editarPlanComm('${c.id}')">✏️ Plan</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+};
+
+async function loadHistorialReciente(){
+  const el = document.getElementById('fact-historial');
+  try{
+    const snap = await getDocs(query(collection(db,'superadmin','facturacion','pagos'),orderBy('fecha','desc'),limit(20)));
+    if(snap.empty){ el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Sin pagos registrados aún</div>'; return; }
+    const pagos=[];
+    snap.forEach(d=>pagos.push({id:d.id,...d.data()}));
+    el.innerHTML=`<table>
+      <thead><tr><th>Comunidad</th><th>Plan</th><th>Importe</th><th>Método</th><th>Fecha</th><th>Notas</th></tr></thead>
+      <tbody>${pagos.map(p=>`<tr>
+        <td><strong>${esc(p.commName||p.commId)}</strong></td>
+        <td><span class="badge badge-b">${esc(p.planNombre||'—')}</span></td>
+        <td style="font-family:'Syne',sans-serif;font-weight:800;color:var(--g);">${p.importe||0}€</td>
+        <td>${esc(p.metodo||'—')}</td>
+        <td style="font-size:12px;color:var(--tx2);">${esc(p.fecha||'—')}</td>
+        <td style="font-size:12px;color:var(--tx3);">${esc(p.notas||'—')}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }catch(e){ el.innerHTML='<div style="color:var(--r);padding:16px;">Error: '+e.message+'</div>'; }
+}
+
+function poblarSelectComms(){
+  const sel = document.getElementById('mp-comm');
+  if(!sel) return;
+  sel.innerHTML='<option value="">Selecciona comunidad...</option>';
+  allComms.forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id; o.textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
+    sel.appendChild(o);
+  });
+}
+
+window.openModalAsignarPlan = function(){
+  poblarSelectComms();
+  document.getElementById('mp-drops').value=0;
+  document.getElementById('mp-nota').value='';
+  document.getElementById('mp-preview').style.display='none';
+  document.getElementById('modal-plan-title').textContent='Asignar / editar plan';
+  document.getElementById('btn-guardar-plan').dataset.editId='';
+  openModal('modal-plan');
+};
+
+window.editarPlanComm = function(commId){
+  poblarSelectComms();
+  const d = factData[commId]||{};
+  document.getElementById('mp-comm').value = commId;
+  document.getElementById('mp-plan').value = d.plan||'basico';
+  document.getElementById('mp-drops').value = d.drops||0;
+  document.getElementById('mp-nota').value = d.nota||'';
+  document.getElementById('modal-plan-title').textContent='Editar plan';
+  document.getElementById('btn-guardar-plan').dataset.editId=commId;
+  updatePlanPreview();
+  openModal('modal-plan');
+};
+
+window.updatePlanPreview = function(){
+  const planKey = document.getElementById('mp-plan').value;
+  const rifas = parseInt(document.getElementById('mp-drops').value)||0;
+  const plan = PLANES[planKey];
+  const descEl = document.getElementById('mp-plan-desc');
+  if(!plan){ document.getElementById('mp-preview').style.display='none'; return; }
+
+  // Hide rifas input for pro (fixed monthly)
+  const dropsInput = document.getElementById('mp-drops');
+  if(dropsInput) dropsInput.style.display = plan.fijo ? 'none' : 'block';
+
+  if(plan.fijo){
+    if(descEl) descEl.textContent = 'Rifas ilimitadas · pago mensual fijo al inicio del mes';
+    document.getElementById('mp-preview').style.display='block';
+    document.getElementById('mp-importe').textContent = '150€';
+    document.getElementById('mp-calculo').textContent = 'Cuota mensual fija — se cobra al inicio del mes';
+    return;
+  }
+
+  // Autodetect plan and price based on volume
+  const autoKey = planAutodetect(rifas);
+  const autoPlan = PLANES[autoKey];
+  const precioRifa = rifas<=3 ? 25 : rifas<=10 ? 15 : 10;
+  const importe = calcImporte(planKey, rifas);
+
+  if(descEl) descEl.textContent = rifas===0 ? '' :
+    rifas<=3  ? '1-3 rifas → 25€/rifa' :
+    rifas<=10 ? '4-10 rifas → 15€/rifa (precio baja para todas)' :
+                '+10 rifas → 10€/rifa (precio baja para todas)';
+
+  document.getElementById('mp-preview').style.display = rifas>0 ? 'block' : 'none';
+  document.getElementById('mp-importe').textContent = importe+'€';
+  document.getElementById('mp-calculo').textContent =
+    `${rifas} rifas × ${precioRifa}€ = ${importe}€ · Plan autodetectado: ${autoPlan.nombre}`;
+};
+
+window.guardarPlan = async function(){
+  const commId = document.getElementById('mp-comm').value;
+  const planKey = document.getElementById('mp-plan').value;
+  const drops = parseInt(document.getElementById('mp-drops').value)||0;
+  const nota = document.getElementById('mp-nota').value.trim();
+  if(!commId){ toast('Selecciona una comunidad'); return; }
+  const c = allComms.find(x=>x.id===commId);
+  const btn = document.getElementById('btn-guardar-plan');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    const data = {
+      commId, commName:c?.name||commId, commEmoji:c?.emoji||'🎯',
+      plan:planKey, drops, nota, mes:mesActual(),
+      estado: factData[commId]?.estado||'pendiente',
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(doc(db,'superadmin','facturacion','comunidades',commId), data, {merge:true});
+    factData[commId] = {...(factData[commId]||{}), ...data};
+    closeModal('modal-plan');
+    renderFacturacion();
+    calcResumenFacturacion();
+    toast('✅ Plan guardado');
+  }catch(e){ toast('Error: '+e.message); }
+  btn.disabled=false; btn.textContent='Guardar plan';
+};
+
+window.abrirModalPago = function(commId){
+  const c = allComms.find(x=>x.id===commId);
+  const d = factData[commId]||{plan:'basico',drops:0};
+  const importe = calcImporte(d.plan, d.drops);
+  _pagoTarget = commId;
+  document.getElementById('modal-pago-title').textContent='Registrar pago — '+(c?.name||commId);
+  document.getElementById('modal-pago-info').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="font-weight:700;">${esc(c?.name||commId)}</div><div style="color:var(--tx3);font-size:12px;">${esc(plan.nombre)} · ${plan.fijo ? "150€/mes fijo" : (d.drops||0)+" rifas × "+(d.drops<=3?25:d.drops<=10?15:10)+"€/rifa"}</div></div>
+      <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;color:var(--g);">${importe}€</div>
+    </div>`;
+  document.getElementById('pago-importe').value = importe;
+  document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pago-notas').value='';
+  openModal('modal-pago');
+};
+
+window.confirmarPago = async function(){
+  if(!_pagoTarget){ return; }
+  const importe = parseFloat(document.getElementById('pago-importe').value)||0;
+  const metodo = document.getElementById('pago-metodo').value;
+  const fecha = document.getElementById('pago-fecha').value;
+  const notas = document.getElementById('pago-notas').value.trim();
+  const c = allComms.find(x=>x.id===_pagoTarget);
+  const d = factData[_pagoTarget]||{};
+  const btn = document.getElementById('btn-confirmar-pago');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    // Save payment record
+    await addDoc(collection(db,'superadmin','facturacion','pagos'),{
+      commId:_pagoTarget, commName:c?.name||_pagoTarget,
+      planNombre:PLANES[d.plan]?.nombre||d.plan, rifas:d.drops||0,
+      importe, metodo, fecha, notas,
+      mes:mesActual(), ts:serverTimestamp()
+    });
+    // Update comm billing state
+    await setDoc(doc(db,'superadmin','facturacion','comunidades',_pagoTarget),{
+      estado:'pagado', ultimoPago:{importe,metodo,fecha}, mes:mesActual()
+    },{merge:true});
+    factData[_pagoTarget] = {...(factData[_pagoTarget]||{}), estado:'pagado', mes:mesActual()};
+    closeModal('modal-pago');
+    renderFacturacion();
+    calcResumenFacturacion();
+    await loadHistorialReciente();
+    toast('✅ Pago registrado — '+importe+'€');
+  }catch(e){ toast('Error: '+e.message); }
+  btn.disabled=false; btn.textContent='✅ Confirmar pago';
+};
+
+window.abrirAvisoPago = function(commId){
+  const c = allComms.find(x=>x.id===commId);
+  const d = factData[commId]||{plan:'basico',drops:0};
+  const importe = calcImporte(d.plan, d.drops);
+  _avisoTarget = commId;
+  document.getElementById('modal-ap-info').innerHTML=`Vas a enviar un aviso de pago a los admins de <strong>${esc(c?.name||commId)}</strong>. Importe pendiente: <strong style="color:var(--g);">${importe}€</strong>`;
+  document.getElementById('aviso-msg').value=`Hola, te recordamos que tienes pendiente el pago de ${importe}€ correspondiente a este mes en Drops Oficial. Plan: ${PLANES[d.plan]?.nombre||d.plan}. ¡Gracias!`;
+  openModal('modal-aviso-pago');
+};
+
+window.enviarAvisoPago = async function(){
+  if(!_avisoTarget) return;
+  const msg = document.getElementById('aviso-msg').value.trim();
+  const c = allComms.find(x=>x.id===_avisoTarget);
+  const adminUsername = c?.adminUser;
+  const btn = document.getElementById('btn-enviar-aviso');
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    // Solo notificar al admin de la comunidad (no a todos los usuarios)
+    // El admin está en communities/{id}/users/{adminUsername}
+    let notifSent = false;
+    if(adminUsername){
+      const adminRef = doc(db,'communities',_avisoTarget,'users',adminUsername);
+      const adminSnap = await getDoc(adminRef);
+      if(adminSnap.exists()){
+        const notifRef = doc(collection(db,'communities',_avisoTarget,'users',adminUsername,'notificaciones'));
+        await setDoc(notifRef,{
+          text:'💶 Aviso de pago pendiente — Drops Oficial',
+          sub:msg, icon:'💶', tipo:'info', leida:false,
+          ts:serverTimestamp(), link:'', from:'superadmin'
+        });
+        notifSent = true;
+      }
+      // También intentar por uid en la colección global de users
+      const globalUsersSnap = await getDocs(collection(db,'users'));
+      for(const ud of globalUsersSnap.docs){
+        if(ud.data().username===adminUsername){
+          const uid = ud.id;
+          // Buscar en todas las comunidades donde esté como user
+          try{
+            const userCommRef = doc(db,'communities',_avisoTarget,'users',adminUsername);
+            const notifRef2 = doc(collection(db,'communities',_avisoTarget,'users',adminUsername,'notificaciones'));
+            await setDoc(notifRef2,{
+              text:'💶 Aviso de pago pendiente — Drops Oficial',
+              sub:msg, icon:'💶', tipo:'info', leida:false,
+              ts:serverTimestamp(), link:'', from:'superadmin'
+            });
+            notifSent = true;
+          }catch(_){}
+          break;
+        }
+      }
+    }
+    // Mark as atrasado if still pending
+    if(factData[_avisoTarget]?.estado!=='pagado'){
+      await setDoc(doc(db,'superadmin','facturacion','comunidades',_avisoTarget),{estado:'atrasado'},{merge:true});
+      if(factData[_avisoTarget]) factData[_avisoTarget].estado='atrasado';
+    }
+    closeModal('modal-aviso-pago');
+    renderFacturacion();
+    toast(notifSent
+      ? `⚠️ Aviso enviado al admin "${adminUsername}" de ${c?.name||_avisoTarget}`
+      : `⚠️ Aviso registrado — no se encontró el admin en la app`
+    );
+  }catch(e){ toast('Error: '+e.message); }
+  btn.disabled=false; btn.textContent='⚠️ Enviar aviso';
+};
+
+window.abrirHistComm = async function(commId){
+  const c = allComms.find(x=>x.id===commId);
+  document.getElementById('modal-hc-title').textContent=`📋 Historial — ${c?.name||commId}`;
+  document.getElementById('modal-hc-content').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  openModal('modal-hist-comm');
+  try{
+    // Pagos registrados
+    const pagoSnap = await getDocs(query(collection(db,'superadmin','facturacion','pagos'),orderBy('fecha','desc')));
+    const pagos=[];
+    pagoSnap.forEach(d=>{ if(d.data().commId===commId) pagos.push({id:d.id,...d.data()}); });
+
+    // Rifas completadas (log automático desde la app)
+    const rifaSnap = await getDocs(query(collection(db,'superadmin','facturacion','rifas_log'),orderBy('ts','desc')));
+    const rifas=[];
+    rifaSnap.forEach(d=>{ if(d.data().commId===commId) rifas.push({id:d.id,...d.data()}); });
+
+    const d = factData[commId]||{};
+    const totalCobrado = pagos.reduce((a,p)=>a+(p.importe||0),0);
+    const mes = new Date().toISOString().slice(0,7);
+    const rifasMes = rifas.filter(r=>r.mes===mes);
+    const rifasTotal = rifasMes.length;
+    const precioRifa = rifasTotal<=3?25:rifasTotal<=10?15:10;
+    const importeMes = d.plan==='pro' ? 150 : rifasTotal*precioRifa;
+
+    document.getElementById('modal-hc-content').innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Plan</div>
+          <div style="font-weight:700;font-size:12px;margin-top:4px;">${esc(PLANES[d.plan]?.nombre||'—')}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Rifas este mes</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;margin-top:4px;">${rifasTotal}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">A cobrar este mes</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:var(--y);margin-top:4px;">${importeMes}€</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">Total cobrado</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:var(--g);margin-top:4px;">${totalCobrado}€</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">🎯 Rifas completadas este mes (registro automático)</div>
+      ${rifasMes.length?`
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;">
+        <thead><tr style="border-bottom:1px solid var(--bd);">
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Rifa</th>
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Ganador</th>
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Precio</th>
+        </tr></thead>
+        <tbody>${rifasMes.map((r,i)=>`<tr style="border-bottom:.5px solid var(--bd);">
+          <td style="padding:8px;">Rifa ${i+1} — ${esc(r.rifaName||'—')}</td>
+          <td style="padding:8px;color:var(--tx2);">${esc(r.ganador||'—')}</td>
+          <td style="padding:8px;font-weight:700;color:var(--g);">${r.precioRifa||precioRifa}€</td>
+        </tr>`).join('')}</tbody>
+      </table>`
+      :'<div style="color:var(--tx3);font-size:12px;padding:8px 0;margin-bottom:12px;">Sin rifas registradas este mes</div>'}
+
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">💶 Pagos recibidos</div>
+      ${pagos.length?`
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:1px solid var(--bd);">
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Fecha</th>
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Importe</th>
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Método</th>
+          <th style="padding:8px;text-align:left;color:var(--tx3);">Notas</th>
+        </tr></thead>
+        <tbody>${pagos.map(p=>`<tr style="border-bottom:.5px solid var(--bd);">
+          <td style="padding:8px;">${esc(p.fecha||'—')}</td>
+          <td style="padding:8px;font-weight:700;color:var(--g);">${p.importe||0}€</td>
+          <td style="padding:8px;">${esc(p.metodo||'—')}</td>
+          <td style="padding:8px;color:var(--tx3);">${esc(p.notas||'—')}</td>
+        </tr>`).join('')}</tbody>
+      </table>`:'<div style="color:var(--tx3);font-size:12px;padding:8px 0;">Sin pagos registrados</div>'}
+    `;
+  }catch(e){ document.getElementById('modal-hc-content').innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>'; }
+};
+
+</script>
+</body>
+</html>

@@ -1198,6 +1198,37 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   </div>
 
   <div class="panel" id="p-sorteo">
+
+    <!-- BLOQUEO PAGO RIFA -->
+    <div id="sorteo-pago-gate" style="display:none;background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #f59e0b;border-radius:var(--rad);padding:20px;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:900;margin-bottom:6px;">💶 Pago pendiente para realizar el sorteo</div>
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:14px;" id="sorteo-gate-msg">Para poder hacer el sorteo debes abonar el importe correspondiente a esta rifa.</div>
+
+      <div id="sorteo-gate-comprobante-sent" style="display:none;background:#e8f5e9;border:1px solid #4caf50;border-radius:var(--rads);padding:14px;margin-bottom:10px;text-align:center;">
+        <div style="font-size:20px;">⏳</div>
+        <div style="font-weight:700;margin-top:4px;">Comprobante enviado</div>
+        <div style="font-size:12px;color:#555;margin-top:4px;">Esperando confirmación del administrador de Drops Oficial. Te avisaremos en cuanto se confirme.</div>
+      </div>
+
+      <div id="sorteo-gate-upload-area">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Sube el comprobante de pago:</div>
+        <div style="background:#fff;border:2px dashed #f59e0b;border-radius:var(--rads);padding:16px;text-align:center;cursor:pointer;" onclick="document.getElementById('rifa-comp-file').click()" id="rifa-comp-upload">
+          <div style="font-size:28px;">📷</div>
+          <div style="font-size:12px;font-weight:700;margin-top:4px;" id="rifa-comp-txt">Toca para subir foto del Bizum/transferencia</div>
+        </div>
+        <input type="file" id="rifa-comp-file" accept="image/*" style="display:none;" onchange="onRifaCompFile(event)"/>
+        <img id="rifa-comp-preview" style="display:none;width:100%;border-radius:var(--rads);max-height:180px;object-fit:cover;margin-top:8px;"/>
+        <button class="btn btn-g" style="width:100%;margin-top:10px;" onclick="enviarComprobantePagoRifa()" id="btn-enviar-comp-rifa">📤 Enviar comprobante</button>
+      </div>
+    </div>
+
+    <!-- BLOQUEO COMUNIDAD DEUDA -->
+    <div id="sorteo-deuda-gate" style="display:none;background:linear-gradient(135deg,#fff0f0,#ffe0e0);border:2px solid var(--r);border-radius:var(--rad);padding:20px;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:900;margin-bottom:6px;">🚫 Comunidad bloqueada por deuda</div>
+      <div style="font-size:13px;color:var(--tx2);">Tienes pagos pendientes con Drops Oficial. No puedes realizar nuevos sorteos ni crear nuevas rifas hasta que regularices el pago. Contacta con el administrador.</div>
+    </div>
+
+    <div id="sorteo-contenido">
     <div class="sec">Números confirmados</div>
     <div id="sorteo-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;"></div>
     <div class="card">
@@ -1234,6 +1265,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         <button class="btn btn-pu" style="width:100%;" onclick="cerrarRifa()">Cerrar drop y guardar en historial</button>
       </div>
     </div>
+    </div><!-- /sorteo-contenido -->
   </div>
 
   <div class="panel" id="p-finanzas">
@@ -3812,7 +3844,7 @@ function renderAll(){
   }else if(pubCd){pubCd.style.display='none';stopCountdown();window._lastCountdownTarget=null;}
   checkRifaLlena();
   if(innerTab==='pagos')buildPagos(cfg);
-  if(innerTab==='sorteo')buildSorteoChips();
+  if(innerTab==='sorteo'){buildSorteoChips();if(isCommAdmin)checkSorteoGate();}
   if(innerTab==='finanzas')buildFinanzas(cfg);
 }
 
@@ -6557,6 +6589,168 @@ window.guardarModalRegistro=async function(btn){
   }catch(e){toast('Error al guardar: '+e.message);}
 };
 
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE PAGO DE RIFAS — BLOQUEO SORTEO
+// ══════════════════════════════════════════════════════════════
+
+window._rifaCompFile = null;
+
+window.onRifaCompFile = function(e){
+  const file = e.target.files[0]; if(!file) return;
+  window._rifaCompFile = file;
+  const prev = document.getElementById('rifa-comp-preview');
+  const txt = document.getElementById('rifa-comp-txt');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+    if(txt) txt.textContent = '✅ Foto seleccionada — pulsa Enviar';
+  };
+  reader.readAsDataURL(file);
+};
+
+// Calcula el precio de esta rifa según cuántas lleva el mes
+async function calcPrecioRifaActual(commId){
+  const mes = new Date().toISOString().slice(0,7);
+  try{
+    const snap = await getDocs(query(
+      collection(db,'superadmin','facturacion','rifas_log'),
+      where('commId','==',commId),
+      where('mes','==',mes)
+    ));
+    const rifasEsteMes = snap.size; // rifas YA completadas y pagadas
+    const nRifa = rifasEsteMes + 1; // esta será la siguiente
+    const precio = nRifa <= 3 ? 25 : nRifa <= 10 ? 15 : 10;
+    return { nRifa, precio, mes };
+  }catch(e){
+    return { nRifa:1, precio:25, mes };
+  }
+}
+
+// Comprueba si la comunidad está bloqueada por deuda
+async function checkComunidadBloqueada(commId){
+  try{
+    const snap = await getDoc(doc(db,'superadmin','facturacion','comunidades',commId));
+    if(snap.exists() && snap.data().bloqueada === true) return true;
+  }catch(_){}
+  return false;
+}
+
+// Comprueba si esta rifa (subId) ya tiene el pago confirmado
+async function checkRifaPagada(commId, subId){
+  try{
+    const snap = await getDoc(doc(db,'superadmin','facturacion','pagos_rifa',commId+'_'+subId));
+    if(snap.exists()){
+      const d = snap.data();
+      if(d.estado === 'confirmado') return { pagada:true };
+      if(d.estado === 'pendiente') return { pagada:false, enviado:true };
+    }
+  }catch(_){}
+  return { pagada:false, enviado:false };
+}
+
+// Muestra u oculta el bloqueo del sorteo
+window.checkSorteoGate = async function(){
+  if(!isCommAdmin) return; // solo afecta al admin
+  const gateEl = document.getElementById('sorteo-pago-gate');
+  const deudaEl = document.getElementById('sorteo-deuda-gate');
+  const contenidoEl = document.getElementById('sorteo-contenido');
+  if(!gateEl || !deudaEl || !contenidoEl) return;
+
+  // Check si comunidad bloqueada por deuda anterior
+  const bloqueada = await checkComunidadBloqueada(currentCommId);
+  if(bloqueada){
+    deudaEl.style.display = 'block';
+    gateEl.style.display = 'none';
+    contenidoEl.style.display = 'none';
+    return;
+  }
+
+  // Check si esta rifa concreta ya está pagada
+  const { pagada, enviado } = await checkRifaPagada(currentCommId, currentSubId);
+
+  if(pagada){
+    // Sorteo libre — todo normal
+    gateEl.style.display = 'none';
+    deudaEl.style.display = 'none';
+    contenidoEl.style.display = 'block';
+    return;
+  }
+
+  // Hay que pagar — mostrar gate
+  const { nRifa, precio } = await calcPrecioRifaActual(currentCommId);
+  const sub = communities[currentCommId]?.subs?.[currentSubId];
+  const cfg = sub?.config||{};
+  const msgEl = document.getElementById('sorteo-gate-msg');
+  if(msgEl) msgEl.innerHTML = `Esta es tu rifa nº<strong>${nRifa}</strong> de este mes. Importe a abonar: <strong style="font-size:18px;color:#f59e0b;">${precio}€</strong><br><small style="color:#888;">Bizum / Transferencia a Drops Oficial. Una vez confirmado el pago podrás hacer el sorteo.</small>`;
+
+  const sentEl = document.getElementById('sorteo-gate-comprobante-sent');
+  const uploadEl = document.getElementById('sorteo-gate-upload-area');
+  if(enviado){
+    sentEl.style.display = 'block';
+    uploadEl.style.display = 'none';
+  } else {
+    sentEl.style.display = 'none';
+    uploadEl.style.display = 'block';
+  }
+
+  gateEl.style.display = 'block';
+  deudaEl.style.display = 'none';
+  contenidoEl.style.display = 'none';
+};
+
+window.enviarComprobantePagoRifa = async function(){
+  if(!window._rifaCompFile){ toast('Selecciona una foto del comprobante'); return; }
+  const btn = document.getElementById('btn-enviar-comp-rifa');
+  btn.disabled = true; btn.textContent = '⏳ Subiendo...';
+  try{
+    const { nRifa, precio, mes } = await calcPrecioRifaActual(currentCommId);
+    const c = communities[currentCommId];
+    const sub = communities[currentCommId]?.subs?.[currentSubId];
+
+    // Upload comprobante to Storage
+    const sr = ref(storage, `facturacion/${currentCommId}/${currentSubId}_${Date.now()}.jpg`);
+    const snap = await uploadBytes(sr, window._rifaCompFile);
+    const url = await getDownloadURL(snap.ref);
+
+    // Save to Firestore
+    const docId = currentCommId + '_' + currentSubId;
+    await setDoc(doc(db,'superadmin','facturacion','pagos_rifa',docId),{
+      commId: currentCommId,
+      commName: c?.name || currentCommId,
+      commEmoji: c?.emoji || '🎯',
+      subId: currentSubId,
+      rifaName: sub?.config?.rifaName || sub?.name || 'Drop',
+      adminUser: c?.adminUser || '',
+      nRifa, precio, mes,
+      comprobanteUrl: url,
+      estado: 'pendiente',
+      ts: serverTimestamp()
+    });
+
+    // Notify super admin via Firestore (admin panel will show it)
+    await addDoc(collection(db,'superadmin','facturacion','alertas'),{
+      tipo: 'comprobante_rifa',
+      commId: currentCommId,
+      commName: c?.name || currentCommId,
+      subId: currentSubId,
+      rifaName: sub?.config?.rifaName || sub?.name || 'Drop',
+      precio, nRifa, comprobanteUrl: url,
+      estado: 'pendiente',
+      ts: serverTimestamp()
+    });
+
+    window._rifaCompFile = null;
+    toast('✅ Comprobante enviado. Espera la confirmación.');
+    // Show "enviado" state
+    document.getElementById('sorteo-gate-comprobante-sent').style.display = 'block';
+    document.getElementById('sorteo-gate-upload-area').style.display = 'none';
+
+  }catch(e){ toast('Error: '+e.message); }
+  btn.disabled = false; btn.textContent = '📤 Enviar comprobante';
+};
+
 window.cerrarRifa=async function(){
   if(!sorteoWinner){toast('Primero calcula el ganador');return;}
   if(!confirm('¿Cerrar este drop y guardar en el historial? Se reiniciará automáticamente para el siguiente.'))return;
@@ -6689,6 +6883,71 @@ window.cerrarRifa=async function(){
         }
       });
     }catch(_){}
+
+    // 7b. Registrar rifa completada en facturación automáticamente
+    try{
+      const _commData = communities[currentCommId];
+      const _adminUser = _commData?.adminUser;
+      const _rifaName = cfg.rifaName || sub?.name || 'Drop';
+      const _mes = new Date().toISOString().slice(0,7); // YYYY-MM
+
+      // Leer estado actual de facturación de esta comunidad
+      const factRef = doc(db,'superadmin','facturacion','comunidades',currentCommId);
+      const factSnap = await getDoc(factRef);
+      const factActual = factSnap.exists() ? factSnap.data() : {};
+
+      // Contar rifas: si es el mismo mes sumar, si es mes nuevo empezar desde 1
+      const rifasAnteriores = (factActual.mes === _mes) ? (factActual.drops||0) : 0;
+      const rifasTotal = rifasAnteriores + 1;
+
+      // Calcular precio según volumen total del mes
+      const precioRifa = rifasTotal <= 3 ? 25 : rifasTotal <= 10 ? 15 : 10;
+      const planKey = factActual.plan === 'pro' ? 'pro' : (rifasTotal<=3?'basico':rifasTotal<=10?'estandar':'avanzado');
+
+      // Guardar nueva cuenta de rifas y estado pendiente
+      await setDoc(factRef, {
+        commId: currentCommId,
+        commName: _commData?.name || currentCommId,
+        commEmoji: _commData?.emoji || '🎯',
+        plan: planKey,
+        drops: rifasTotal,
+        mes: _mes,
+        estado: factActual.plan==='pro' ? (factActual.estado||'pendiente') : 'pendiente',
+        updatedAt: serverTimestamp()
+      }, {merge:true});
+
+      // Registrar esta rifa concreta en el log de rifas
+      await addDoc(collection(db,'superadmin','facturacion','rifas_log'),{
+        commId: currentCommId,
+        commName: _commData?.name || currentCommId,
+        subId: currentSubId,
+        rifaName: _rifaName,
+        ganador: ganadorSnapshot.name,
+        precioRifa,
+        mes: _mes,
+        ts: serverTimestamp()
+      });
+
+      // Notificar al admin de la comunidad en la app
+      if(_adminUser){
+        const importeMes = rifasTotal <= 3 ? rifasTotal*25 : rifasTotal<=10 ? rifasTotal*15 : rifasTotal*10;
+        const esPro = factActual.plan==='pro';
+        if(!esPro){
+          await addNotif(_adminUser, currentCommId, {
+            icon: '💶',
+            text: `Rifa "${_rifaName}" completada — pago pendiente`,
+            sub: `Esta es tu rifa nº${rifasTotal} del mes. Importe acumulado este mes: ${importeMes}€ (${rifasTotal} rifas × ${precioRifa}€/rifa)`,
+            link: '',
+            tipo: 'info',
+            dedupKey: null
+          });
+        }
+      }
+
+      console.log('✅ Rifa registrada en facturación:', rifasTotal, 'rifas este mes · precio:', precioRifa+'€/rifa');
+    }catch(factErr){
+      console.warn('⚠️ Error registrando en facturación:', factErr.message);
+    }
 
     // 8. Mostrar banner ganador — permanente hasta que el admin lo cierre
     innerGo('participar');
@@ -6952,6 +7211,17 @@ window.saveSubConfig=async function(){
       }catch(notifErr){console.warn('notif usuarios error:',notifErr);}
     }
   }catch(e){toast('Error al guardar: '+e.message);}
+};
+
+window.checkCommBloqueada = async function(){
+  try{
+    const snap = await getDoc(doc(db,'superadmin','facturacion','comunidades',currentCommId));
+    if(snap.exists() && snap.data().bloqueada === true){
+      toast('🚫 Comunidad bloqueada por deuda pendiente con Drops Oficial. Contacta con el administrador para regularizar el pago.');
+      return true;
+    }
+  }catch(_){}
+  return false;
 };
 
 window.resetRifa=async function(){

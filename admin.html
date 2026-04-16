@@ -1190,16 +1190,33 @@ window.enviarNotifGlobal=async function(){
   const targetComms=dest==='all'?allComms:allComms.filter(c=>c.id===dest);
   let sent=0,errors=0;
 
+  // Cargar mapa username→uid de users globales
+  const globalUsersSnap = await getDocs(collection(db,'users')).catch(()=>null);
+  const usernameToUid = {};
+  if(globalUsersSnap) globalUsersSnap.forEach(d=>{ if(d.data().username) usernameToUid[d.data().username]=d.id; });
+
   for(const c of targetComms){
     const userSnap=await getDocs(collection(db,'communities',c.id,'users')).catch(()=>null);
     if(!userSnap)continue;
     const batch=writeBatch(db);
     let batchCount=0;
     for(const ud of userSnap.docs){
-      const notifRef=doc(collection(db,'communities',c.id,'users',ud.id,'notificaciones'));
+      const username = ud.id;
+      const uid = usernameToUid[username];
+
+      // Escribir en users/{uid}/notificaciones (donde la app lee las notifs)
+      if(uid){
+        const globalRef=doc(collection(db,'users',uid,'notificaciones'));
+        batch.set(globalRef,{...notifData, commId:c.id});
+        batchCount++;
+      }
+
+      // También en communities (legacy fallback)
+      const notifRef=doc(collection(db,'communities',c.id,'users',username,'notificaciones'));
       batch.set(notifRef,notifData);
       batchCount++;
       sent++;
+
       if(batchCount>=450){
         await batch.commit().catch(()=>{errors++;});
         batchCount=0;
@@ -1374,7 +1391,7 @@ window.confirmarPagoRifa = async function(docId, commId, subId, precio){
     // 5. Notificar al admin de la comunidad que ya puede sortear
     const adminUser = pd?.adminUser;
     if(adminUser){
-      await addDoc(collection(db,'communities',commId,'users',adminUser,'notificaciones'),{
+      await notifToAdmin(commId, adminUser, {
         icon:'✅', text:'¡Pago confirmado! Ya puedes realizar el sorteo',
         sub:`Tu pago de ${precio}€ para la rifa "${pd?.rifaName||'Drop'}" ha sido confirmado. Entra en la sección y realiza el sorteo.`,
         link:'participar', tipo:'info', leida:false, ts:serverTimestamp()
@@ -1396,7 +1413,7 @@ window.rechazarPagoRifa = async function(docId, commId, adminUser){
     });
     const c = allComms.find(x=>x.id===commId);
     if(adminUser){
-      await addDoc(collection(db,'communities',commId,'users',adminUser,'notificaciones'),{
+      await notifToAdmin(commId, adminUser, {
         icon:'❌', text:'Comprobante de pago rechazado',
         sub:`Tu comprobante no ha sido aceptado. Motivo: ${motivo||'—'}. Vuelve a subir el comprobante correcto para poder sortear.`,
         link:'', tipo:'info', leida:false, ts:serverTimestamp()
@@ -1720,6 +1737,34 @@ window.confirmarPago = async function(){
   btn.disabled=false; btn.textContent='✅ Confirmar pago';
 };
 
+
+// Envía notificación al admin de una comunidad en AMBOS sitios (global + comunidad)
+async function notifToAdmin(commId, adminUsername, notifData){
+  let sent = false;
+  // 1. Buscar el uid del admin en la colección global de users
+  try{
+    const globalSnap = await getDocs(collection(db,'users'));
+    for(const ud of globalSnap.docs){
+      if(ud.data().username === adminUsername){
+        const uid = ud.id;
+        // Escribir en users/{uid}/notificaciones (donde la app lo lee)
+        await addDoc(collection(db,'users',uid,'notificaciones'), {
+          ...notifData, commId: commId
+        });
+        sent = true;
+        break;
+      }
+    }
+  }catch(e){ console.warn('notifToAdmin global error:', e.message); }
+
+  // 2. También escribir en communities/{id}/users/{username}/notificaciones (por si acaso)
+  try{
+    await addDoc(collection(db,'communities',commId,'users',adminUsername,'notificaciones'), notifData);
+  }catch(e){ console.warn('notifToAdmin comm error:', e.message); }
+
+  return sent;
+}
+
 window.abrirAvisoPago = function(commId){
   const c = allComms.find(x=>x.id===commId);
   const d = factData[commId]||{plan:'basico',drops:0};
@@ -1738,42 +1783,16 @@ window.enviarAvisoPago = async function(){
   const btn = document.getElementById('btn-enviar-aviso');
   btn.disabled=true; btn.textContent='Enviando...';
   try{
-    // Solo notificar al admin de la comunidad (no a todos los usuarios)
-    // El admin está en communities/{id}/users/{adminUsername}
     let notifSent = false;
     if(adminUsername){
-      const adminRef = doc(db,'communities',_avisoTarget,'users',adminUsername);
-      const adminSnap = await getDoc(adminRef);
-      if(adminSnap.exists()){
-        const notifRef = doc(collection(db,'communities',_avisoTarget,'users',adminUsername,'notificaciones'));
-        await setDoc(notifRef,{
-          text:'💶 Aviso de pago pendiente — Drops Oficial',
-          sub:msg, icon:'💶', tipo:'info', leida:false,
-          ts:serverTimestamp(), link:'', from:'superadmin'
-        });
-        notifSent = true;
-      }
-      // También intentar por uid en la colección global de users
-      const globalUsersSnap = await getDocs(collection(db,'users'));
-      for(const ud of globalUsersSnap.docs){
-        if(ud.data().username===adminUsername){
-          const uid = ud.id;
-          // Buscar en todas las comunidades donde esté como user
-          try{
-            const userCommRef = doc(db,'communities',_avisoTarget,'users',adminUsername);
-            const notifRef2 = doc(collection(db,'communities',_avisoTarget,'users',adminUsername,'notificaciones'));
-            await setDoc(notifRef2,{
-              text:'💶 Aviso de pago pendiente — Drops Oficial',
-              sub:msg, icon:'💶', tipo:'info', leida:false,
-              ts:serverTimestamp(), link:'', from:'superadmin'
-            });
-            notifSent = true;
-          }catch(_){}
-          break;
-        }
-      }
+      const notifData = {
+        text:'💶 Aviso de pago pendiente — Drops Oficial',
+        sub:msg, icon:'💶', tipo:'info', leida:false,
+        ts:serverTimestamp(), link:'', from:'superadmin'
+      };
+      notifSent = await notifToAdmin(_avisoTarget, adminUsername, notifData);
     }
-    // Mark as atrasado if still pending
+    // Marcar como atrasado si sigue pendiente
     if(factData[_avisoTarget]?.estado!=='pagado'){
       await setDoc(doc(db,'superadmin','facturacion','comunidades',_avisoTarget),{estado:'atrasado'},{merge:true});
       if(factData[_avisoTarget]) factData[_avisoTarget].estado='atrasado';
@@ -1782,7 +1801,7 @@ window.enviarAvisoPago = async function(){
     renderFacturacion();
     toast(notifSent
       ? `⚠️ Aviso enviado al admin "${adminUsername}" de ${c?.name||_avisoTarget}`
-      : `⚠️ Aviso registrado — no se encontró el admin en la app`
+      : `⚠️ Aviso registrado — no se encontró el admin "${adminUsername}" en la app`
     );
   }catch(e){ toast('Error: '+e.message); }
   btn.disabled=false; btn.textContent='⚠️ Enviar aviso';

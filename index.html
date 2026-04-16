@@ -9658,21 +9658,19 @@ window.pedirPermisoNotificaciones=async function(){
   }
 };
 
-async function saveToken(swReg){
+// silent=true → no muestra toasts (para renovación automática en background)
+async function saveToken(swReg, silent=false){
   try{
     if(!currentUser){
-      // Esperar hasta 5 segundos a que el usuario esté logueado
       let waited=0;
       while(!currentUser&&waited<10){await new Promise(r=>setTimeout(r,500));waited++;}
-      if(!currentUser){toast('Error: inicia sesión primero');return;}
+      if(!currentUser){if(!silent)toast('Inicia sesión primero');return;}
     }
     const userId = currentUser.uid||currentUser.username;
-    if(!userId){toast('Error: no hay userId');return;}
-    toast('Obteniendo token para: '+userId.slice(0,8)+'...');
+    if(!userId)return;
 
     const {getMessaging, getToken} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
     const messaging = getMessaging(fbApp);
-    const vapidUint8 = urlBase64ToUint8Array(VAPID_KEY);
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -9680,28 +9678,28 @@ async function saveToken(swReg){
     });
 
     if(!token){
-      // Fallback: intentar con pushManager nativo
-      try{
-        const sub = await swReg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: vapidUint8
-        });
-        toast('PushManager OK pero sin FCM token');
-      }catch(pe){toast('Error pushManager: '+pe.message);}
-      toast('❌ No se obtuvo FCM token');
+      if(!silent)toast('❌ No se obtuvo token de notificaciones');
       return;
     }
 
-    toast('Token obtenido — guardando...');
+    // Comprobar si el token ya es el mismo — evitar escrituras innecesarias
+    const existingSnap = await getDoc(doc(db,'users',userId));
+    const existingToken = existingSnap.data()?.pushToken;
+    if(existingToken === token){
+      if(!silent)toast('✅ Notificaciones ya activas');
+      return; // Token igual, no hace falta re-guardar
+    }
 
-    // Guardar en users global
+    // Guardar token nuevo en users global
     await setDoc(doc(db,'users',userId),{
-      pushToken:token, pushTokenUpdated:Date.now()
+      pushToken:token,
+      pushTokenUpdated:Date.now()
     },{merge:true});
 
-    toast('✅ ¡Notificaciones activadas!');
+    if(!silent)toast('✅ ¡Notificaciones activadas!');
+    console.log('[Push] Token renovado para',userId.slice(0,8));
 
-    // Guardar en comunidades del usuario
+    // Guardar en comunidades del usuario (solo las que existe)
     try{
       const commSnap=await getDocs(collection(db,'communities'));
       for(const cd of commSnap.docs){
@@ -9714,18 +9712,39 @@ async function saveToken(swReg){
     }catch(e){console.warn('saveToken communities:',e.message);}
 
   }catch(e){
-    toast('❌ Error token: '+e.message);
+    console.warn('[Push] Error token:',e.message);
+    if(!silent)toast('❌ Error: '+e.message);
+    // Si el token fue revocado/inválido, borrar de Firestore para que se reactive
+    if(e.code==='messaging/token-unsubscribed'||e.code==='messaging/invalid-argument'){
+      try{
+        const userId=currentUser?.uid||currentUser?.username;
+        if(userId)await updateDoc(doc(db,'users',userId),{pushToken:null});
+      }catch(_){}
+    }
   }
 }
 
-async function saveTokenIfPermitted(){
+async function saveTokenIfPermitted(silent=true){
   if(Notification.permission==='granted'){
     try{
       const reg = await navigator.serviceWorker.ready;
-      await saveToken(reg);
+      await saveToken(reg, silent);
     }catch(e){console.warn('saveTokenIfPermitted:',e.message);}
   }
 }
+
+// Renovar token automáticamente cada vez que la app vuelve al primer plano
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&currentUser){
+    // Solo renovar si han pasado más de 6 horas desde la última vez
+    const last=parseInt(localStorage.getItem('drops_token_ts')||'0');
+    const sixHours=6*60*60*1000;
+    if(Date.now()-last>sixHours){
+      localStorage.setItem('drops_token_ts',Date.now());
+      saveTokenIfPermitted(true); // silencioso
+    }
+  }
+});
 
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', initPushNotifications);

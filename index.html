@@ -1893,7 +1893,7 @@ let participants={}, historial=[], cart=[], partReservedNums=[];
 let rifaLlenaNotified=false;
 let chosenFile=null, drawFile=null, sorteoWinner=null;
 let isCommAdmin=false, innerTab='participar';
-let unsubPart=null, unsubHist=null, unsubComm=null;
+let unsubPart=null, unsubHist=null, unsubComm=null, unsubRifaPago=null;
 let editingSubId=null; // Sub being edited in Config — fixed at fillConfig call time
 let _telegramLlenaEnviado=false; // In-memory guard to prevent duplicate rifa-llena Telegram notifications
 let _sorteoNocheShown=false; // Guard para notificación de sorteo esta noche
@@ -3787,6 +3787,9 @@ function selectSub(commId,subId){
       }catch(e){console.warn('Telegram llena error:',e);_telegramLlenaEnviado=false;}
     }
   });
+  // Escuchar confirmación de pago de rifa en tiempo real
+  if(isCommAdmin) unsubRifaPago = listenRifaPago(commId, subId);
+
   if(unsubHist)unsubHist();
   unsubHist=onSnapshot(query(collection(db,'communities',commId,'subs',subId,'historial'),orderBy('ts','desc')),snap=>{
     historial=[];snap.forEach(d=>historial.push({id:d.id,...d.data()}));
@@ -6645,9 +6648,28 @@ async function checkRifaPagada(commId, subId){
       const d = snap.data();
       if(d.estado === 'confirmado') return { pagada:true };
       if(d.estado === 'pendiente') return { pagada:false, enviado:true };
+      if(d.estado === 'rechazado') return { pagada:false, enviado:false, rechazado:true };
     }
   }catch(_){}
   return { pagada:false, enviado:false };
+}
+
+// Escuchar confirmación de pago en tiempo real para desbloquear sorteo automáticamente
+function listenRifaPago(commId, subId){
+  if(!isCommAdmin) return;
+  const docRef = doc(db,'superadmin','facturacion','pagos_rifa',commId+'_'+subId);
+  return onSnapshot(docRef, (snap)=>{
+    if(!snap.exists()) return;
+    if(snap.data()?.estado === 'confirmado'){
+      // ¡Pago confirmado! Resolver sticky y desbloquear sorteo
+      resolveSticky&&resolveSticky('pago-rifa-'+commId+'-'+subId);
+      const gateEl = document.getElementById('sorteo-pago-gate');
+      const contenidoEl = document.getElementById('sorteo-contenido');
+      if(gateEl) gateEl.style.display='none';
+      if(contenidoEl) contenidoEl.style.display='block';
+      toast('✅ ¡Pago confirmado por Drops Oficial! Ya puedes realizar el sorteo.');
+    }
+  }, ()=>{});
 }
 
 // Muestra u oculta el bloqueo del sorteo
@@ -6683,7 +6705,19 @@ window.checkSorteoGate = async function(){
   const sub = communities[currentCommId]?.subs?.[currentSubId];
   const cfg = sub?.config||{};
   const msgEl = document.getElementById('sorteo-gate-msg');
-  if(msgEl) msgEl.innerHTML = `Esta es tu rifa nº<strong>${nRifa}</strong> de este mes. Importe a abonar: <strong style="font-size:18px;color:#f59e0b;">${precio}€</strong><br><small style="color:#888;">Bizum / Transferencia a Drops Oficial. Una vez confirmado el pago podrás hacer el sorteo.</small>`;
+  const sub2 = communities[currentCommId]?.subs?.[currentSubId];
+  const rifaNombre = sub2?.config?.rifaName || sub2?.name || 'Drop';
+  if(msgEl) msgEl.innerHTML = `
+    <div style="margin-bottom:12px;">Esta es tu rifa nº<strong>${nRifa}</strong> de este mes — <strong>"${rifaNombre}"</strong></div>
+    <div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #f59e0b;">
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">💶 Datos de pago a Drops Oficial</div>
+      <div style="font-size:22px;font-weight:900;color:#f59e0b;margin-bottom:8px;">${precio}€</div>
+      <div style="font-size:13px;margin-bottom:6px;"><strong>Bizum:</strong> 634 XX XX XX</div>
+      <div style="font-size:13px;margin-bottom:10px;"><strong>Transferencia:</strong> ES65 1583 0001 1590 6984 8933</div>
+      <button onclick="navigator.clipboard.writeText('ES65 1583 0001 1590 6984 8933').then(()=>window.toast&&toast('✓ IBAN copiado'))" style="background:#f59e0b;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;width:100%;">📋 Copiar IBAN</button>
+    </div>
+    <div style="font-size:12px;color:#888;">Concepto del pago: <strong>Drops ${rifaNombre} - ${currentCommId}</strong></div>
+  `;
 
   const sentEl = document.getElementById('sorteo-gate-comprobante-sent');
   const uploadEl = document.getElementById('sorteo-gate-upload-area');
@@ -6871,6 +6905,9 @@ window.cerrarRifa=async function(){
 
     toast('✅ Drop cerrado y reiniciado. ¡Listo para el siguiente!');
 
+    // Resolver sticky de pago pendiente
+    try{ resolveSticky&&resolveSticky('pago-rifa-'+currentCommId+'-'+currentSubId); }catch(_){}
+
     // 7. Guardar ganador en Firestore para que todos lo vean al entrar
     try{
       await updateDoc(doc(db,'communities',currentCommId),{
@@ -6928,18 +6965,28 @@ window.cerrarRifa=async function(){
         ts: serverTimestamp()
       });
 
-      // Notificar al admin de la comunidad en la app
+      // Notificar al admin de la comunidad — STICKY para que sea urgente
       if(_adminUser){
         const importeMes = rifasTotal <= 3 ? rifasTotal*25 : rifasTotal<=10 ? rifasTotal*15 : rifasTotal*10;
         const esPro = factActual.plan==='pro';
         if(!esPro){
           await addNotif(_adminUser, currentCommId, {
             icon: '💶',
-            text: `Rifa "${_rifaName}" completada — pago pendiente`,
-            sub: `Esta es tu rifa nº${rifasTotal} del mes. Importe acumulado este mes: ${importeMes}€ (${rifasTotal} rifas × ${precioRifa}€/rifa)`,
-            link: '',
-            tipo: 'info',
-            dedupKey: null
+            text: `💶 Pago pendiente — Rifa "${_rifaName}"`,
+            sub: `Tienes que abonar ${precioRifa}€ a Drops Oficial antes de poder hacer el sorteo. Bizum o transferencia. Entra en la pestaña Sorteo para ver los datos y subir el comprobante.`,
+            link: 'participar',
+            tipo: 'sticky',
+            dedupKey: `pago-rifa-${currentCommId}-${currentSubId}`,
+          });
+        } else {
+          // Plan pro: recordar pago mensual fijo
+          await addNotif(_adminUser, currentCommId, {
+            icon: '💶',
+            text: `💶 Recordatorio pago mensual — Drops Oficial`,
+            sub: `Tu cuota mensual de 150€ está pendiente. Realiza el pago para seguir usando la plataforma sin interrupciones.`,
+            link: 'participar',
+            tipo: 'sticky',
+            dedupKey: `pago-pro-${currentCommId}-${_mes}`,
           });
         }
       }

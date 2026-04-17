@@ -3997,17 +3997,27 @@ function updateHeroStats(){
     const todosConfirmados=ocupados>0&&ocupados>=total&&confirmed.length>=total&&reservados.length===0&&pagados.filter(p=>p.status==='pending').length===0;
     // todosPagados: todos han subido comprobante (pending+confirmed), aunque no todos confirmados aún
     const todosPagados=ocupados>0&&ocupados>=total&&reservados.length===0&&(confirmed.length+pagados.filter(p=>p.status==='pending').length)>=total;
-    if(todosConfirmados||todosPagados){
+    if(todosConfirmados){
+      // Solo mostrar banner cuando el admin ha CONFIRMADO todos los pagos
       sorteoNocheBanner.style.display='block';
-      // Countdown hasta las 21:25 de hoy
+      // Countdown: 24h desde que se abrió el pago (pagosAbiertosAt)
       (function arrancarSorteoCountdown(){
         if(window._sorteoCountdownInterval)clearInterval(window._sorteoCountdownInterval);
+        const subCfg2=communities[currentCommId]?.subs?.[currentSubId];
+        const abiertosAt2=subCfg2?.pagosAbiertosAt;
+        const abiertosAtMs=abiertosAt2&&typeof abiertosAt2==='object'&&abiertosAt2.toMillis
+          ?abiertosAt2.toMillis()
+          :Number(abiertosAt2||0);
+        // Sorteo = 24h después de abrir el pago
+        const sorteoTarget=abiertosAtMs>0?abiertosAtMs+24*60*60*1000:Date.now()+24*60*60*1000;
         function tick(){
-          const now=new Date();
-          const target=new Date();
-          target.setHours(21,25,0,0);
-          if(now>target)target.setDate(target.getDate()+1); // si ya pasó, mañana
-          const diff=target-now;
+          const diff=sorteoTarget-Date.now();
+          if(diff<=0){
+            const el=document.getElementById('sorteo-countdown');
+            if(el)el.textContent='00:00:00';
+            clearInterval(window._sorteoCountdownInterval);
+            return;
+          }
           const h=Math.floor(diff/3600000);
           const m=Math.floor((diff%3600000)/60000);
           const s=Math.floor((diff%60000)/1000);
@@ -4034,7 +4044,7 @@ function updateHeroStats(){
       if(cartBox)cartBox.style.display='none';
       stepBoxes.forEach(el=>el.style.display='none');
       // Notificación + confeti — cuando todos han pagado (pending o confirmed)
-      if(!_sorteoNocheShown&&!isCommAdmin&&todosPagados){
+      if(!_sorteoNocheShown&&!isCommAdmin&&todosConfirmados){
         _sorteoNocheShown=true;
         launchConfetti();
         const subName=communities[currentCommId]?.subs?.[currentSubId]?.name||'';
@@ -5220,12 +5230,32 @@ function checkProgramada(){
     updateDoc(doc(db,'communities',currentCommId),{
       [`subs.${currentSubId}.config.rifaActiva`]:true,
       [`subs.${currentSubId}.config.activaAt`]:deleteField()
-    }).then(()=>{
+    }).then(async ()=>{
       communities[currentCommId].subs[currentSubId].config.rifaActiva=true;
       communities[currentCommId].subs[currentSubId].config.activaAt=null;
       stopCountdown();
       renderAll();
       toast('🎯 ¡Drop activado automáticamente!');
+      // Notificar a todos los usuarios de la comunidad
+      try{
+        const sub=communities[currentCommId]?.subs?.[currentSubId];
+        const dropName=sub?.config?.rifaName||sub?.name||'Drop';
+        const usersSnap=await getDocs(collection(db,'communities',currentCommId,'users'));
+        for(const ud of usersSnap.docs){
+          const uid=ud.data()?.uid||ud.id;
+          if(!uid)continue;
+          await addDoc(collection(db,'users',uid,'notificaciones'),{
+            icon:'🎯',
+            text:'¡El drop '+dropName+' ya está abierto!',
+            sub:'Ya puedes reservar tus números. ¡Date prisa!',
+            tipo:'accion',
+            link:'participar',
+            commId:currentCommId,
+            ts:serverTimestamp(),
+            leida:false
+          }).catch(()=>{});
+        }
+      }catch(e){console.warn('notif auto-activate:',e.message);}
     }).catch(e=>console.warn('auto-activate:',e));
   }
 }
@@ -8686,19 +8716,17 @@ window.closeNotifPanel=function(){
 
 window.eliminarNotif=async function(e,notifId,commId,username){
   e.stopPropagation();
-  // Usar los parámetros pasados, con fallback a los globales
-  const cid=commId||currentCommId;
-  const uid=username||currentUser?.username;
-  if(!cid||!uid||!notifId)return;
+  if(!notifId)return;
+  // Siempre usar uid global — la ruta principal es users/{uid}/notificaciones
+  const userId=currentUser?.uid||currentUser?.username||username;
+  if(!userId)return;
   try{
-    const notifRef=doc(db,'communities',cid,'users',uid,'notificaciones',notifId);
+    // Ruta global (principal)
+    const notifRef=doc(db,'users',userId,'notificaciones',notifId);
     const snap=await getDoc(notifRef);
-    if(!snap.exists()){
-      // No existe en Firestore — puede ser que ya se borró, ignorar
-      return;
-    }
+    if(!snap.exists()){return;}
     const data=snap.data();
-    // No borrar stickies activas CON dedupKey — sí se pueden borrar las viejas sin dedupKey
+    // No borrar stickies activas sin ejecutar
     if(data.tipo==='sticky'&&!data.ejecutada&&data.dedupKey){
       toast('⚠️ Esta notificación no se puede eliminar hasta completar la acción');
       return;
@@ -9643,6 +9671,18 @@ async function initPushNotifications(){
       if(btn&&currentUser)btn.style.display='block';
     }
   }catch(e){console.warn('Push init error:', e.message);}
+
+  // Suprimir notificación del sistema cuando la app está en primer plano
+  // (evita el doble: una del SW + una del sistema)
+  try{
+    const {getMessaging, onMessage} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
+    const msgInstance = getMessaging(fbApp);
+    onMessage(msgInstance, (payload) => {
+      // App en foreground — no mostrar notificación del sistema
+      // El panel de notificaciones interno ya la mostrará via Firestore onSnapshot
+      console.log('[Push] Mensaje en foreground recibido — suprimido para evitar duplicado', payload);
+    });
+  }catch(e){console.warn('onMessage setup error:', e.message);}
 }
 
 window.pedirPermisoNotificaciones=async function(){

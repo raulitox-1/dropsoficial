@@ -2326,7 +2326,31 @@ window.submitDpPropuesta=async function(){
       expiraAt:null,
     };
 
-    await addDoc(collection(db,'communities',_dpCurrentComm,'drops-particulares'),propuesta);
+    const dpRef=await addDoc(collection(db,'communities',_dpCurrentComm,'drops-particulares'),propuesta);
+    const dpId=dpRef.id;
+
+    // Push al admin — guardar en users/{adminUid}/notificaciones
+    try{
+      const commData=communities[_dpCurrentComm];
+      const adminUser=commData?.adminUser||'';
+      if(adminUser){
+        // Buscar uid del admin en comunidad
+        const adminSnap=await getDocs(query(collection(db,'communities',_dpCurrentComm,'users'),where('username','==',adminUser)));
+        let adminUid=adminUser;
+        if(!adminSnap.empty) adminUid=adminSnap.docs[0].data()?.uid||adminSnap.docs[0].id;
+        await addDoc(collection(db,'users',adminUid,'notificaciones'),{
+          icon:'📦',
+          text:'Nueva propuesta de drop: '+titulo,
+          sub:currentUser.name+' quiere vender '+titulo+' · '+precio+'€/número',
+          link:'dp-admin',
+          tipo:'accion',
+          commId:_dpCurrentComm,
+          ts:serverTimestamp(),
+          leida:false,
+          dedupKey:'dp-solicitud-'+dpId
+        });
+      }
+    }catch(e){console.warn('notif admin dp:',e.message);}
 
     // Notificar al admin por Telegram
     const c=communities[_dpCurrentComm];
@@ -2389,6 +2413,7 @@ async function loadDpDrops(commId){
         }
       }
       if(dp.status==='activo')activos.push(dp);
+      if(dp.status==='pendiente')activos.push({...dp,_esPendiente:true}); // mostrar pendientes con votación
     });
 
     list.innerHTML='';
@@ -2410,6 +2435,42 @@ async function loadDpDrops(commId){
 }
 
 function renderDpCard(dp,commId,container){
+  // Si es pendiente → mostrar card de votación previa
+  if(dp._esPendiente){
+    const votos=dp.votos||{};
+    const totalVotos=Object.keys(votos).length;
+    const siVotos=Object.values(votos).filter(v=>v===true).length;
+    const userId=window.currentUser?.uid||window.currentUser?.username||'';
+    const yaVote=userId&&userId in votos;
+    const miVoto=votos[userId];
+
+    const card=document.createElement('div');
+    card.className='dp-card';
+    card.style.cssText='border:2px dashed var(--a);opacity:.9;';
+    card.innerHTML=
+      '<div style="background:var(--al);border-radius:var(--rads);padding:6px 10px;font-size:11px;font-weight:700;color:var(--a);margin-bottom:10px;display:inline-block;">⏳ Pendiente de aprobación</div>'+
+      '<div style="font-size:15px;font-weight:800;margin-bottom:4px;">'+escapeHtml(dp.titulo||'')+'</div>'+
+      '<div style="font-size:13px;color:var(--tx2);margin-bottom:10px;">'+escapeHtml((dp.desc||'').substring(0,100))+(dp.desc?.length>100?'...':'')+'</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
+        '<span style="background:var(--bg2);border-radius:var(--rads);padding:4px 10px;font-size:12px;font-weight:700;">'+dp.precio+'€/nº</span>'+
+        '<span style="background:var(--bg2);border-radius:var(--rads);padding:4px 10px;font-size:12px;font-weight:700;">'+dp.total+' números</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">'+
+        '🗳️ <strong>'+siVotos+'/'+totalVotos+'</strong> '+(totalVotos===1?'persona quiere':'personas quieren')+' jugar'+
+      '</div>'+
+      (!yaVote
+        ? '<div style="display:flex;gap:8px;">'+
+            '<button class="btn btn-g" style="flex:1;" onclick="votarDp(\''+dp.id+'\',\''+commId+'\',true,this.parentNode)">👍 Yo jugaría</button>'+
+            '<button class="btn btn-neu" style="flex:1;" onclick="votarDp(\''+dp.id+'\',\''+commId+'\',false,this.parentNode)">👎 Paso</button>'+
+          '</div>'
+        : '<div style="background:'+(miVoto?'var(--gl)':'var(--bg2)')+';border-radius:var(--rads);padding:8px;text-align:center;font-size:13px;font-weight:700;color:'+(miVoto?'var(--g)':'var(--tx2)')+';">'+
+            (miVoto?'✅ Has votado que jugarías':'✅ Has votado que pasas')+
+          '</div>'
+      );
+    container.appendChild(card);
+    return;
+  }
+
   const card=document.createElement('div');
   card.className='dp-card';
 
@@ -3004,6 +3065,16 @@ window.buildDpAdmin=async function(){
       const dp={id:d.id,...d.data()};
       const statusColor={'pendiente':'var(--a)','activo':'var(--g)','cancelado':'var(--r)','completado':'var(--pu)'}[dp.status]||'var(--tx2)';
       const statusLabel={'pendiente':'⏳ Pendiente','activo':'✅ Activo','cancelado':'❌ Cancelado','completado':'🏆 Completado'}[dp.status]||dp.status;
+      // Mostrar votos si está pendiente
+      const votos=dp.votos||{};
+      const siVotos=Object.values(votos).filter(v=>v===true).length;
+      const totalVotos=Object.keys(votos).length;
+      const votosHtml=dp.status==='pendiente'&&totalVotos>0
+        ?'<div style="background:var(--al);border-radius:var(--rads);padding:8px 12px;margin-bottom:8px;font-size:12px;">'+
+          '🗳️ <strong>'+siVotos+'/'+totalVotos+'</strong> personas quieren jugar'+
+          (siVotos>=3?' · <span style="color:var(--g);font-weight:700;">¡Buena acogida!</span>':'')+
+          '</div>'
+        :'';
       const card=document.createElement('div');
       card.className='prop-card';
       const fotosHtml=(dp.photos||[]).map(function(u){return '<img class="prop-img" src="'+u+'" onclick="showDpImgModal(\''+u+'\')"/>';}).join('');
@@ -3047,6 +3118,7 @@ window.buildDpAdmin=async function(){
         )+
         '<div class="prop-imgs">'+fotosHtml+'</div>'+
         '<div style="font-size:12px;color:var(--tx2);margin-bottom:10px;line-height:1.5;">'+escapeHtml((dp.desc||'').substring(0,200))+'</div>'+
+        votosHtml+
         (dp.status==='pendiente'?
           '<div style="display:flex;gap:8px;">'+
             '<button class="btn btn-s btn-ok" style="flex:1;" data-id="'+dp.id+'" onclick="aceptarDp(this.dataset.id)">✓ Aceptar</button>'+
@@ -3081,8 +3153,74 @@ window.aceptarDp=async function(dpId){
       '⏰ Expira en 5 días\n'+
       '📲 Ya visible en Drops Particulares'
     );
-    toast('✅ Drop activado');
+    // Notificar a toda la comunidad que hay nuevo drop particular
+    try{
+      const snap2=await getDoc(doc(db,'communities',currentCommId,'drops-particulares',dpId));
+      const dp2=snap2.data();
+      const usersSnap=await getDocs(collection(db,'communities',currentCommId,'users'));
+      for(const ud of usersSnap.docs){
+        const uid=ud.data()?.uid||ud.id;
+        if(!uid)continue;
+        await addDoc(collection(db,'users',uid,'notificaciones'),{
+          icon:'📦',
+          text:'¡Nuevo drop particular abierto!',
+          sub:'"'+(dp2?.titulo||'Drop')+'" · '+(dp2?.precio||'—')+'€/número · '+( dp2?.total||'—')+' números disponibles',
+          link:'participar',
+          tipo:'accion',
+          commId:currentCommId,
+          ts:serverTimestamp(),
+          leida:false,
+          dedupKey:'dp-nuevo-'+dpId+'-'+uid
+        }).catch(()=>{});
+      }
+    }catch(e){console.warn('notif comunidad dp:',e.message);}
+
+    toast('✅ Drop activado — comunidad notificada');
     buildDpAdmin();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.votarDp=async function(dpId,commId,voto,btnWrap){
+  const userId=currentUser?.uid||currentUser?.username;
+  if(!userId){toast('Inicia sesión para votar');return;}
+  try{
+    await updateDoc(doc(db,'communities',commId,'drops-particulares',dpId),{
+      ['votos.'+userId]:voto
+    });
+    // Actualizar UI sin recargar
+    const snap=await getDoc(doc(db,'communities',commId,'drops-particulares',dpId));
+    const data=snap.data();
+    const votos=data.votos||{};
+    const siVotos=Object.values(votos).filter(v=>v===true).length;
+    const totalVotos=Object.keys(votos).length;
+    if(btnWrap){
+      btnWrap.outerHTML=
+        '<div style="background:'+(voto?'var(--gl)':'var(--bg2)')+';border-radius:var(--rads);padding:8px;text-align:center;font-size:13px;font-weight:700;color:'+(voto?'var(--g)':'var(--tx2)')+';">'+
+          (voto?'✅ Has votado que jugarías':'✅ Has votado que pasas')+
+        '</div>';
+    }
+    toast(voto?'👍 ¡Voto registrado!':'👎 Voto registrado');
+    // Notificar al admin si hay muchos votos positivos
+    if(voto&&siVotos>0&&siVotos%5===0){
+      const commData=communities[commId];
+      const adminUser=commData?.adminUser||'';
+      if(adminUser){
+        const adminSnap=await getDocs(query(collection(db,'communities',commId,'users'),where('username','==',adminUser)));
+        let adminUid=adminUser;
+        if(!adminSnap.empty) adminUid=adminSnap.docs[0].data()?.uid||adminSnap.docs[0].id;
+        await addDoc(collection(db,'users',adminUid,'notificaciones'),{
+          icon:'🗳️',
+          text:siVotos+' personas quieren jugar "'+escapeHtml(data.titulo||'')+'"',
+          sub:'De '+totalVotos+' votos, '+siVotos+' son positivos. Quizás es momento de activarlo.',
+          link:'dp-admin',
+          tipo:'info',
+          commId:commId,
+          ts:serverTimestamp(),
+          leida:false,
+          dedupKey:'dp-votos-'+dpId+'-'+siVotos
+        }).catch(()=>{});
+      }
+    }
   }catch(e){toast('Error: '+e.message);}
 };
 
@@ -8407,27 +8545,53 @@ async function buildCatalogo(){
     const snap=await getDocs(collection(db,'communities',currentCommId,'catalogo'));
     if(!snap.size){el.innerHTML='<div style="font-size:12px;color:var(--tx2);text-align:center;padding:16px;">Catálogo vacío. Añade el primer producto.</div>';return;}
     el.innerHTML='';
-    const catDocs=[]; snap.forEach(d=>catDocs.push({id:d.id,...d.data()}));
+    const catDocs=[];
+    snap.forEach(d=>catDocs.push({id:d.id,...d.data()}));
     catDocs.sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0)).forEach(p=>{
       const div=document.createElement('div');
       div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;';
+
+      const precioHtml=(p.precioMin?p.precioMin+'€':'')+(p.precioMin&&p.precioMax?' — ':'')+(p.precioMax?p.precioMax+'€':'');
+      const vecesHtml=p.vecesUsado>0?'<div style="font-size:11px;color:var(--a);margin-top:3px;">🏆 Usado '+p.vecesUsado+' vez'+(p.vecesUsado>1?'es':'')+' como premio</div>':'';
+
       div.innerHTML=
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'+
-          '<div style="flex:1;">'+
+          '<div style="flex:1;min-width:0;">'+
             '<div style="font-size:13px;font-weight:800;margin-bottom:3px;">'+escapeHtml(p.nombre||'')+'</div>'+
-            '<div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:3px;">'+
-              (p.precioMin?p.precioMin+'€':'')+
-              (p.precioMin&&p.precioMax?' — ':'')+
-              (p.precioMax?p.precioMax+'€':'')+
-            '</div>'+
+            (precioHtml?'<div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:3px;">'+precioHtml+'</div>':'')+
             (p.notas?'<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">'+escapeHtml(p.notas)+'</div>':'')+
             (p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;">🔗 Ver producto →</a>':'')+
+            vecesHtml+
           '</div>'+
           '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">'+
-            '<button class="btn btn-s btn-g" onclick="añadirCatalogoAPremios(\''+encodeURIComponent(p.nombre||'')+'\')">+ Premio</button>'+
-            '<button class="btn btn-s btn-ko" onclick="borrarProductoCatalogo(\''+p.id+'\')">🗑️</button>'+
+            '<button class="btn btn-s btn-g cat-add-btn">+ Premio</button>'+
+            '<button class="btn btn-s btn-ko cat-del-btn">🗑️</button>'+
           '</div>'+
         '</div>';
+
+      // Botón añadir a premios
+      div.querySelector('.cat-add-btn').addEventListener('click',()=>{
+        const ta=document.getElementById('cfg-premios');
+        if(!ta){toast('Ve a Config para ver los premios');return;}
+        const actual=ta.value.trim();
+        ta.value=actual?(actual+'\n'+p.nombre):p.nombre;
+        innerGo('config');
+        ta.focus();
+        toast('✅ "'+p.nombre+'" añadido a premios');
+        // Incrementar contador de usos
+        updateDoc(doc(db,'communities',currentCommId,'catalogo',p.id),{
+          vecesUsado:(p.vecesUsado||0)+1
+        }).catch(()=>{});
+      });
+
+      // Botón borrar
+      div.querySelector('.cat-del-btn').addEventListener('click',()=>{
+        if(!confirm('¿Borrar "'+p.nombre+'" del catálogo?'))return;
+        deleteDoc(doc(db,'communities',currentCommId,'catalogo',p.id))
+          .then(()=>buildCatalogo())
+          .catch(e=>toast('Error: '+e.message));
+      });
+
       el.appendChild(div);
     });
   }catch(e){el.innerHTML='<div style="font-size:12px;color:var(--r);">Error: '+e.message+'</div>';}

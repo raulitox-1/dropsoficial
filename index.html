@@ -4329,13 +4329,17 @@ function updateHeroStats(){
             const allUsersSnap=await getDocs(collection(db,'communities',_commId,'users'));
             for(const ud of allUsersSnap.docs){
               const u=ud.data();
+              // Solo notificar si el usuario tiene números confirmados en este drop
               const misNums2Snap=Object.values(_participants).filter(p=>{
                 const nm=u.name&&p.name&&p.name.toLowerCase().trim()===u.name.toLowerCase().trim();
                 const pc=(p.phone||'').replace(/\D/g,'');
                 const uc=(u.phone||'').replace(/\D/g,'');
-                return nm||(uc&&pc&&(pc===uc||pc.endsWith(uc)||uc.endsWith(pc)));
+                const uidMatch=u.uid&&p.uid&&u.uid===p.uid;
+                return uidMatch||nm||(uc&&pc&&(pc===uc||pc.endsWith(uc)||uc.endsWith(pc)));
               });
-              const misNumsStr=misNums2Snap.length?'Tienes '+misNums2Snap.length+' número'+(misNums2Snap.length>1?'s':'')+' · ':'';
+              // Si no tiene números — no enviar notificación
+              if(!misNums2Snap.length)continue;
+              const misNumsStr='Tienes '+misNums2Snap.length+' número'+(misNums2Snap.length>1?'s':'')+' · ';
               addNotif(ud.id,_commId,{
                 icon:'🎰',
                 text:'¡Esta noche el sorteo'+(subName?' de '+subName:'')+' a las 21:25h!',
@@ -6201,13 +6205,16 @@ window.confirmGroup=async function(key){
         const uSnap3=await getDocs(collection(db,'communities',currentCommId,'users'));
         for(const ud of uSnap3.docs){
           const u=ud.data();
+          // Solo notificar si tiene números confirmados
           const misNums3=confirmed2.filter(p=>{
             const nm=u.name&&p.name&&p.name.toLowerCase().trim()===u.name.toLowerCase().trim();
             const pc=(p.phone||'').replace(/\D/g,'');
             const uc=(u.phone||'').replace(/\D/g,'');
-            return nm||(uc&&pc&&(pc===uc||pc.endsWith(uc)||uc.endsWith(pc)));
+            const uidMatch=u.uid&&p.uid&&u.uid===p.uid;
+            return uidMatch||nm||(uc&&pc&&(pc===uc||pc.endsWith(uc)||uc.endsWith(pc)));
           });
-          const subTxt3=(misNums3.length?'Tienes '+misNums3.length+' número'+(misNums3.length>1?'s':'')+' · ':'')+confirmed2.length+'/'+total2+' pagados · ¡Mucha suerte! 🍀';
+          if(!misNums3.length)continue;
+          const subTxt3='Tienes '+misNums3.length+' número'+(misNums3.length>1?'s':'')+' · '+confirmed2.length+'/'+total2+' pagados · ¡Mucha suerte! 🍀';
           addNotif(ud.id,currentCommId,{
             icon:'🎰',
             text:'¡Esta noche el sorteo'+(subName2?' de '+subName2:'')+' a las 21:25h!',
@@ -6337,7 +6344,9 @@ window.onDrawFile=function(e){const file=e.target.files[0];if(!file)return;drawF
 window.calcONCE=function(){
   const val=parseInt(document.getElementById('once-input').value);if(isNaN(val)){toast('Introduce el número ONCE');return;}
   const conf=Object.values(participants).filter(p=>p.status==='confirmed');if(!conf.length){toast('No hay confirmados');return;}
-  const target=val%100===0?100:val%100;let winner=null,minDiff=Infinity;
+  // Los 2 últimos dígitos — si acaba en 00 el target es 0, no 100
+  const target=val%100;
+  let winner=null,minDiff=Infinity;
   conf.forEach(p=>{const diff=Math.abs(p.num-target);if(diff<minDiff||(diff===minDiff&&winner&&p.num>winner.num)){minDiff=diff;winner=p;}});
   sorteoWinner=winner;
   document.getElementById('res-once').textContent=val;document.getElementById('res-num').textContent=winner.num<10?'0'+winner.num:winner.num;
@@ -6739,7 +6748,7 @@ async function cargarMensajesGanador(winId){
   if(!el)return;
   try{
     const snap=await getDocs(query(
-      collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'),
+      collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',winId,'mensajes'),
       orderBy('ts','asc')
     ));
     el.innerHTML='';
@@ -6765,7 +6774,7 @@ window.enviarMensajeGanador=async function(){
   if(!texto)return;
   input.value='';
   try{
-    await addDoc(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'),{
+    await addDoc(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',currentUser.uid||currentUser.username,'mensajes'),{
       texto,
       role:'ganador',
       name:currentUser.name||'Ganador',
@@ -6780,6 +6789,12 @@ window.enviarMensajeGanador=async function(){
 
 // En el panel admin — ver mensajes del ganador
 window.verChatGanador=async function(){
+  // Obtener uid del ganador actual desde ganadorEleccion o sorteoWinner
+  const sub=communities[currentCommId]?.subs?.[currentSubId];
+  const ganadorUid=sub?.ganadorEleccion?.uid||sorteoWinner?.uid||'';
+  if(!ganadorUid){toast('No hay ganador identificado aún');return;}
+  window._chatGanadorUid=ganadorUid; // guardar para enviarRespuestaAdmin
+
   let m=document.getElementById('modal-chat-ganador');
   if(!m){m=document.createElement('div');m.id='modal-chat-ganador';m.className='modal-bg';document.body.appendChild(m);}
   m.innerHTML=
@@ -6795,10 +6810,10 @@ window.verChatGanador=async function(){
       '</div>'+
     '</div>';
   m.classList.add('open');
-  // Cargar mensajes
+  // Cargar mensajes del ganador específico
   try{
     const snap=await getDocs(query(
-      collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'),
+      collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',ganadorUid,'mensajes'),
       orderBy('ts','asc')
     ));
     const el=document.getElementById('admin-chat-msgs');
@@ -6821,21 +6836,23 @@ window.enviarRespuestaAdmin=async function(){
   const texto=input?.value.trim();
   if(!texto)return;
   input.value='';
+  const ganadorUid=window._chatGanadorUid||'';
+  if(!ganadorUid){toast('Error: no hay ganador identificado');return;}
   try{
-    await addDoc(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'),{
+    await addDoc(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',ganadorUid,'mensajes'),{
       texto,role:'admin',name:'Admin',ts:serverTimestamp()
     });
     // Notif al ganador
-    const winId=Object.values(participants).find(p=>p.status==='confirmed')?.uid||'';
-    if(winId){
-      addNotif(winId,currentCommId,{
-        icon:'💬',text:'El organizador te ha enviado un mensaje',
-        sub:texto.slice(0,80),link:'ganador-envio:'+currentCommId+':'+currentSubId,tipo:'accion',
-        dedupKey:'admin-msg-'+Date.now()
-      });
-    }
-    // Recargar
-    const snap=await getDocs(query(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'),orderBy('ts','asc')));
+    addNotif(ganadorUid,currentCommId,{
+      icon:'💬',text:'El organizador te ha enviado un mensaje',
+      sub:texto.slice(0,80),link:'ganador-envio:'+currentCommId+':'+currentSubId,tipo:'accion',
+      dedupKey:'admin-msg-'+Date.now()
+    });
+    // Recargar mensajes
+    const snap=await getDocs(query(
+      collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',ganadorUid,'mensajes'),
+      orderBy('ts','asc')
+    ));
     const el=document.getElementById('admin-chat-msgs');
     if(el){
       el.innerHTML='';
@@ -7659,13 +7676,19 @@ window.resetRifa=async function(){
     Object.values(participants).forEach(p=>b.delete(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id)));
     await b.commit();
 
-    // 1b. Borrar chat del ganador anterior
+    // 1b. Borrar chat del ganador anterior (ahora con estructura ganador_chat/{uid}/mensajes)
     try{
+      // Borrar los documentos de uid (que son los ganadores)
       const chatSnap=await getDocs(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat'));
       if(!chatSnap.empty){
-        const cb=writeBatch(db);
-        chatSnap.forEach(d=>cb.delete(d.ref));
-        await cb.commit();
+        for(const ganadorDoc of chatSnap.docs){
+          // Borrar mensajes de cada ganador
+          const msgsSnap=await getDocs(collection(db,'communities',currentCommId,'subs',currentSubId,'ganador_chat',ganadorDoc.id,'mensajes'));
+          const cb=writeBatch(db);
+          msgsSnap.forEach(d=>cb.delete(d.ref));
+          cb.delete(ganadorDoc.ref);
+          await cb.commit();
+        }
       }
     }catch(_){}
 
@@ -9633,6 +9656,15 @@ function renderNotifs(notifs){
     badge.style.display=totalBadge>0?'block':'none';
   }
 
+  // Badge en el icono de la app (iOS/Android PWA)
+  if('setAppBadge' in navigator){
+    if(totalBadge>0){
+      navigator.setAppBadge(totalBadge).catch(()=>{});
+    } else {
+      navigator.clearAppBadge().catch(()=>{});
+    }
+  }
+
   if(!ordered.length){
     list.innerHTML='<div class="notif-empty"><div style="font-size:40px;margin-bottom:8px;">🔔</div><div style="font-weight:700;margin-bottom:4px;">Sin notificaciones</div><div style="font-size:12px;">Aquí aparecerán todos los avisos importantes</div></div>';
     return;
@@ -10502,6 +10534,7 @@ document.addEventListener('visibilitychange',()=>{
       localStorage.setItem('drops_token_ts',Date.now());
       saveTokenIfPermitted(true); // silencioso
     }
+    // No limpiar el badge aquí — se limpia cuando el usuario abre el panel de notifs
   }
 });
 

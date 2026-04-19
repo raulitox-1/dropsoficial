@@ -328,6 +328,9 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <div class="nav-item" onclick="goPanel('facturacion')">
       <span class="nav-icon">💶</span><span>Facturación</span>
     </div>
+    <div class="nav-item" onclick="goPanel('catalogo-import')">
+      <span class="nav-icon">📦</span><span>Importar catálogo</span>
+    </div>
     <div class="sidebar-footer">
       <strong>Super Admin</strong>
       <div id="sb-time"></div>
@@ -535,6 +538,37 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
       <button class="btn btn-neu" onclick="closeModal('modal-comm')">Cancelar</button>
       <button class="btn btn-g" onclick="saveComm()" id="btn-save-comm">Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- PANEL IMPORTAR CATÁLOGO -->
+<div id="panel-catalogo-import" style="display:none;">
+  <div class="panel" id="panel-catalogo-import-inner">
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:20px;">📦 Importar catálogo desde web</div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px;margin-bottom:16px;font-size:12px;color:var(--tx2);line-height:1.7;">
+      1. Selecciona la comunidad<br>2. Pega la URL de dulcemarpesca.com<br>3. Elige tipo y modalidad<br>4. Pulsa Importar
+    </div>
+    <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Comunidad</label>
+    <select id="ci-comm" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;margin-bottom:12px;"><option value="">Cargando...</option></select>
+    <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">URL de dulcemarpesca.com</label>
+    <input type="url" id="ci-url" placeholder="https://dulcemarpesca.com/es/38-surfcasting-canas" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Tipo</label>
+        <select id="ci-tipo" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;">
+          <option value="cana">🎣 Caña</option><option value="carrete">🔄 Carrete</option>
+          <option value="señuelo">🦑 Señuelo</option><option value="hilo">🧵 Hilo</option><option value="accesorio">🔧 Accesorio</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Modalidad</label>
+        <select id="ci-subcat" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;">
+          <option value="surfcasting">🌊 Surfcasting</option><option value="spinning">🌀 Spinning</option><option value="eging">🦑 Eging</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">🚀 Importar al catálogo</button>
+    <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:280px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
   </div>
 </div>
 
@@ -786,6 +820,84 @@ window.doLogout=function(){
 };
 
 // ─── NAVIGATION ──────────────────────────────────────────
+async function cargarComunidadesImport(){
+  const sel=document.getElementById('ci-comm');
+  if(!sel)return;
+  try{
+    const snap=await getDocs(collection(db,'communities'));
+    sel.innerHTML='<option value="">— Selecciona comunidad —</option>';
+    snap.forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.id; o.textContent=d.data().name||d.id;
+      sel.appendChild(o);
+    });
+  }catch(e){sel.innerHTML='<option value="">Error</option>';}
+}
+
+window.iniciarImportCatalogo=async function(){
+  const commId=document.getElementById('ci-comm').value;
+  const url=document.getElementById('ci-url').value.trim();
+  const tipo=document.getElementById('ci-tipo').value;
+  const subcat=document.getElementById('ci-subcat').value;
+  const logEl=document.getElementById('ci-log');
+  const btn=document.getElementById('ci-btn');
+  if(!commId){alert('Selecciona una comunidad');return;}
+  if(!url||!url.includes('dulcemarpesca.com')){alert('URL inválida');return;}
+  logEl.style.display='block';
+  logEl.textContent='Conectando...';
+  btn.disabled=true;
+  const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
+  try{
+    const resp=await fetch(proxy);
+    const data=await resp.json();
+    const html=data.contents||'';
+    const bloques=html.split('Añadir al carrito');
+    logEl.textContent+='\n'+bloques.length+' bloques encontrados';
+    let maxRef=0;
+    try{
+      const ex=await getDocs(collection(db,'communities',commId,'catalogo'));
+      ex.forEach(d=>{const r=parseInt(d.data().ref||'0');if(r>maxRef)maxRef=r;});
+    }catch(_){}
+    let ok=0;
+    for(const bloque of bloques){
+      const nm=bloque.match(/##\s*\[([^\]]+)\]/);
+      if(!nm)continue;
+      const nombre=nm[1].trim();
+      if(!nombre||nombre.length<5)continue;
+      let marca='';
+      const mm=bloque.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/dulcemarpesca/);
+      if(mm)marca=mm[1].trim();
+      let precio=null;
+      const pm=bloque.match(/(\d+(?:[,\.]\d+)?)\s*€/);
+      if(pm)precio=parseFloat(pm[1].replace(',','.'));
+      let link='';
+      const lm=bloque.match(/\]\((https:\/\/dulcemarpesca\.com\/es\/[^)]+)\)/);
+      if(lm)link=lm[1];
+      let metros=null,accion='';
+      const metm=bloque.match(/(\d+[.,]\d+)\s*metros?|medida\s+(\d+[.,]\d+)/i);
+      if(metm)metros=parseFloat((metm[1]||metm[2]).replace(',','.'));
+      const acm=bloque.match(/acci[oó]n[^0-9]*(\d+[-–]\d+\s*g)/i);
+      if(acm)accion=acm[1].trim();
+      maxRef++;
+      const ref=String(maxRef).padStart(3,'0');
+      try{
+        await addDoc(collection(db,'communities',commId,'catalogo'),{
+          nombre,marca,precio,precioMin:precio,precioMax:precio,
+          categoria:tipo,subcategoria:subcat,metros,accion,link,ref,
+          ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')
+        });
+        logEl.textContent+='\n✅ #'+ref+' '+nombre+(precio?' - '+precio+'€':'');
+        logEl.scrollTop=logEl.scrollHeight;
+        ok++;
+        await new Promise(r=>setTimeout(r,120));
+      }catch(e){logEl.textContent+='\n❌ '+e.message;}
+    }
+    logEl.textContent+='\n\n🎉 '+ok+' productos importados'+(ok===0?' — Prueba con otra URL':'');
+  }catch(e){logEl.textContent+='\n❌ Error: '+e.message;}
+  btn.disabled=false;
+  logEl.scrollTop=logEl.scrollHeight;
+};
+
 window.goPanel=function(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -793,7 +905,8 @@ window.goPanel=function(name){
   document.getElementById('panel-'+name)?.classList.add('active');
   document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
   document.querySelector(`.bnav-item[data-panel="${name}"]`)?.classList.add('active');
-  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación'};
+  if(name==='catalogo-import'){cargarComunidadesImport();document.getElementById('panel-catalogo-import').style.display='block';}else{document.getElementById('panel-catalogo-import').style.display='none';}
+  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación','catalogo-import':'Importar catálogo'};
   document.getElementById('topbar-title').textContent=titles[name]||name;
   currentPanel=name;
   // Scroll to top on panel change (mobile)

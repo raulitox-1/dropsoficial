@@ -1318,23 +1318,29 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
     <div style="font-size:13px;color:var(--tx2);margin-bottom:14px;line-height:1.5;">Guarda productos con número de referencia, precio y link. Búscalos rápido por su #ref.</div>
     <div id="cat-form-wrap" style="background:var(--bg2);border-radius:var(--rad);padding:14px;margin-bottom:16px;">
       <div class="sec" style="font-size:11px;margin-bottom:10px;">Añadir producto</div>
-      <label>Categoría</label>
+      <label>Tipo de producto</label>
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;" id="cat-cat-btns">
-        <button type="button" class="cat-cat-btn btn btn-g" data-cat="surfcasting" onclick="selectCatCat(this)">🎣 Surfcasting</button>
-        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="eging" onclick="selectCatCat(this)">🦑 Eging</button>
-        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="spinning" onclick="selectCatCat(this)">🌀 Spinning</button>
+        <button type="button" class="cat-cat-btn btn btn-g" data-cat="cana" onclick="selectCatCat(this)">🎣 Caña</button>
+        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="carrete" onclick="selectCatCat(this)">🔄 Carrete</button>
+        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="señuelo" onclick="selectCatCat(this)">🦑 Señuelo</button>
+        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="hilo" onclick="selectCatCat(this)">🧵 Hilo</button>
+        <button type="button" class="cat-cat-btn btn btn-neu" data-cat="accesorio" onclick="selectCatCat(this)">🔧 Accesorio</button>
       </div>
-      <input type="hidden" id="cat-categoria" value="surfcasting"/>
+      <input type="hidden" id="cat-categoria" value="cana"/>
+      <label>Marca</label>
+      <input type="text" id="cat-marca" placeholder="Ej: Shimano, Daiwa, Penn..." style="margin-bottom:8px;"/>
       <label>Nombre del producto</label>
-      <input type="text" id="cat-nombre" placeholder="Ej: Caña Shimano Ultegra 14000" style="margin-bottom:8px;"/>
+      <input type="text" id="cat-nombre" placeholder="Ej: Ultegra 14000" style="margin-bottom:8px;"/>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div><label>Precio mínimo (€)</label><input type="number" id="cat-precio-min" placeholder="45" style="margin-bottom:8px;"/></div>
         <div><label>Precio máximo (€)</label><input type="number" id="cat-precio-max" placeholder="60" style="margin-bottom:8px;"/></div>
       </div>
+      <!-- Campos específicos por tipo -->
+      <div id="cat-campos-extra"></div>
       <label>Link de referencia (opcional)</label>
-      <input type="url" id="cat-link" placeholder="https://www.tackle4anglers.com/..." style="margin-bottom:12px;"/>
+      <input type="url" id="cat-link" placeholder="https://..." style="margin-bottom:12px;"/>
       <label>Notas (opcional)</label>
-      <input type="text" id="cat-notas" placeholder="Talla, color, variante específica..." style="margin-bottom:12px;"/>
+      <input type="text" id="cat-notas" placeholder="Color, variante específica..." style="margin-bottom:12px;"/>
       <button class="btn btn-g" style="width:100%;" onclick="guardarProductoCatalogo()">📦 Guardar en catálogo</button>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -1344,11 +1350,18 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         <input type="text" id="cat-buscar" placeholder="#ref o nombre..." style="border:none;background:none;outline:none;font-size:13px;width:100%;padding:0;" oninput="filtrarCatalogo(this.value)"/>
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;" id="cat-filter-btns">
+    <div style="display:flex;gap:6px;margin-bottom:6px;overflow-x:auto;padding-bottom:2px;" id="cat-filter-btns">
       <button type="button" class="cat-filter-btn btn btn-g btn-s" data-cat="todos" onclick="setCatFilter(this)">Todos</button>
-      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="surfcasting" onclick="setCatFilter(this)">🎣 Surfcasting</button>
-      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="eging" onclick="setCatFilter(this)">🦑 Eging</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="cana" onclick="setCatFilter(this)">🎣 Cañas</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="carrete" onclick="setCatFilter(this)">🔄 Carretes</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="señuelo" onclick="setCatFilter(this)">🦑 Señuelos</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="hilo" onclick="setCatFilter(this)">🧵 Hilos</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="accesorio" onclick="setCatFilter(this)">🔧 Accesorios</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;">
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="surfcasting" onclick="setCatFilter(this)">🌊 Surfcasting</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="spinning" onclick="setCatFilter(this)">🌀 Spinning</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="eging" onclick="setCatFilter(this)">🦑 Eging</button>
     </div>
     <div id="cat-lista"></div>
   </div>
@@ -8765,16 +8778,31 @@ function renderCatDocs(docs,el){
     div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;';
     const precioHtml=(p.precioMin?p.precioMin+'€':'')+(p.precioMin&&p.precioMax?' — ':'')+(p.precioMax?p.precioMax+'€':'');
     const vecesHtml=p.vecesUsado>0?'<div style="font-size:11px;color:var(--a);margin-top:3px;">🏆 Usado '+p.vecesUsado+' vez'+(p.vecesUsado>1?'es':'')+' como premio</div>':'';
-    const catLabel={'surfcasting':'🎣 Surfcasting','eging':'🦑 Eging','spinning':'🌀 Spinning'}[p.categoria||'surfcasting']||p.categoria||'';
+    const catLabel={'cana':'🎣 Caña','carrete':'🔄 Carrete','señuelo':'🦑 Señuelo','hilo':'🧵 Hilo','accesorio':'🔧 Accesorio',
+      'surfcasting':'🎣 Surfcasting','eging':'🦑 Eging','spinning':'🌀 Spinning'}[p.categoria||'']||p.categoria||'';
+    const subCatLabel={'surfcasting':'🎣 Surfcasting','eging':'🦑 Eging','spinning':'🌀 Spinning','popping':'🐟 Popping','jigging':'⚓ Jigging'}[p.subcategoria||'']||'';
+    // Construir specs según tipo
+    const specs=[];
+    if(p.marca)specs.push(p.marca);
+    if(p.metros)specs.push(p.metros+'m');
+    if(p.accion)specs.push(p.accion);
+    if(p.tamano)specs.push('Talla '+p.tamano);
+    if(p.gramos)specs.push(p.gramos+'g');
+    if(p.tipoSenuelo)specs.push(p.tipoSenuelo);
+    if(p.diametro)specs.push('Ø'+p.diametro+'mm');
+    if(p.metrosHilo)specs.push(p.metrosHilo+'m');
+    const specsHtml=specs.length?'<div style="font-size:11px;color:var(--tx2);margin-bottom:3px;">'+specs.map(s=>escapeHtml(s)).join(' · ')+'</div>':'';
     div.innerHTML=
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'+
         '<div style="flex:1;min-width:0;">'+
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">'+
             '<span style="background:var(--g);color:#fff;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:800;flex-shrink:0;">#'+(p.ref||'—')+'</span>'+
             '<span style="background:var(--bg3);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--tx2);flex-shrink:0;">'+catLabel+'</span>'+
+            (subCatLabel?'<span style="background:var(--bg3);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--tx3);flex-shrink:0;">'+subCatLabel+'</span>':'')+
             '<div style="font-size:13px;font-weight:800;">'+escapeHtml(p.nombre||'')+'</div>'+
           '</div>'+
           (precioHtml?'<div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:3px;">'+precioHtml+'</div>':'')+
+          specsHtml+
           (p.notas?'<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">'+escapeHtml(p.notas)+'</div>':'')+
           (p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;">🔗 Ver producto →</a>':'')+
           vecesHtml+
@@ -8806,8 +8834,14 @@ window.filtrarCatalogo=function(q){
   const activeCat=window._catFilter||'todos';
   const ql=q.toLowerCase().replace('#','').trim();
   const filtered=docs.filter(p=>{
-    const catOk=activeCat==='todos'||(p.categoria||'surfcasting')===activeCat;
-    const searchOk=!ql||(p.ref&&p.ref.includes(ql))||(p.nombre&&p.nombre.toLowerCase().includes(ql))||(p.notas&&p.notas.toLowerCase().includes(ql));
+    const catOk=activeCat==='todos'||p.categoria===activeCat||p.subcategoria===activeCat;
+    const searchOk=!ql||
+      (p.ref&&p.ref.includes(ql))||
+      (p.nombre&&p.nombre.toLowerCase().includes(ql))||
+      (p.marca&&p.marca.toLowerCase().includes(ql))||
+      (p.notas&&p.notas.toLowerCase().includes(ql))||
+      (p.tipoSenuelo&&p.tipoSenuelo.toLowerCase().includes(ql))||
+      (p.accion&&p.accion.toLowerCase().includes(ql));
     return catOk&&searchOk;
   });
   renderCatDocs(filtered);
@@ -8823,10 +8857,37 @@ window.setCatFilter=function(btn){
 };
 
 window.selectCatCat=function(btn){
-  document.getElementById('cat-categoria').value=btn.dataset.cat;
+  const cat=btn.dataset.cat;
+  document.getElementById('cat-categoria').value=cat;
   document.querySelectorAll('.cat-cat-btn').forEach(b=>{
     b.className='cat-cat-btn btn btn-s '+(b===btn?'btn-g':'btn-neu');
   });
+  // Mostrar campos específicos por tipo
+  const extra=document.getElementById('cat-campos-extra');
+  if(!extra)return;
+  const fields={
+    cana:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label>Metros</label><input type="number" id="cat-metros" placeholder="Ej: 4.5" step="0.1" style="margin-bottom:0;"/></div>
+      <div><label>Acción (gramaje lanzamiento)</label><input type="text" id="cat-accion" placeholder="Ej: 5-25g, 40-120g..." style="margin-bottom:0;"/></div>
+    </div>`,
+    carrete:`<div style="margin-bottom:8px;"><label>Tamaño</label>
+      <input type="text" id="cat-tamano" placeholder="Ej: 4000, 8000, 14000..." style="margin-bottom:0;"/></div>`,
+    señuelo:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label>Gramos</label><input type="number" id="cat-gramos" placeholder="Ej: 40" style="margin-bottom:0;"/></div>
+      <div><label>Tipo</label><select id="cat-tipo-señuelo" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-family:inherit;font-size:13px;outline:none;">
+        <option value="">— Tipo —</option>
+        <option>Popper</option><option>Jig</option>
+        <option>Paseante superficie</option><option>Paseante hundido</option>
+        <option>Minnow</option><option>Metal</option><option>Vinilo</option><option>Otro</option>
+      </select></div>
+    </div>`,
+    hilo:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label>Diámetro (mm)</label><input type="number" id="cat-diametro" placeholder="Ej: 0.28" step="0.01" style="margin-bottom:0;"/></div>
+      <div><label>Metros</label><input type="number" id="cat-metros-hilo" placeholder="Ej: 300" style="margin-bottom:0;"/></div>
+    </div>`,
+    accesorio:``
+  };
+  extra.innerHTML=fields[cat]||'';
 };
 
 window.comboCatFilter=function(btn){
@@ -8842,29 +8903,54 @@ window.comboCatFilter=function(btn){
 window.guardarProductoCatalogo=async function(){
   const nombre=document.getElementById('cat-nombre')?.value.trim();
   if(!nombre){toast('El nombre es obligatorio');return;}
+  const marca=document.getElementById('cat-marca')?.value.trim()||'';
   const precioMin=parseFloat(document.getElementById('cat-precio-min')?.value)||null;
   const precioMax=parseFloat(document.getElementById('cat-precio-max')?.value)||null;
   const link=document.getElementById('cat-link')?.value.trim()||'';
   const notas=document.getElementById('cat-notas')?.value.trim()||'';
+  const categoria=document.getElementById('cat-categoria')?.value||'cana';
+
+  // Campos específicos por tipo
+  const extra={};
+  if(categoria==='cana'){
+    const metros=parseFloat(document.getElementById('cat-metros')?.value)||null;
+    const accion=document.getElementById('cat-accion')?.value||'';
+    if(metros)extra.metros=metros;
+    if(accion)extra.accion=accion;
+  } else if(categoria==='carrete'){
+    const tamano=document.getElementById('cat-tamano')?.value.trim()||'';
+    if(tamano)extra.tamano=tamano;
+  } else if(categoria==='señuelo'){
+    const gramos=parseFloat(document.getElementById('cat-gramos')?.value)||null;
+    const tipoSenuelo=document.getElementById('cat-tipo-señuelo')?.value||'';
+    if(gramos)extra.gramos=gramos;
+    if(tipoSenuelo)extra.tipoSenuelo=tipoSenuelo;
+  } else if(categoria==='hilo'){
+    const diametro=parseFloat(document.getElementById('cat-diametro')?.value)||null;
+    const metrosHilo=parseFloat(document.getElementById('cat-metros-hilo')?.value)||null;
+    if(diametro)extra.diametro=diametro;
+    if(metrosHilo)extra.metrosHilo=metrosHilo;
+  }
+
   try{
-    // Generar número de referencia automático (#001, #002...)
     const existing=await getDocs(collection(db,'communities',currentCommId,'catalogo'));
     const maxRef=existing.docs.reduce((max,d)=>{
       const ref=parseInt(d.data().ref||'0');
       return ref>max?ref:max;
     },0);
     const newRef=String(maxRef+1).padStart(3,'0');
-    const categoria=document.getElementById('cat-categoria')?.value||'surfcasting';
     await addDoc(collection(db,'communities',currentCommId,'catalogo'),{
-      nombre,precioMin,precioMax,link,notas,ref:newRef,categoria,
+      nombre,marca,precioMin,precioMax,link,notas,ref:newRef,categoria,...extra,
       ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')
     });
-    document.getElementById('cat-nombre').value='';
-    document.getElementById('cat-precio-min').value='';
-    document.getElementById('cat-precio-max').value='';
-    document.getElementById('cat-link').value='';
-    document.getElementById('cat-notas').value='';
-    toast('📦 Producto #'+newRef+' guardado en el catálogo');
+    // Limpiar campos
+    ['cat-nombre','cat-marca','cat-precio-min','cat-precio-max','cat-link','cat-notas',
+     'cat-metros','cat-tamano','cat-gramos','cat-diametro','cat-metros-hilo'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value='';
+    });
+    const accionEl=document.getElementById('cat-accion');if(accionEl)accionEl.value='';
+    const tipoEl=document.getElementById('cat-tipo-señuelo');if(tipoEl)tipoEl.value='';
+    toast('📦 Producto #'+newRef+' guardado');
     buildCatalogo();
   }catch(e){toast('Error: '+e.message);}
 };

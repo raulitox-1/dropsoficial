@@ -856,16 +856,47 @@ async function parsearProductos(url,tienda,logEl){
   const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
   const productos=[];
   if(tienda==='marquitos'){
-    const jsonUrl=url.replace(/\?.*$/,'').replace(/\/$/,'')+'/products.json?limit=250';
-    logEl.textContent+='\nUsando API Shopify de Marquitos Fishing...';
-    const rj=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(jsonUrl));
-    const dj=await rj.json();
-    let jd=null;try{jd=JSON.parse(dj.contents);}catch(_){}
-    if(jd&&jd.products){
-      jd.products.forEach(p=>{
-        const precio=p.variants&&p.variants[0]?parseFloat(p.variants[0].price):null;
-        productos.push({nombre:p.title,marca:p.vendor||'',precio,precioMin:precio,precioMax:precio,
-          link:'https://marquitosfishing.com/products/'+p.handle,tienda:'Marquitos Fishing'});
+    // Shopify — parsear HTML (la API JSON esta bloqueada por CORS)
+    logEl.textContent+='\nCargando pagina de Marquitos Fishing...';
+    const resp=await fetch(proxy);
+    const data=await resp.json();
+    const html=data.contents||'';
+    const dom=new DOMParser().parseFromString(html,'text/html');
+    // Intentar extraer JSON embebido de Shopify (window.theme o similar)
+    const scriptTags=dom.querySelectorAll('script:not([src])');
+    let found=false;
+    scriptTags.forEach(s=>{
+      if(found)return;
+      const t=s.textContent;
+      const m=t.match(/"handle"\s*:\s*"([^"]+)"[\s\S]{0,200}?"title"\s*:\s*"([^"]+)"[\s\S]{0,200}?"price"\s*:\s*(\d+)/g);
+      if(m&&m.length>2){
+        m.forEach(block=>{
+          const hm=block.match(/"handle"\s*:\s*"([^"]+)"/);
+          const tm=block.match(/"title"\s*:\s*"([^"]+)"/);
+          const pm=block.match(/"price"\s*:\s*(\d+)/);
+          if(hm&&tm){
+            const nombre=tm[1];
+            const precio=pm?pm[1]/100:null;
+            productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,
+              link:'https://marquitosfishing.com/products/'+hm[1],tienda:'Marquitos Fishing'});
+          }
+        });
+        if(productos.length)found=true;
+      }
+    });
+    // Fallback: buscar cards HTML de Shopify
+    if(!productos.length){
+      dom.querySelectorAll('h3 a[href*="/products/"], .card__heading a, .product-item__title a').forEach(el=>{
+        const nombre=el.textContent.trim();
+        if(nombre.length<5)return;
+        const link='https://marquitosfishing.com'+el.getAttribute('href');
+        let precio=null;
+        const wrap=el.closest('li,.product-item,.card-wrapper');
+        if(wrap){
+          const pm=wrap.querySelector('[class*="price"]');
+          if(pm){const ps=pm.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
+        }
+        productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Marquitos Fishing'});
       });
     }
   } else {

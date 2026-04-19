@@ -542,8 +542,8 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
 </div>
 
 <!-- PANEL IMPORTAR CATÁLOGO -->
-<div id="panel-catalogo-import" style="display:none;">
-  <div class="panel" id="panel-catalogo-import-inner">
+<div class="panel" id="panel-catalogo-import">
+  <div>
     <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:20px;">📦 Importar catálogo desde web</div>
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px;margin-bottom:16px;font-size:12px;color:var(--tx2);line-height:1.7;">
       1. Selecciona la comunidad<br>2. Pega la URL de dulcemarpesca.com<br>3. Elige tipo y modalidad<br>4. Pulsa Importar
@@ -570,7 +570,6 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">🚀 Importar al catálogo</button>
     <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:280px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
   </div>
-</div>
 
 <!-- MODAL USUARIO -->
 <div class="modal-bg" id="modal-user" onclick="if(event.target===this)closeModal('modal-user')">
@@ -612,6 +611,9 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   </button>
   <button class="bnav-item" onclick="goPanel('notificaciones')" data-panel="notificaciones">
     <span class="bnav-icon">🔔</span>Notifs
+  </button>
+  <button class="bnav-item" onclick="goPanel('catalogo-import')" data-panel="catalogo-import">
+    <span class="bnav-icon">📦</span>Importar
   </button>
 </nav>
 
@@ -905,7 +907,7 @@ window.goPanel=function(name){
   document.getElementById('panel-'+name)?.classList.add('active');
   document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
   document.querySelector(`.bnav-item[data-panel="${name}"]`)?.classList.add('active');
-  if(name==='catalogo-import'){cargarComunidadesImport();document.getElementById('panel-catalogo-import').style.display='block';}else{document.getElementById('panel-catalogo-import').style.display='none';}
+  if(name==='catalogo-import')cargarComunidadesImport();
   const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación','catalogo-import':'Importar catálogo'};
   document.getElementById('topbar-title').textContent=titles[name]||name;
   currentPanel=name;

@@ -8804,7 +8804,9 @@ function renderCatDocs(docs,el){
           (precioHtml?'<div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:3px;">'+precioHtml+'</div>':'')+
           specsHtml+
           (p.notas?'<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">'+escapeHtml(p.notas)+'</div>':'')+
-          (p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;">🔗 Ver producto →</a>':'')+
+          (p.links&&Object.keys(p.links).length?
+            Object.entries(p.links).map(([tienda,url])=>'<a href="'+escapeHtml(url)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;margin-right:8px;">🔗 '+escapeHtml(tienda)+'</a>').join('')
+            :(p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;">🔗 Ver producto →</a>':''))+
           vecesHtml+
         '</div>'+
         '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">'+

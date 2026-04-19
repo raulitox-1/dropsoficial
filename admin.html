@@ -512,19 +512,16 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
         </div>
       </div>
 
-      <!-- PANEL IMPORTAR CATALOGO -->
       <div class="panel" id="panel-catalogo-import">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:20px;">Importar catalogo desde web</div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;margin-bottom:16px;font-size:12px;color:var(--tx2);line-height:1.7;">
-          1. Selecciona la comunidad de destino<br>
-          2. Pega la URL de dulcemarpesca.com<br>
-          3. Elige tipo y modalidad<br>
-          4. Pulsa Importar
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:16px;">Importar catalogo desde web</div>
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.7;">
+          Tiendas: dulcemarpesca.com · marquitosfishing.com · pescaenvalencia.com<br>
+          Pega la URL de una categoria y pulsa Importar.
         </div>
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Comunidad de destino</label>
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Comunidad</label>
         <select id="ci-comm" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;margin-bottom:12px;font-family:inherit;"><option value="">Cargando...</option></select>
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">URL de dulcemarpesca.com</label>
-        <input type="url" id="ci-url" placeholder="https://dulcemarpesca.com/es/38-surfcasting-canas" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit;"/>
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">URL de la tienda</label>
+        <input type="url" id="ci-url" placeholder="https://marquitosfishing.com/collections/canas-surfcasting" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit;"/>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
           <div>
             <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Tipo</label>
@@ -543,7 +540,6 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
         <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">Importar al catalogo</button>
         <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:280px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
       </div>
-
     </div>
   </div>
 </div>
@@ -825,18 +821,22 @@ window.doLogout=function(){
 };
 
 // ─── NAVIGATION ──────────────────────────────────────────
+
 async function cargarComunidadesImport(){
   const sel=document.getElementById('ci-comm');
   if(!sel)return;
   try{
     const snap=await getDocs(collection(db,'communities'));
     sel.innerHTML='<option value="">Selecciona comunidad</option>';
-    snap.forEach(d=>{
-      const o=document.createElement('option');
-      o.value=d.id;o.textContent=d.data().name||d.id;
-      sel.appendChild(o);
-    });
+    snap.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.data().name||d.id;sel.appendChild(o);});
   }catch(e){sel.innerHTML='<option value="">Error</option>';}
+}
+
+function detectarTienda(url){
+  if(url.includes('dulcemarpesca.com'))return 'dulcemar';
+  if(url.includes('marquitosfishing.com'))return 'marquitos';
+  if(url.includes('pescaenvalencia.com'))return 'pescavalencia';
+  return null;
 }
 
 window.iniciarImportCatalogo=async function(){
@@ -847,62 +847,85 @@ window.iniciarImportCatalogo=async function(){
   const logEl=document.getElementById('ci-log');
   const btn=document.getElementById('ci-btn');
   if(!commId){alert('Selecciona una comunidad');return;}
-  if(!url||!url.includes('dulcemarpesca.com')){alert('URL invalida');return;}
+  if(!url){alert('Introduce una URL');return;}
+  const tienda=detectarTienda(url);
+  if(!tienda){alert('Tienda no soportada. Usa dulcemarpesca.com, marquitosfishing.com o pescaenvalencia.com');return;}
   logEl.style.display='block';
-  logEl.textContent='Conectando...';
+  logEl.textContent='Tienda detectada: '+tienda+'\nConectando...';
   btn.disabled=true;
   try{
+    const productos=[];
     const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
-    const resp=await fetch(proxy);
-    const data=await resp.json();
-    const html=data.contents||'';
-    const bloques=html.split('Añadir al carrito');
-    logEl.textContent+=String.fromCharCode(10)+bloques.length+' bloques encontrados';
+    if(tienda==='marquitos'){
+      const jsonUrl=url.replace(/\?.*$/,'').replace(/\/$/,'')+'/products.json?limit=250';
+      logEl.textContent+='\nUsando API Shopify...';
+      const rj=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(jsonUrl));
+      const dj=await rj.json();
+      let jd=null;
+      try{jd=JSON.parse(dj.contents);}catch(_){}
+      if(jd&&jd.products){
+        jd.products.forEach(p=>{
+          const precio=p.variants&&p.variants[0]?parseFloat(p.variants[0].price):null;
+          productos.push({nombre:p.title,marca:p.vendor||'',precio,precioMin:precio,precioMax:precio,link:'https://marquitosfishing.com/products/'+p.handle,notas:p.product_type||''});
+        });
+      }
+    } else {
+      const resp=await fetch(proxy);
+      const data=await resp.json();
+      const html=data.contents||'';
+      if(tienda==='pescavalencia'){
+        const dom=new DOMParser().parseFromString(html,'text/html');
+        dom.querySelectorAll('.woocommerce-loop-product__title,.product_title').forEach(el=>{
+          const nombre=el.textContent.trim();
+          if(nombre.length<5)return;
+          let precio=null,link='';
+          const wrap=el.closest('li,.product');
+          if(wrap){
+            const pm=wrap.querySelector('.woocommerce-Price-amount');
+            if(pm)precio=parseFloat(pm.textContent.replace(/[^0-9,.]/g,'').replace(',','.'));
+            const lm=wrap.querySelector('a');
+            if(lm)link=lm.href||'';
+          }
+          productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link});
+        });
+      } else {
+        const bloques=html.split('Añadir al carrito');
+        logEl.textContent+='\n'+bloques.length+' bloques encontrados';
+        bloques.forEach(b=>{
+          const nm=b.match(/##\s*\[([^\]]+)\]/);if(!nm)return;
+          const nombre=nm[1].trim();if(nombre.length<5)return;
+          let marca='';
+          const mm=b.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/dulcemarpesca/);if(mm)marca=mm[1].trim();
+          let precio=null;
+          const pm=b.match(/(\d+(?:[,.]\d+)?)\s*\u20ac/);if(pm)precio=parseFloat(pm[1].replace(',','.'));
+          let link='';
+          const lm=b.match(/\]\((https:\/\/dulcemarpesca\.com\/es\/[^)]+)\)/);if(lm)link=lm[1];
+          let metros=null,accion='';
+          const metm=b.match(/(\d+[.,]\d+)\s*metros?|medida\s+(\d+[.,]\d+)/i);if(metm)metros=parseFloat((metm[1]||metm[2]).replace(',','.'));
+          const acm=b.match(/acci.n[^0-9]*(\d+[-]\d+\s*g)/i);if(acm)accion=acm[1].trim();
+          productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,metros,accion});
+        });
+      }
+    }
+    logEl.textContent+='\n'+productos.length+' productos encontrados';
+    if(!productos.length){logEl.textContent+='\nNo se encontraron productos. Prueba con otra URL.';btn.disabled=false;return;}
     let maxRef=0;
-    try{
-      const ex=await getDocs(collection(db,'communities',commId,'catalogo'));
-      ex.forEach(d=>{const r=parseInt(d.data().ref||'0');if(r>maxRef)maxRef=r;});
-    }catch(_){}
+    try{const ex=await getDocs(collection(db,'communities',commId,'catalogo'));ex.forEach(d=>{const r=parseInt(d.data().ref||'0');if(r>maxRef)maxRef=r;});}catch(_){}
     let ok=0;
-    for(const bloque of bloques){
-      const nm=bloque.match(/##\s*\[([^\]]+)\]/);
-      if(!nm)continue;
-      const nombre=nm[1].trim();
-      if(!nombre||nombre.length<5)continue;
-      let marca='';
-      const mm=bloque.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/dulcemarpesca/);
-      if(mm)marca=mm[1].trim();
-      let precio=null;
-      const pm=bloque.match(/(\d+(?:[,.]\d+)?)\s*\u20ac/);
-      if(pm)precio=parseFloat(pm[1].replace(',','.'));
-      let link='';
-      const lm=bloque.match(/\]\((https:\/\/dulcemarpesca\.com\/es\/[^)]+)\)/);
-      if(lm)link=lm[1];
-      let metros=null,accion='';
-      const metm=bloque.match(/(\d+[.,]\d+)\s*metros?|medida\s+(\d+[.,]\d+)/i);
-      if(metm)metros=parseFloat((metm[1]||metm[2]).replace(',','.'));
-      const acm=bloque.match(/acci.n[^0-9]*(\d+[-]\d+\s*g)/i);
-      if(acm)accion=acm[1].trim();
+    for(const p of productos){
       maxRef++;
       const ref=String(maxRef).padStart(3,'0');
       try{
-        await addDoc(collection(db,'communities',commId,'catalogo'),{
-          nombre,marca,precio,precioMin:precio,precioMax:precio,
-          categoria:tipo,subcategoria:subcat,metros,accion,link,ref,
-          ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')
-        });
-        logEl.textContent+=String.fromCharCode(10)+'#'+ref+' '+nombre+(precio?' - '+precio+'e':'');
-        logEl.scrollTop=logEl.scrollHeight;
-        ok++;
-        await new Promise(r=>setTimeout(r,120));
-      }catch(e){logEl.textContent+=String.fromCharCode(10)+'Error: '+e.message;}
+        await addDoc(collection(db,'communities',commId,'catalogo'),{nombre:p.nombre,marca:p.marca||'',precio:p.precio,precioMin:p.precioMin,precioMax:p.precioMax,categoria:tipo,subcategoria:subcat,metros:p.metros||null,accion:p.accion||'',link:p.link||'',notas:p.notas||'',ref,ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')});
+        logEl.textContent+='\n#'+ref+' '+p.nombre+(p.precio?' - '+p.precio+'e':'');
+        logEl.scrollTop=logEl.scrollHeight;ok++;
+        await new Promise(r=>setTimeout(r,100));
+      }catch(e){logEl.textContent+='\nError: '+e.message;}
     }
-    logEl.textContent+=String.fromCharCode(10)+String.fromCharCode(10)+ok+' productos importados'+(ok===0?' - Prueba con otra URL':'');
-  }catch(e){logEl.textContent+=String.fromCharCode(10)+'Error: '+e.message;}
-  btn.disabled=false;
-  logEl.scrollTop=logEl.scrollHeight;
+    logEl.textContent+='\n\n'+ok+' productos importados!';
+  }catch(e){logEl.textContent+='\nError: '+e.message;}
+  btn.disabled=false;logEl.scrollTop=logEl.scrollHeight;
 };
-
 
 window.goPanel=function(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));

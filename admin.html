@@ -917,19 +917,38 @@ async function parsearProductos(url,tienda,logEl){
     const data=await resp.json();
     const html=data.contents||'';
     if(tienda==='pescavalencia'){
-      const dom=new DOMParser().parseFromString(html,'text/html');
-      dom.querySelectorAll('.woocommerce-loop-product__title,.product_title').forEach(el=>{
-        const nombre=el.textContent.trim();
+      // WooCommerce pero el proxy devuelve markdown — mismo formato que dulcemar
+      const nombreTienda='Pesca en Valencia';
+      // Buscar productos por patrón: ## [nombre](url) ... precio€
+      const bloques=html.split(/\n\*\s+/);
+      bloques.forEach(b=>{
+        const nm=b.match(/##\s*\[([^\]]+)\]/);
+        if(!nm)return;
+        const nombre=nm[1].trim();
         if(nombre.length<5)return;
-        let precio=null,link='';
-        const wrap=el.closest('li,.product');
-        if(wrap){
-          const pm=wrap.querySelector('.woocommerce-Price-amount');
-          if(pm)precio=parseFloat(pm.textContent.replace(/[^0-9,.]/g,'').replace(',','.'));
-          const lm=wrap.querySelector('a');if(lm)link=lm.href||'';
-        }
-        productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
+        let link='';
+        const lm=b.match(/\]\((https:\/\/pescaenvalencia\.com\/[^)]+)\)/);
+        if(lm)link=lm[1];
+        let precio=null;
+        const pm=b.match(/(\d+(?:[,.]\d+)?)\u20ac/);
+        if(pm)precio=parseFloat(pm[1].replace(',','.'));
+        // Buscar marca del enlace de categoria
+        let marca='';
+        const mm=b.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/pescaenvalencia\.com\/marca\//);
+        if(mm)marca=mm[1].trim();
+        productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
       });
+      // Fallback si no encontró nada
+      if(!productos.length){
+        const allNm=[...html.matchAll(/##\s*\[([^\]]{5,100})\]\((https:\/\/pescaenvalencia\.com\/tienda\/[^)]+)\)/g)];
+        const allPr=[...html.matchAll(/(\d+(?:[,.]\d+)?)\u20ac/g)];
+        allNm.forEach((m,i)=>{
+          const nombre=m[1].trim();
+          const link=m[2];
+          const precio=allPr[i]?parseFloat(allPr[i][1].replace(',','.')):null;
+          productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
+        });
+      }
     } else {
       // PrestaShop (dulcemar + rhodani)
       const nombreTienda=tienda==='rhodani'?'Rhodani':'Dulcemar Pesca';

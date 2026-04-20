@@ -1363,6 +1363,15 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="spinning" onclick="setCatFilter(this)">🌀 Spinning</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="eging" onclick="setCatFilter(this)">🦑 Eging</button>
     </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+      <button type="button" id="cat-select-mode-btn" class="btn btn-neu btn-s" onclick="toggleCatSelectMode()">☑️ Seleccionar</button>
+      <div id="cat-select-bar" style="display:none;flex:1;display:none;align-items:center;gap:8px;">
+        <span id="cat-select-count" style="font-size:12px;color:var(--tx2);">0 seleccionados</span>
+        <button class="btn btn-s btn-neu" onclick="seleccionarTodosCat()">Todos</button>
+        <button class="btn btn-s btn-ko" onclick="borrarSeleccionadosCat()">🗑️ Eliminar</button>
+        <button class="btn btn-s btn-neu" onclick="toggleCatSelectMode()">Cancelar</button>
+      </div>
+    </div>
     <div id="cat-lista"></div>
   </div>
 
@@ -8775,7 +8784,8 @@ function renderCatDocs(docs,el){
   el.innerHTML='';
   docs.forEach(p=>{
     const div=document.createElement('div');
-    div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;';
+    div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;'+((_catSelectMode&&_catSeleccionados.has(p.id))?'border:2px solid var(--r);':'border:2px solid transparent;');
+    const checkHtml=_catSelectMode?'<input type="checkbox" '+((_catSeleccionados.has(p.id))?'checked':'')+' style="width:18px;height:18px;margin-right:10px;flex-shrink:0;accent-color:var(--r);" onchange="toggleCatItem(\''+p.id+'\',this)"/>':'';
     const precioMin=p.precioMin||p.precio||null;
     const precioMax=p.precioMax||p.precio||null;
     const precioHtml=(precioMin?precioMin+'€':'')+(precioMin&&precioMax&&precioMin!==precioMax?' — ':'')+(precioMax&&precioMax!==precioMin?precioMax+'€':'');
@@ -8796,6 +8806,7 @@ function renderCatDocs(docs,el){
     const specsHtml=specs.length?'<div style="font-size:11px;color:var(--tx2);margin-bottom:3px;">'+specs.map(s=>escapeHtml(s)).join(' · ')+'</div>':'';
     div.innerHTML=
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'+
+        (_catSelectMode?'<input type="checkbox" '+(_catSeleccionados.has(p.id)?'checked':'')+' style="width:18px;height:18px;margin-right:4px;margin-top:2px;flex-shrink:0;accent-color:var(--r);" onchange="toggleCatItem(\''+p.id+'\',this)"/>':'')+
         '<div style="flex:1;min-width:0;">'+
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">'+
             '<span style="background:var(--g);color:#fff;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:800;flex-shrink:0;">#'+(p.ref||'—')+'</span>'+
@@ -8832,6 +8843,67 @@ function renderCatDocs(docs,el){
     el.appendChild(div);
   });
 }
+
+// ── Selección múltiple catálogo ──────────────────────────────
+let _catSelectMode=false;
+const _catSeleccionados=new Set();
+
+window.toggleCatSelectMode=function(){
+  _catSelectMode=!_catSelectMode;
+  _catSeleccionados.clear();
+  const btn=document.getElementById('cat-select-mode-btn');
+  const bar=document.getElementById('cat-select-bar');
+  if(_catSelectMode){
+    if(btn)btn.style.display='none';
+    if(bar){bar.style.display='flex';}
+  } else {
+    if(btn)btn.style.display='';
+    if(bar)bar.style.display='none';
+  }
+  const q=document.getElementById('cat-buscar')?.value||'';
+  filtrarCatalogo(q);
+};
+
+window.seleccionarTodosCat=function(){
+  const docs=window._catDocs||[];
+  const activeCat=window._catFilter||'todos';
+  const ql=(document.getElementById('cat-buscar')?.value||'').toLowerCase().replace('#','').trim();
+  docs.filter(p=>{
+    const catOk=activeCat==='todos'||p.categoria===activeCat||p.subcategoria===activeCat;
+    const searchOk=!ql||(p.ref&&p.ref.includes(ql))||(p.nombre&&p.nombre.toLowerCase().includes(ql))||(p.marca&&p.marca.toLowerCase().includes(ql));
+    return catOk&&searchOk;
+  }).forEach(p=>_catSeleccionados.add(p.id));
+  actualizarContadorCat();
+  const q=document.getElementById('cat-buscar')?.value||'';
+  filtrarCatalogo(q);
+};
+
+function actualizarContadorCat(){
+  const el=document.getElementById('cat-select-count');
+  if(el)el.textContent=_catSeleccionados.size+' seleccionados';
+}
+
+window.toggleCatItem=function(id,checkbox){
+  if(checkbox.checked)_catSeleccionados.add(id);
+  else _catSeleccionados.delete(id);
+  actualizarContadorCat();
+};
+
+window.borrarSeleccionadosCat=async function(){
+  if(!_catSeleccionados.size){toast('Selecciona al menos un producto');return;}
+  if(!confirm('¿Eliminar '+_catSeleccionados.size+' productos del catálogo?'))return;
+  const btn=document.querySelector('#cat-select-bar .btn-ko');
+  if(btn){btn.disabled=true;btn.textContent='Eliminando...';}
+  let ok=0;
+  for(const id of _catSeleccionados){
+    try{await deleteDoc(doc(db,'communities',currentCommId,'catalogo',id));ok++;}
+    catch(e){console.warn('Error borrando',id,e);}
+  }
+  toast('🗑️ '+ok+' productos eliminados');
+  _catSeleccionados.clear();
+  toggleCatSelectMode();
+  buildCatalogo();
+};
 
 window.filtrarCatalogo=function(q){
   const docs=window._catDocs||[];

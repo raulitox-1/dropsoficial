@@ -9055,39 +9055,98 @@ window.abrirSelectorCatalogo=async function(){
   let m=document.getElementById('modal-cat-selector');
   if(!m){m=document.createElement('div');m.id='modal-cat-selector';m.className='modal-bg';document.body.appendChild(m);}
   m.innerHTML=
-    '<div class="modal" style="max-width:420px;max-height:85vh;overflow-y:auto;">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding-bottom:10px;border-bottom:1px solid var(--bd);">'+
-        '<div style="font-size:15px;font-weight:800;">📦 Seleccionar del catálogo</div>'+
-        '<button onclick="document.getElementById(\'modal-cat-selector\').classList.remove(\'open\')" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>'+
+    '<div class="modal" style="max-width:460px;max-height:90vh;display:flex;flex-direction:column;">'+
+      '<div style="position:sticky;top:0;background:var(--bg);padding-bottom:10px;border-bottom:1px solid var(--bd);margin-bottom:10px;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
+          '<div style="font-size:15px;font-weight:800;">📦 Seleccionar del catálogo</div>'+
+          '<button onclick="document.getElementById(\'modal-cat-selector\').classList.remove(\'open\')" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>'+
+        '</div>'+
+        // Buscador
+        '<div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:8px 12px;margin-bottom:8px;">'+
+          '<span style="font-size:16px;">🔍</span>'+
+          '<input type="text" id="cat-sel-q" placeholder="#ref, nombre o marca..." style="border:none;background:none;outline:none;font-size:13px;width:100%;color:var(--tx);" oninput="filtrarSelectorCatalogo()"/>'+
+        '</div>'+
+        // Filtros tipo
+        '<div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;">'+
+          '<button type="button" class="cat-sel-f btn btn-s btn-g" data-f="todos" onclick="setSelectorFiltro(this)">Todos</button>'+
+          '<button type="button" class="cat-sel-f btn btn-s btn-neu" data-f="cana" onclick="setSelectorFiltro(this)">🎣 Cañas</button>'+
+          '<button type="button" class="cat-sel-f btn btn-s btn-neu" data-f="carrete" onclick="setSelectorFiltro(this)">🔄 Carretes</button>'+
+          '<button type="button" class="cat-sel-f btn btn-s btn-neu" data-f="señuelo" onclick="setSelectorFiltro(this)">🦑 Señuelos</button>'+
+          '<button type="button" class="cat-sel-f btn btn-s btn-neu" data-f="hilo" onclick="setSelectorFiltro(this)">🧵 Hilos</button>'+
+        '</div>'+
+        // Filtros modalidad
+        '<div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;">'+
+          '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="todos" onclick="setSelectorModal(this)">Todas</button>'+
+          '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="surfcasting" onclick="setSelectorModal(this)">🌊 Surf</button>'+
+          '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="spinning" onclick="setSelectorModal(this)">🌀 Spinning</button>'+
+          '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="eging" onclick="setSelectorModal(this)">🦑 Eging</button>'+
+        '</div>'+
       '</div>'+
-      '<div id="cat-selector-lista"><div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Cargando...</div></div>'+
+      '<div id="cat-selector-lista" style="overflow-y:auto;flex:1;"><div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Cargando...</div></div>'+
     '</div>';
   m.classList.add('open');
+  window._catSelDocs=[];
+  window._catSelFiltro='todos';
+  window._catSelModal='todos';
   try{
     const snap=await getDocs(collection(db,'communities',currentCommId,'catalogo'));
-    const lista=document.getElementById('cat-selector-lista');
-    if(!snap.size){lista.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Catálogo vacío. Añade productos en la pestaña 📦 Catálogo.</div>';return;}
+    if(!snap.size){document.getElementById('cat-selector-lista').innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Catálogo vacío.</div>';return;}
     const catDocs=[];snap.forEach(d=>catDocs.push({id:d.id,...d.data()}));
-    catDocs.sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
-    lista.innerHTML='';
-    catDocs.forEach(p=>{
-      const div=document.createElement('div');
-      div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;cursor:pointer;border:1px solid var(--bd);';
-      div.innerHTML=
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'+
-          '<div style="flex:1;">'+
-            '<div style="font-size:13px;font-weight:800;">'+escapeHtml(p.nombre||'')+'</div>'+
-            (p.precioMin||p.precioMax?'<div style="font-size:12px;color:var(--g);font-weight:700;">'+
-              (p.precioMin?p.precioMin+'€':'')+(p.precioMin&&p.precioMax?' — ':'')+(p.precioMax?p.precioMax+'€':'')+'</div>':'')+
-            (p.notas?'<div style="font-size:11px;color:var(--tx3);">'+escapeHtml(p.notas)+'</div>':'')+
-            (p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--bl);">🔗 Ver producto</a>':'')+
-          '</div>'+
-          '<button class="btn btn-s btn-g" onclick="event.stopPropagation();seleccionarDeCatalogo(\''+encodeURIComponent(p.nombre||'')+'\')">+ Añadir</button>'+
-        '</div>';
-      div.onclick=()=>seleccionarDeCatalogo(encodeURIComponent(p.nombre||''));
-      lista.appendChild(div);
-    });
+    catDocs.sort((a,b)=>parseInt(a.ref||'999')-parseInt(b.ref||'999'));
+    window._catSelDocs=catDocs;
+    filtrarSelectorCatalogo();
   }catch(e){document.getElementById('cat-selector-lista').innerHTML='<div style="color:var(--r);font-size:13px;">Error: '+e.message+'</div>';}
+};
+
+window.setSelectorFiltro=function(btn){
+  window._catSelFiltro=btn.dataset.f;
+  document.querySelectorAll('.cat-sel-f').forEach(b=>b.className='cat-sel-f btn btn-s '+(b===btn?'btn-g':'btn-neu'));
+  filtrarSelectorCatalogo();
+};
+
+window.setSelectorModal=function(btn){
+  window._catSelModal=btn.dataset.m;
+  document.querySelectorAll('.cat-sel-m').forEach(b=>b.className='cat-sel-m btn btn-s '+(b===btn?'btn-g':'btn-neu'));
+  filtrarSelectorCatalogo();
+};
+
+window.filtrarSelectorCatalogo=function(){
+  const q=(document.getElementById('cat-sel-q')?.value||'').toLowerCase().replace('#','').trim();
+  const f=window._catSelFiltro||'todos';
+  const mod=window._catSelModal||'todos';
+  const docs=window._catSelDocs||[];
+  const filtered=docs.filter(p=>{
+    const fOk=f==='todos'||p.categoria===f;
+    const mOk=mod==='todos'||p.subcategoria===mod;
+    const qOk=!q||(p.ref&&p.ref.includes(q))||(p.nombre&&p.nombre.toLowerCase().includes(q))||(p.marca&&p.marca.toLowerCase().includes(q));
+    return fOk&&mOk&&qOk;
+  });
+  const lista=document.getElementById('cat-selector-lista');
+  if(!lista)return;
+  if(!filtered.length){lista.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Sin resultados</div>';return;}
+  lista.innerHTML='';
+  filtered.forEach(p=>{
+    const precioMin=p.precioMin||p.precio||null;
+    const precioHtml=precioMin?'<div style="font-size:12px;color:var(--g);font-weight:700;">'+precioMin+'€</div>':'';
+    const subcat={'surfcasting':'🌊','spinning':'🌀','eging':'🦑'}[p.subcategoria||'']||'';
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:10px 12px;margin-bottom:6px;cursor:pointer;border:1px solid var(--bd);';
+    div.innerHTML=
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">'+
+            '<span style="background:var(--g);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:800;">#'+(p.ref||'—')+'</span>'+
+            (subcat?'<span style="font-size:11px;">'+subcat+'</span>':'')+
+            '<span style="font-size:12px;font-weight:700;">'+escapeHtml(p.nombre||'')+'</span>'+
+          '</div>'+
+          (p.marca?'<div style="font-size:11px;color:var(--tx3);">'+escapeHtml(p.marca)+'</div>':'')+
+          precioHtml+
+        '</div>'+
+        '<button class="btn btn-s btn-g" onclick="event.stopPropagation();seleccionarDeCatalogo(\''+encodeURIComponent(p.nombre||'')+'\')">+ Add</button>'+
+      '</div>';
+    div.onclick=()=>seleccionarDeCatalogo(encodeURIComponent(p.nombre||''));
+    lista.appendChild(div);
+  });
 };
 
 window.seleccionarDeCatalogo=function(nombreEncoded){
@@ -11974,6 +12033,22 @@ function toast(msg,dur=2800){
 // ── START ─────────────────────────────────────────────────────────
 window._mercInit=init;
 
+</script>
+<!-- BOTÓN SCROLL ARRIBA -->
+<button id="btn-scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="
+  position:fixed;bottom:90px;right:16px;z-index:999;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--g);color:#fff;border:none;
+  font-size:20px;cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+  display:none;align-items:center;justify-content:center;
+  transition:opacity .2s;
+">↑</button>
+<script>
+window.addEventListener('scroll',function(){
+  const btn=document.getElementById('btn-scroll-top');
+  if(btn)btn.style.display=window.scrollY>300?'flex':'none';
+},{passive:true});
 </script>
 </body>
 </html>

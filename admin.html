@@ -856,36 +856,25 @@ async function parsearProductos(url,tienda,logEl){
   const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
   const productos=[];
   if(tienda==='marquitos'){
-    // Shopify — intentar varios proxies
     logEl.textContent+='\nCargando pagina de Marquitos Fishing...';
     let html='';
     const proxies=[
-      'https://api.allorigins.win/get?url='+encodeURIComponent(url),
-      'https://corsproxy.io/?'+encodeURIComponent(url),
-      'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)
+      async()=>{const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));const d=await r.json();return d.contents||'';},
+      async()=>{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url));return await r.text();},
+      async()=>{const r=await fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url));return await r.text();}
     ];
-    for(const p of proxies){
+    for(const tryProxy of proxies){
       try{
-        const r=await fetch(p);
-        if(!r.ok)continue;
-        const d=await r.json().catch(async()=>({contents:await r.text()}));
-        html=d.contents||d||'';
-        if(typeof html!=='string')html=JSON.stringify(html);
-        if(html.length>1000){logEl.textContent+='\nProxy OK: '+p.split('?')[0];break;}
-      }catch(e){logEl.textContent+='\nProxy fallido: '+e.message;continue;}
+        const result=await tryProxy();
+        if(result&&result.length>500){html=result;logEl.textContent+='\nProxy OK, '+html.length+' chars';break;}
+      }catch(e){logEl.textContent+='\nProxy fallido: '+e.message;}
     }
-    if(!html||html.length<100){logEl.textContent+='\nNo se pudo cargar la pagina. Intentando URL directa...';
-      try{const r=await fetch(url,{mode:'no-cors'});html=await r.text().catch(()=>'');}catch(_){}
-    }
-    logEl.textContent+='\nHTML recibido: '+html.length+' chars';
-    // Buscar productos en el HTML de Shopify
+    if(!html||html.length<100){logEl.textContent+='\nNo se pudo cargar la pagina.';btn.disabled=false;return;}
     const dom=new DOMParser().parseFromString(html,'text/html');
-    // Extraer de JSON embebido en scripts
     dom.querySelectorAll('script:not([src])').forEach(s=>{
       if(productos.length)return;
       try{
         const t=s.textContent;
-        // Shopify suele tener window.__INITIAL_STATE__ o similar
         const matches=[...t.matchAll(/"title"\s*:\s*"([^"]{5,100})"[\s\S]{0,500}?"price"\s*:\s*(\d+)[\s\S]{0,200}?"handle"\s*:\s*"([^"]+)"/g)];
         matches.forEach(m=>{
           const nombre=m[1],precio=parseInt(m[2])/100,handle=m[3];
@@ -894,7 +883,6 @@ async function parsearProductos(url,tienda,logEl){
         });
       }catch(_){}
     });
-    // Fallback HTML parsing
     if(!productos.length){
       dom.querySelectorAll('h3 a[href*="/products/"],h2 a[href*="/products/"],[class*="card"] a[href*="/products/"]').forEach(el=>{
         const nombre=el.textContent.trim();

@@ -1358,10 +1358,17 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="hilo" onclick="setCatFilter(this)">🧵 Hilos</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="accesorio" onclick="setCatFilter(this)">🔧 Accesorios</button>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;">
+    <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;padding-bottom:4px;">
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="surfcasting" onclick="setCatFilter(this)">🌊 Surfcasting</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="spinning" onclick="setCatFilter(this)">🌀 Spinning</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="eging" onclick="setCatFilter(this)">🦑 Eging</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--tx3);flex-shrink:0;">Precio:</span>
+      <input type="number" id="cat-pmin" placeholder="Min €" style="width:75px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:7px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="filtrarCatalogo(document.getElementById('cat-buscar')?.value||'')"/>
+      <span style="font-size:11px;color:var(--tx3);">—</span>
+      <input type="number" id="cat-pmax" placeholder="Max €" style="width:75px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:7px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="filtrarCatalogo(document.getElementById('cat-buscar')?.value||'')"/>
+      <button class="btn btn-s btn-neu" onclick="document.getElementById('cat-pmin').value='';document.getElementById('cat-pmax').value='';filtrarCatalogo('')" style="flex-shrink:0;">✕</button>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
       <button type="button" id="cat-select-mode-btn" class="btn btn-neu btn-s" onclick="toggleCatSelectMode()">☑️ Seleccionar</button>
@@ -8909,6 +8916,8 @@ window.filtrarCatalogo=function(q){
   const docs=window._catDocs||[];
   const activeCat=window._catFilter||'todos';
   const ql=q.toLowerCase().replace('#','').trim();
+  const pmin=parseFloat(document.getElementById('cat-pmin')?.value)||null;
+  const pmax=parseFloat(document.getElementById('cat-pmax')?.value)||null;
   const filtered=docs.filter(p=>{
     const catOk=activeCat==='todos'||p.categoria===activeCat||p.subcategoria===activeCat;
     const searchOk=!ql||
@@ -8918,7 +8927,9 @@ window.filtrarCatalogo=function(q){
       (p.notas&&p.notas.toLowerCase().includes(ql))||
       (p.tipoSenuelo&&p.tipoSenuelo.toLowerCase().includes(ql))||
       (p.accion&&p.accion.toLowerCase().includes(ql));
-    return catOk&&searchOk;
+    const precio=p.precioMin||p.precio||null;
+    const precioOk=(!pmin||precio>=pmin)&&(!pmax||precio<=pmax);
+    return catOk&&searchOk&&precioOk;
   });
   renderCatDocs(filtered);
 };
@@ -9051,6 +9062,36 @@ window.añadirCatalogoAPremios=function(nombreEncoded){
 };
 
 // Modal selector de catálogo desde Config
+
+// ── Carrito selector catálogo ────────────────────────────────
+window._carritoSel=new Map(); // id -> nombre
+
+window.anadirAlCarritoSel=function(id,nombreEnc,btn){
+  const nombre=decodeURIComponent(nombreEnc);
+  if(window._carritoSel.has(id)){
+    window._carritoSel.delete(id);
+    if(btn){btn.style.background='';btn.style.color='';btn.textContent='🛒';}
+  } else {
+    window._carritoSel.set(id,nombre);
+    if(btn){btn.style.background='var(--g)';btn.style.color='#fff';btn.textContent='✓';}
+  }
+  const count=window._carritoSel.size;
+  const el=document.getElementById('cat-sel-cart-count');
+  if(el)el.textContent=count;
+};
+
+window.anadirCarritoSel=function(){
+  if(!window._carritoSel.size){toast('Añade productos al carrito primero');return;}
+  const ta=document.getElementById('cfg-premios');
+  if(!ta){toast('Ve a Config para ver los premios');return;}
+  const nombres=[...window._carritoSel.values()];
+  const actual=ta.value.trim();
+  ta.value=actual?(actual+'\n'+nombres.join('\n')):nombres.join('\n');
+  window._carritoSel.clear();
+  document.getElementById('modal-cat-selector')?.classList.remove('open');
+  toast('✅ '+nombres.length+' producto'+(nombres.length>1?'s':'')+' añadidos a premios');
+};
+
 window.abrirSelectorCatalogo=async function(){
   let m=document.getElementById('modal-cat-selector');
   if(!m){m=document.createElement('div');m.id='modal-cat-selector';m.className='modal-bg';document.body.appendChild(m);}
@@ -9075,11 +9116,22 @@ window.abrirSelectorCatalogo=async function(){
           '<button type="button" class="cat-sel-f btn btn-s btn-neu" data-f="hilo" onclick="setSelectorFiltro(this)">🧵 Hilos</button>'+
         '</div>'+
         // Filtros modalidad
-        '<div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;">'+
+        '<div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;">'+
           '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="todos" onclick="setSelectorModal(this)">Todas</button>'+
           '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="surfcasting" onclick="setSelectorModal(this)">🌊 Surf</button>'+
           '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="spinning" onclick="setSelectorModal(this)">🌀 Spinning</button>'+
           '<button type="button" class="cat-sel-m btn btn-s btn-neu" data-m="eging" onclick="setSelectorModal(this)">🦑 Eging</button>'+
+        '</div>'+
+        // Rango precio + carrito
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'+
+          '<div style="display:flex;align-items:center;gap:4px;flex:1;">'+
+            '<input type="number" id="cat-sel-pmin" placeholder="Min €" style="width:70px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:6px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="filtrarSelectorCatalogo()"/>'+
+            '<span style="font-size:11px;color:var(--tx3);">—</span>'+
+            '<input type="number" id="cat-sel-pmax" placeholder="Max €" style="width:70px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:6px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="filtrarSelectorCatalogo()"/>'+
+          '</div>'+
+          '<button class="btn btn-s btn-g" onclick="anadirCarritoSel()" style="display:flex;align-items:center;gap:4px;">'+
+            '🛒 <span id="cat-sel-cart-count">0</span>'+
+          '</button>'+
         '</div>'+
       '</div>'+
       '<div id="cat-selector-lista" style="overflow-y:auto;flex:1;"><div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Cargando...</div></div>'+
@@ -9114,12 +9166,16 @@ window.filtrarSelectorCatalogo=function(){
   const q=(document.getElementById('cat-sel-q')?.value||'').toLowerCase().replace('#','').trim();
   const f=window._catSelFiltro||'todos';
   const mod=window._catSelModal||'todos';
+  const pmin=parseFloat(document.getElementById('cat-sel-pmin')?.value)||null;
+  const pmax=parseFloat(document.getElementById('cat-sel-pmax')?.value)||null;
   const docs=window._catSelDocs||[];
   const filtered=docs.filter(p=>{
     const fOk=f==='todos'||p.categoria===f;
     const mOk=mod==='todos'||p.subcategoria===mod;
     const qOk=!q||(p.ref&&p.ref.includes(q))||(p.nombre&&p.nombre.toLowerCase().includes(q))||(p.marca&&p.marca.toLowerCase().includes(q));
-    return fOk&&mOk&&qOk;
+    const precio=p.precioMin||p.precio||null;
+    const pOk=(!pmin||precio>=pmin)&&(!pmax||precio<=pmax);
+    return fOk&&mOk&&qOk&&pOk;
   });
   const lista=document.getElementById('cat-selector-lista');
   if(!lista)return;
@@ -9142,7 +9198,10 @@ window.filtrarSelectorCatalogo=function(){
           (p.marca?'<div style="font-size:11px;color:var(--tx3);">'+escapeHtml(p.marca)+'</div>':'')+
           precioHtml+
         '</div>'+
-        '<button class="btn btn-s btn-g" onclick="event.stopPropagation();seleccionarDeCatalogo(\''+encodeURIComponent(p.nombre||'')+'\')">+ Add</button>'+
+        '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">'+
+          '<button class="btn btn-s btn-g" onclick="event.stopPropagation();seleccionarDeCatalogo(\''+encodeURIComponent(p.nombre||'')+'\')">+ Add</button>'+
+          '<button class="btn btn-s btn-neu" id="cart-btn-'+p.id+'" onclick="event.stopPropagation();anadirAlCarritoSel(\''+p.id+'\',\''+encodeURIComponent(p.nombre||'')+'\',this)" style="font-size:11px;">🛒</button>'+
+        '</div>'+
       '</div>';
     div.onclick=()=>seleccionarDeCatalogo(encodeURIComponent(p.nombre||''));
     lista.appendChild(div);

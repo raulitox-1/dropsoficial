@@ -867,6 +867,44 @@ function similitud(a,b){
   return comunes/Math.max(wa.length,wb.length);
 }
 
+async function fetchConProxy(url,logEl){
+  const proxies=[
+    async()=>{
+      const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+      const d=await r.json();
+      if(!d.contents)throw new Error('Sin contenido');
+      return d.contents;
+    },
+    async()=>{
+      const r=await fetch('https://corsproxy.io/?url='+encodeURIComponent(url));
+      if(!r.ok)throw new Error('Status '+r.status);
+      return await r.text();
+    },
+    async()=>{
+      const r=await fetch('https://thingproxy.freeboard.io/fetch/'+url);
+      if(!r.ok)throw new Error('Status '+r.status);
+      return await r.text();
+    },
+    async()=>{
+      const r=await fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url));
+      if(!r.ok)throw new Error('Status '+r.status);
+      return await r.text();
+    }
+  ];
+  for(const tryP of proxies){
+    try{
+      const html=await tryP();
+      if(html&&html.length>500){
+        if(logEl)logEl.textContent+='\nProxy OK, '+html.length+' chars';
+        return html;
+      }
+    }catch(e){
+      if(logEl)logEl.textContent+='\nProxy fallido: '+e.message;
+    }
+  }
+  throw new Error('Todos los proxies fallaron. La web puede estar bloqueando peticiones externas.');
+}
+
 async function parsearProductos(url,tienda,logEl){
   const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
   const productos=[];
@@ -913,14 +951,14 @@ async function parsearProductos(url,tienda,logEl){
     }
     logEl.textContent+='\n'+productos.length+' productos parseados';
   } else {
-    const resp=await fetch(proxy);
-    const data=await resp.json();
-    const html=data.contents||'';
+    const html=await fetchConProxy(url,logEl);
     if(tienda==='pescavalencia'){
-      // WooCommerce pero el proxy devuelve markdown — mismo formato que dulcemar
+      // WooCommerce — parser ya hecho arriba, html cargado con fetchConProxy
+      logEl.textContent+='\nCargando Pesca en Valencia...';
+      const html2=html; // ya cargado
       const nombreTienda='Pesca en Valencia';
       // Buscar productos por patrón: ## [nombre](url) ... precio€
-      const bloques=html.split(/\n\*\s+/);
+      const bloques=html2.split(/\n\*\s+/);
       bloques.forEach(b=>{
         const nm=b.match(/##\s*\[([^\]]+)\]/);
         if(!nm)return;
@@ -932,16 +970,15 @@ async function parsearProductos(url,tienda,logEl){
         let precio=null;
         const pm=b.match(/(\d+(?:[,.]\d+)?)\u20ac/);
         if(pm)precio=parseFloat(pm[1].replace(',','.'));
-        // Buscar marca del enlace de categoria
         let marca='';
         const mm=b.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/pescaenvalencia\.com\/marca\//);
         if(mm)marca=mm[1].trim();
         productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
       });
-      // Fallback si no encontró nada
+      // Fallback
       if(!productos.length){
-        const allNm=[...html.matchAll(/##\s*\[([^\]]{5,100})\]\((https:\/\/pescaenvalencia\.com\/tienda\/[^)]+)\)/g)];
-        const allPr=[...html.matchAll(/(\d+(?:[,.]\d+)?)\u20ac/g)];
+        const allNm=[...html2.matchAll(/##\s*\[([^\]]{5,100})\]\((https:\/\/pescaenvalencia\.com\/tienda\/[^)]+)\)/g)];
+        const allPr=[...html2.matchAll(/(\d+(?:[,.]\d+)?)\u20ac/g)];
         allNm.forEach((m,i)=>{
           const nombre=m[1].trim();
           const link=m[2];

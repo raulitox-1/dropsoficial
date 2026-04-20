@@ -856,49 +856,59 @@ async function parsearProductos(url,tienda,logEl){
   const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
   const productos=[];
   if(tienda==='marquitos'){
-    // Shopify — parsear HTML (la API JSON esta bloqueada por CORS)
+    // Shopify — intentar varios proxies
     logEl.textContent+='\nCargando pagina de Marquitos Fishing...';
-    const resp=await fetch(proxy);
-    const data=await resp.json();
-    const html=data.contents||'';
+    let html='';
+    const proxies=[
+      'https://api.allorigins.win/get?url='+encodeURIComponent(url),
+      'https://corsproxy.io/?'+encodeURIComponent(url),
+      'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)
+    ];
+    for(const p of proxies){
+      try{
+        const r=await fetch(p);
+        if(!r.ok)continue;
+        const d=await r.json().catch(async()=>({contents:await r.text()}));
+        html=d.contents||d||'';
+        if(typeof html!=='string')html=JSON.stringify(html);
+        if(html.length>1000){logEl.textContent+='\nProxy OK: '+p.split('?')[0];break;}
+      }catch(e){logEl.textContent+='\nProxy fallido: '+e.message;continue;}
+    }
+    if(!html||html.length<100){logEl.textContent+='\nNo se pudo cargar la pagina. Intentando URL directa...';
+      try{const r=await fetch(url,{mode:'no-cors'});html=await r.text().catch(()=>'');}catch(_){}
+    }
+    logEl.textContent+='\nHTML recibido: '+html.length+' chars';
+    // Buscar productos en el HTML de Shopify
     const dom=new DOMParser().parseFromString(html,'text/html');
-    // Intentar extraer JSON embebido de Shopify (window.theme o similar)
-    const scriptTags=dom.querySelectorAll('script:not([src])');
-    let found=false;
-    scriptTags.forEach(s=>{
-      if(found)return;
-      const t=s.textContent;
-      const m=t.match(/"handle"\s*:\s*"([^"]+)"[\s\S]{0,200}?"title"\s*:\s*"([^"]+)"[\s\S]{0,200}?"price"\s*:\s*(\d+)/g);
-      if(m&&m.length>2){
-        m.forEach(block=>{
-          const hm=block.match(/"handle"\s*:\s*"([^"]+)"/);
-          const tm=block.match(/"title"\s*:\s*"([^"]+)"/);
-          const pm=block.match(/"price"\s*:\s*(\d+)/);
-          if(hm&&tm){
-            const nombre=tm[1];
-            const precio=pm?pm[1]/100:null;
-            productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,
-              link:'https://marquitosfishing.com/products/'+hm[1],tienda:'Marquitos Fishing'});
-          }
+    // Extraer de JSON embebido en scripts
+    dom.querySelectorAll('script:not([src])').forEach(s=>{
+      if(productos.length)return;
+      try{
+        const t=s.textContent;
+        // Shopify suele tener window.__INITIAL_STATE__ o similar
+        const matches=[...t.matchAll(/"title"\s*:\s*"([^"]{5,100})"[\s\S]{0,500}?"price"\s*:\s*(\d+)[\s\S]{0,200}?"handle"\s*:\s*"([^"]+)"/g)];
+        matches.forEach(m=>{
+          const nombre=m[1],precio=parseInt(m[2])/100,handle=m[3];
+          if(nombre&&handle)productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,
+            link:'https://marquitosfishing.com/products/'+handle,tienda:'Marquitos Fishing'});
         });
-        if(productos.length)found=true;
-      }
+      }catch(_){}
     });
-    // Fallback: buscar cards HTML de Shopify
+    // Fallback HTML parsing
     if(!productos.length){
-      dom.querySelectorAll('h3 a[href*="/products/"], .card__heading a, .product-item__title a').forEach(el=>{
+      dom.querySelectorAll('h3 a[href*="/products/"],h2 a[href*="/products/"],[class*="card"] a[href*="/products/"]').forEach(el=>{
         const nombre=el.textContent.trim();
-        if(nombre.length<5)return;
-        const link='https://marquitosfishing.com'+el.getAttribute('href');
+        if(nombre.length<5||productos.find(p=>p.nombre===nombre))return;
+        const href=el.getAttribute('href')||'';
+        const link=href.startsWith('http')?href:'https://marquitosfishing.com'+href;
         let precio=null;
-        const wrap=el.closest('li,.product-item,.card-wrapper');
-        if(wrap){
-          const pm=wrap.querySelector('[class*="price"]');
-          if(pm){const ps=pm.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
-        }
+        const wrap=el.closest('li,article,[class*="product"],[class*="card"]');
+        if(wrap){const pm=wrap.querySelector('[class*="price"]');
+          if(pm){const ps=pm.textContent.match(/[\d,.]+/);if(ps)precio=parseFloat(ps[0].replace(',','.'));}}
         productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Marquitos Fishing'});
       });
     }
+    logEl.textContent+='\n'+productos.length+' productos parseados';
   } else {
     const resp=await fetch(proxy);
     const data=await resp.json();

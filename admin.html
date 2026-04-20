@@ -955,34 +955,51 @@ async function parsearProductos(url,tienda,logEl){
     if(tienda==='pescavalencia'){
       // WooCommerce — parser ya hecho arriba, html cargado con fetchConProxy
       logEl.textContent+='\nCargando Pesca en Valencia...';
-      const html2=html; // ya cargado
+      const html2=html;
       const nombreTienda='Pesca en Valencia';
-      // Buscar productos por patrón: ## [nombre](url) ... precio€
-      const bloques=html2.split(/\n\*\s+/);
-      bloques.forEach(b=>{
-        const nm=b.match(/##\s*\[([^\]]+)\]/);
-        if(!nm)return;
-        const nombre=nm[1].trim();
+      // Intentar parsear HTML directo (thingproxy devuelve HTML crudo)
+      const dom=new DOMParser().parseFromString(html2,'text/html');
+      // WooCommerce: productos en .products li o ul.products
+      dom.querySelectorAll('.products li, ul.products > li, .wc-block-grid__product').forEach(li=>{
+        const tEl=li.querySelector('h2,h3,.woocommerce-loop-product__title,.wp-block-woocommerce-product-title');
+        if(!tEl)return;
+        const nombre=tEl.textContent.trim();
         if(nombre.length<5)return;
-        let link='';
-        const lm=b.match(/\]\((https:\/\/pescaenvalencia\.com\/[^)]+)\)/);
-        if(lm)link=lm[1];
         let precio=null;
-        const pm=b.match(/(\d+(?:[,.]\d+)?)\u20ac/);
-        if(pm)precio=parseFloat(pm[1].replace(',','.'));
+        const pEl=li.querySelector('.price ins .amount, .price .amount, .woocommerce-Price-amount');
+        if(pEl){const ps=pEl.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
+        let link='';
+        const lEl=li.querySelector('a.woocommerce-LoopProduct-link, a[href*="/tienda/"], h2 a, h3 a');
+        if(lEl)link=lEl.href||lEl.getAttribute('href')||'';
+        if(link&&!link.startsWith('http'))link='https://pescaenvalencia.com'+link;
         let marca='';
-        const mm=b.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/pescaenvalencia\.com\/marca\//);
-        if(mm)marca=mm[1].trim();
+        const mEl=li.querySelector('.brand, [class*="brand"], [class*="vendor"]');
+        if(mEl)marca=mEl.textContent.trim();
         productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
       });
-      // Fallback
+      // Fallback: buscar por patron markdown si no hay HTML
       if(!productos.length){
-        const allNm=[...html2.matchAll(/##\s*\[([^\]]{5,100})\]\((https:\/\/pescaenvalencia\.com\/tienda\/[^)]+)\)/g)];
-        const allPr=[...html2.matchAll(/(\d+(?:[,.]\d+)?)\u20ac/g)];
+        const bloques=html2.split(/\n\*\s+/);
+        bloques.forEach(b=>{
+          const nm=b.match(/##\s*\[([^\]]+)\]/);if(!nm)return;
+          const nombre=nm[1].trim();if(nombre.length<5)return;
+          let link='';
+          const lm=b.match(/\]\((https:\/\/pescaenvalencia\.com\/[^)]+)\)/);if(lm)link=lm[1];
+          let precio=null;
+          const pm=b.match(/(\d+(?:[,.]\d+)?)\u20ac/);if(pm)precio=parseFloat(pm[1].replace(',','.'));
+          productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
+        });
+      }
+      // Fallback 2: regex directo sobre HTML
+      if(!productos.length){
+        const allNm=[...html2.matchAll(/class="woocommerce-loop-product__title">([^<]+)<\/h2>/g)];
+        const allPr=[...html2.matchAll(/class="woocommerce-Price-amount[^"]*"><bdi>([^<]+)<\/bdi>/g)];
+        const allLk=[...html2.matchAll(/href="(https:\/\/pescaenvalencia\.com\/tienda\/[^"]+)"/g)];
         allNm.forEach((m,i)=>{
           const nombre=m[1].trim();
-          const link=m[2];
-          const precio=allPr[i]?parseFloat(allPr[i][1].replace(',','.')):null;
+          const link=allLk[i]?allLk[i][1]:'';
+          const pStr=allPr[i]?allPr[i][1].replace(/[^0-9,.]/g,'').replace(',','.'):'';
+          const precio=pStr?parseFloat(pStr):null;
           productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
         });
       }

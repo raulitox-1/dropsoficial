@@ -954,54 +954,64 @@ async function parsearProductos(url,tienda,logEl){
     const html=await fetchConProxy(url,logEl);
     if(tienda==='pescavalencia'){
       // WooCommerce — parser ya hecho arriba, html cargado con fetchConProxy
-      logEl.textContent+='\nCargando Pesca en Valencia...';
-      const html2=html;
+      logEl.textContent+='\nCargando Pesca en Valencia (todas las paginas)...';
       const nombreTienda='Pesca en Valencia';
-      // Intentar parsear HTML directo (thingproxy devuelve HTML crudo)
-      const dom=new DOMParser().parseFromString(html2,'text/html');
-      // WooCommerce: productos en .products li o ul.products
-      dom.querySelectorAll('.products li, ul.products > li, .wc-block-grid__product').forEach(li=>{
-        const tEl=li.querySelector('h2,h3,.woocommerce-loop-product__title,.wp-block-woocommerce-product-title');
-        if(!tEl)return;
-        const nombre=tEl.textContent.trim();
-        if(nombre.length<5)return;
-        let precio=null;
-        const pEl=li.querySelector('.price ins .amount, .price .amount, .woocommerce-Price-amount');
-        if(pEl){const ps=pEl.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
-        let link='';
-        const lEl=li.querySelector('a.woocommerce-LoopProduct-link, a[href*="/tienda/"], h2 a, h3 a');
-        if(lEl)link=lEl.href||lEl.getAttribute('href')||'';
-        if(link&&!link.startsWith('http'))link='https://pescaenvalencia.com'+link;
-        let marca='';
-        const mEl=li.querySelector('.brand, [class*="brand"], [class*="vendor"]');
-        if(mEl)marca=mEl.textContent.trim();
-        productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
-      });
-      // Fallback: buscar por patron markdown si no hay HTML
-      if(!productos.length){
-        const bloques=html2.split(/\n\*\s+/);
-        bloques.forEach(b=>{
-          const nm=b.match(/##\s*\[([^\]]+)\]/);if(!nm)return;
-          const nombre=nm[1].trim();if(nombre.length<5)return;
-          let link='';
-          const lm=b.match(/\]\((https:\/\/pescaenvalencia\.com\/[^)]+)\)/);if(lm)link=lm[1];
+      
+      // Función para parsear productos de un HTML de pescavalencia
+      function parsearPaginaPV(html2){
+        const prods=[];
+        const dom=new DOMParser().parseFromString(html2,'text/html');
+        dom.querySelectorAll('.products li, ul.products > li').forEach(li=>{
+          const tEl=li.querySelector('h2,h3,.woocommerce-loop-product__title');
+          if(!tEl)return;
+          const nombre=tEl.textContent.trim();
+          if(nombre.length<5)return;
           let precio=null;
-          const pm=b.match(/(\d+(?:[,.]\d+)?)\u20ac/);if(pm)precio=parseFloat(pm[1].replace(',','.'));
-          productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
+          const pEl=li.querySelector('.price ins .amount, .price .amount, .woocommerce-Price-amount');
+          if(pEl){const ps=pEl.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
+          let link='';
+          const lEl=li.querySelector('a[href*="/tienda/"]');
+          if(lEl)link=lEl.href||lEl.getAttribute('href')||'';
+          if(link&&!link.startsWith('http'))link='https://pescaenvalencia.com'+link;
+          if(nombre&&!prods.find(p=>p.nombre===nombre))
+            prods.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
         });
+        // Fallback regex
+        if(!prods.length){
+          const allNm=[...html2.matchAll(/class="woocommerce-loop-product__title">([^<]+)<\/h2>/g)];
+          const allLk=[...html2.matchAll(/href="(https:\/\/pescaenvalencia\.com\/tienda\/[^"]+)"/g)];
+          const allPr=[...html2.matchAll(/class="woocommerce-Price-amount[^"]*"><bdi>([^<]+)<\/bdi>/g)];
+          allNm.forEach((m,i)=>{
+            const nombre=m[1].trim();
+            const link=allLk[i]?allLk[i][1]:'';
+            const pStr=allPr[i]?allPr[i][1].replace(/[^0-9,.]/g,'').replace(',','.'):'';
+            const precio=pStr?parseFloat(pStr):null;
+            if(!prods.find(p=>p.nombre===nombre))
+              prods.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
+          });
+        }
+        // ¿Hay página siguiente?
+        const dom2=new DOMParser().parseFromString(html2,'text/html');
+        const nextEl=dom2.querySelector('.woocommerce-pagination .next, a.next.page-numbers');
+        const nextUrl=nextEl?nextEl.href||nextEl.getAttribute('href')||'':null;
+        return {prods,nextUrl};
       }
-      // Fallback 2: regex directo sobre HTML
-      if(!productos.length){
-        const allNm=[...html2.matchAll(/class="woocommerce-loop-product__title">([^<]+)<\/h2>/g)];
-        const allPr=[...html2.matchAll(/class="woocommerce-Price-amount[^"]*"><bdi>([^<]+)<\/bdi>/g)];
-        const allLk=[...html2.matchAll(/href="(https:\/\/pescaenvalencia\.com\/tienda\/[^"]+)"/g)];
-        allNm.forEach((m,i)=>{
-          const nombre=m[1].trim();
-          const link=allLk[i]?allLk[i][1]:'';
-          const pStr=allPr[i]?allPr[i][1].replace(/[^0-9,.]/g,'').replace(',','.'):'';
-          const precio=pStr?parseFloat(pStr):null;
-          productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
-        });
+
+      // Cargar todas las páginas
+      let paginaUrl=url.includes('?')?url:url.replace(/\/$/,'')+'/?per_page=100';
+      let pagina=1;
+      while(paginaUrl){
+        logEl.textContent+='\nPagina '+pagina+': '+paginaUrl;
+        let html2='';
+        try{html2=await fetchConProxy(paginaUrl,null);}catch(e){logEl.textContent+='\nError pagina '+pagina+': '+e.message;break;}
+        const {prods,nextUrl}=parsearPaginaPV(html2);
+        prods.forEach(p=>{if(!productos.find(q=>q.nombre===p.nombre))productos.push(p);});
+        logEl.textContent+=' → '+prods.length+' productos';
+        logEl.scrollTop=logEl.scrollHeight;
+        if(!nextUrl||pagina>=20)break; // máximo 20 páginas
+        paginaUrl=nextUrl.startsWith('http')?nextUrl:'https://pescaenvalencia.com'+nextUrl;
+        pagina++;
+        await new Promise(r=>setTimeout(r,500)); // pausa entre páginas
       }
     } else {
       // PrestaShop (dulcemar + rhodani)

@@ -537,8 +537,23 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
             </select>
           </div>
         </div>
-        <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">Importar al catalogo</button>
-        <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:280px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
+        <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">🔍 Buscar productos</button>
+        <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:200px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
+        <!-- Preview productos antes de importar -->
+        <div id="ci-preview" style="display:none;margin-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:700;">Selecciona los productos a importar</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-s btn-neu" onclick="ciSelectAll(true)">Todos</button>
+              <button class="btn btn-s btn-neu" onclick="ciSelectAll(false)">Ninguno</button>
+            </div>
+          </div>
+          <div id="ci-preview-list" style="max-height:350px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);"></div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <button class="btn btn-g" style="flex:1;padding:12px;" onclick="confirmarImport()" id="ci-confirm-btn">✅ Importar seleccionados</button>
+            <button class="btn btn-neu" style="padding:12px;" onclick="cancelarImport()">Cancelar</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -941,6 +956,14 @@ async function parsearProductos(url,tienda,logEl){
   return productos;
 }
 
+// Guardamos productos encontrados para el paso 2
+let _ciProductosPendientes=[];
+let _ciExistentes=[];
+let _ciMaxRef=0;
+let _ciCommId='';
+let _ciTipo='';
+let _ciSubcat='';
+
 window.iniciarImportCatalogo=async function(){
   const commId=document.getElementById('ci-comm').value;
   const url=document.getElementById('ci-url').value.trim();
@@ -948,68 +971,98 @@ window.iniciarImportCatalogo=async function(){
   const subcat=document.getElementById('ci-subcat').value;
   const logEl=document.getElementById('ci-log');
   const btn=document.getElementById('ci-btn');
+  const preview=document.getElementById('ci-preview');
   if(!commId){alert('Selecciona una comunidad');return;}
   if(!url){alert('Introduce una URL');return;}
   const tienda=detectarTienda(url);
-  if(!tienda){alert('Tienda no soportada. Usa: dulcemarpesca.com, marquitosfishing.com, pescaenvalencia.com o rhodani.com');return;}
+  if(!tienda){alert('Tienda no soportada');return;}
   logEl.style.display='block';
+  preview.style.display='none';
   logEl.textContent='Tienda: '+tienda+'\nConectando...';
   btn.disabled=true;
   try{
     const nuevos=await parsearProductos(url,tienda,logEl);
-    logEl.textContent+='\n'+nuevos.length+' productos encontrados';
-    if(!nuevos.length){logEl.textContent+='\nNo se encontraron productos. Prueba con otra URL.';btn.disabled=false;return;}
-
-    // Cargar catalogo existente para detectar duplicados
-    let existentes=[];
-    let maxRef=0;
+    if(!nuevos.length){logEl.textContent+='\nNo se encontraron productos.';btn.disabled=false;return;}
+    // Cargar existentes
+    _ciExistentes=[];_ciMaxRef=0;
     try{
       const ex=await getDocs(collection(db,'communities',commId,'catalogo'));
-      ex.forEach(d=>{
-        const data={id:d.id,...d.data()};
-        existentes.push(data);
-        const r=parseInt(data.ref||'0');if(r>maxRef)maxRef=r;
-      });
+      ex.forEach(d=>{const data={id:d.id,...d.data()};_ciExistentes.push(data);const r=parseInt(data.ref||'0');if(r>_ciMaxRef)_ciMaxRef=r;});
     }catch(_){}
-    logEl.textContent+='\n'+existentes.length+' productos ya en catalogo';
-
-    let ok=0,fusionados=0;
-    for(const p of nuevos){
-      // Buscar duplicado por similitud de nombre
-      const match=existentes.find(e=>similitud(e.nombre,p.nombre)>0.6);
-      if(match){
-        // Fusionar — añadir link de esta tienda al producto existente
-        const linksActuales=match.links||{};
-        if(!linksActuales[p.tienda]){
-          linksActuales[p.tienda]=p.link;
-          try{
-            const {updateDoc:upd,doc:dc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-            await updateDoc(doc(db,'communities',commId,'catalogo',match.id),{links:linksActuales});
-            logEl.textContent+='\nFusionado: '+p.nombre+' → #'+match.ref+' ('+p.tienda+')';
-            fusionados++;
-          }catch(e){logEl.textContent+='\nError fusion: '+e.message;}
-        }
-      } else {
-        // Producto nuevo
-        maxRef++;
-        const ref=String(maxRef).padStart(3,'0');
-        const linksObj={};
-        if(p.link)linksObj[p.tienda]=p.link;
-        try{
-          const newDoc={nombre:p.nombre,marca:p.marca||'',precio:p.precio,precioMin:p.precioMin,precioMax:p.precioMax,
-            categoria:tipo,subcategoria:subcat,metros:p.metros||null,accion:p.accion||'',
-            link:p.link||'',links:linksObj,ref,ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')};
-          await addDoc(collection(db,'communities',commId,'catalogo'),newDoc);
-          existentes.push({...newDoc,id:ref});
-          logEl.textContent+='\n#'+ref+' '+p.nombre+(p.precio?' - '+p.precio+'e':'');
-          logEl.scrollTop=logEl.scrollHeight;ok++;
-          await new Promise(r=>setTimeout(r,100));
-        }catch(e){logEl.textContent+='\nError: '+e.message;}
-      }
-    }
-    logEl.textContent+='\n\n'+ok+' nuevos + '+fusionados+' fusionados con existentes!';
+    _ciProductosPendientes=nuevos;
+    _ciCommId=commId;_ciTipo=tipo;_ciSubcat=subcat;
+    // Mostrar preview
+    const list=document.getElementById('ci-preview-list');
+    list.innerHTML='';
+    nuevos.forEach((p,i)=>{
+      const dup=_ciExistentes.find(e=>similitud(e.nombre,p.nombre)>0.6);
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);font-size:13px;';
+      div.innerHTML='<input type="checkbox" id="ci-chk-'+i+'" checked style="width:18px;height:18px;flex-shrink:0;accent-color:var(--g);">'+
+        '<label for="ci-chk-'+i+'" style="flex:1;cursor:pointer;">'+
+          '<div style="font-weight:600;">'+p.nombre+'</div>'+
+          '<div style="font-size:11px;color:var(--tx3);">'+(p.precio?p.precio+'€ · ':'')+p.tienda+(dup?' · <span style="color:var(--a);">Ya existe como #'+dup.ref+'</span>':'')+'</div>'+
+        '</label>';
+      list.appendChild(div);
+    });
+    preview.style.display='block';
+    logEl.textContent+='\n'+nuevos.length+' productos listos para revisar';
   }catch(e){logEl.textContent+='\nError: '+e.message;}
-  btn.disabled=false;logEl.scrollTop=logEl.scrollHeight;
+  btn.disabled=false;
+};
+
+window.ciSelectAll=function(val){
+  _ciProductosPendientes.forEach((_,i)=>{
+    const chk=document.getElementById('ci-chk-'+i);
+    if(chk)chk.checked=val;
+  });
+};
+
+window.cancelarImport=function(){
+  document.getElementById('ci-preview').style.display='none';
+  _ciProductosPendientes=[];
+};
+
+window.confirmarImport=async function(){
+  const btn=document.getElementById('ci-confirm-btn');
+  const logEl=document.getElementById('ci-log');
+  btn.disabled=true;btn.textContent='Importando...';
+  let ok=0,fusionados=0;
+  let maxRef=_ciMaxRef;
+  const seleccionados=_ciProductosPendientes.filter((_,i)=>{
+    const chk=document.getElementById('ci-chk-'+i);
+    return chk&&chk.checked;
+  });
+  logEl.textContent+='\nImportando '+seleccionados.length+' productos seleccionados...';
+  for(const p of seleccionados){
+    const match=_ciExistentes.find(e=>similitud(e.nombre,p.nombre)>0.6);
+    if(match){
+      const linksActuales=match.links||{};
+      if(!linksActuales[p.tienda]){
+        linksActuales[p.tienda]=p.link;
+        try{await updateDoc(doc(db,'communities',_ciCommId,'catalogo',match.id),{links:linksActuales});fusionados++;}
+        catch(e){logEl.textContent+='\nError fusion: '+e.message;}
+      }
+    } else {
+      maxRef++;
+      const ref=String(maxRef).padStart(3,'0');
+      const linksObj={};if(p.link)linksObj[p.tienda]=p.link;
+      try{
+        const newDoc={nombre:p.nombre,marca:p.marca||'',precio:p.precio,precioMin:p.precioMin,precioMax:p.precioMax,
+          categoria:_ciTipo,subcategoria:_ciSubcat,metros:p.metros||null,accion:p.accion||'',
+          link:p.link||'',links:linksObj,ref,ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')};
+        await addDoc(collection(db,'communities',_ciCommId,'catalogo'),newDoc);
+        _ciExistentes.push({...newDoc,id:ref});
+        logEl.textContent+='\n#'+ref+' '+p.nombre+(p.precio?' - '+p.precio+'e':'');
+        logEl.scrollTop=logEl.scrollHeight;ok++;
+        await new Promise(r=>setTimeout(r,100));
+      }catch(e){logEl.textContent+='\nError: '+e.message;}
+    }
+  }
+  logEl.textContent+='\n\n'+ok+' importados + '+fusionados+' fusionados!';
+  document.getElementById('ci-preview').style.display='none';
+  btn.disabled=false;btn.textContent='Importar seleccionados';
+  _ciProductosPendientes=[];
 };
 
 

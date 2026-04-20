@@ -8776,7 +8776,9 @@ function renderCatDocs(docs,el){
   docs.forEach(p=>{
     const div=document.createElement('div');
     div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;';
-    const precioHtml=(p.precioMin?p.precioMin+'€':'')+(p.precioMin&&p.precioMax?' — ':'')+(p.precioMax?p.precioMax+'€':'');
+    const precioMin=p.precioMin||p.precio||null;
+    const precioMax=p.precioMax||p.precio||null;
+    const precioHtml=(precioMin?precioMin+'€':'')+(precioMin&&precioMax&&precioMin!==precioMax?' — ':'')+(precioMax&&precioMax!==precioMin?precioMax+'€':'');
     const vecesHtml=p.vecesUsado>0?'<div style="font-size:11px;color:var(--a);margin-top:3px;">🏆 Usado '+p.vecesUsado+' vez'+(p.vecesUsado>1?'es':'')+' como premio</div>':'';
     const catLabel={'cana':'🎣 Caña','carrete':'🔄 Carrete','señuelo':'🦑 Señuelo','hilo':'🧵 Hilo','accesorio':'🔧 Accesorio',
       'surfcasting':'🎣 Surfcasting','eging':'🦑 Eging','spinning':'🌀 Spinning'}[p.categoria||'']||p.categoria||'';

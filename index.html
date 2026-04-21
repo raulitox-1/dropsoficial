@@ -1477,6 +1477,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <span style="font-size:11px;color:var(--tx3);">Un premio por línea</span>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-s btn-neu" onclick="abrirSelectorCatalogo()" type="button">📦 Del catálogo</button>
+        <button class="btn btn-s btn-neu" onclick="abrirSelectorCombos()" type="button">🎁 Combos</button>
         <button class="btn btn-s btn-g" onclick="abrirConstructorCombos()" type="button">⚡ Crear combo</button>
       </div>
     </div>
@@ -9388,6 +9389,69 @@ window.anadirCarritoSel=function(){
   window._carritoSel.clear();
   document.getElementById('modal-cat-selector')?.classList.remove('open');
   toast('✅ '+nombres.length+' producto'+(nombres.length>1?'s':'')+' añadidos a premios');
+};
+
+
+window.abrirSelectorCombos=async function(){
+  let m=document.getElementById('modal-sel-combos');
+  if(!m){m=document.createElement('div');m.id='modal-sel-combos';m.className='modal-bg';document.body.appendChild(m);}
+  const modal=document.createElement('div');
+  modal.className='modal';
+  modal.style.cssText='max-width:440px;max-height:85vh;display:flex;flex-direction:column;';
+  modal.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;">🎁 Seleccionar combo</div>
+      <button id="selcombos-close" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div id="selcombos-lista" style="overflow-y:auto;flex:1;">
+      <div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">Cargando...</div>
+    </div>
+  `;
+  m.innerHTML='';
+  m.appendChild(modal);
+  m.classList.add('open');
+  document.getElementById('selcombos-close').onclick=()=>m.classList.remove('open');
+  // Cargar combos del catálogo
+  try{
+    const snap=await getDocs(collection(db,'communities',currentCommId,'catalogo'));
+    const combos=[];
+    snap.forEach(d=>{const data={id:d.id,...d.data()};if(data.esCombo)combos.push(data);});
+    const lista=document.getElementById('selcombos-lista');
+    if(!combos.length){
+      lista.innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--tx2);">No tienes combos guardados.<br>Créalos desde el panel 📦 Catálogo.</div>';
+      return;
+    }
+    lista.innerHTML='';
+    combos.forEach(p=>{
+      const div=document.createElement('div');
+      div.style.cssText='background:var(--bg2);border-radius:var(--rads);padding:12px 14px;margin-bottom:8px;border:1px solid var(--bd);';
+      div.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:800;">#${p.ref||'?'} ${escapeHtml(p.nombre||'')}</div>
+            ${p.productosCombo?'<div style="font-size:11px;color:var(--tx3);margin-top:2px;">'+p.productosCombo.join(' + ')+'</div>':''}
+            ${p.precioTotalAdmin?'<div style="font-size:12px;color:var(--a);font-weight:700;margin-top:2px;">💰 Coste: '+p.precioTotalAdmin+'€</div>':''}
+          </div>
+          <button class="btn btn-s btn-g">+ Añadir</button>
+        </div>
+      `;
+      div.querySelector('button').onclick=()=>{
+        const ta=document.getElementById('cfg-premios');
+        if(ta){
+          const texto='#'+p.ref+' '+p.nombre;
+          const actual=ta.value.trim();
+          ta.value=actual?(actual+'\n'+texto):texto;
+          actualizarPreviewPremios();
+          autoGuardarPremios();
+        }
+        m.classList.remove('open');
+        toast('✅ Combo "'+p.nombre+'" añadido a premios');
+      };
+      lista.appendChild(div);
+    });
+  }catch(e){
+    document.getElementById('selcombos-lista').innerHTML='<div style="color:var(--r);font-size:13px;">Error: '+e.message+'</div>';
+  }
 };
 
 window.abrirSelectorCatalogo=async function(){

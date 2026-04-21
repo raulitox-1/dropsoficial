@@ -6629,7 +6629,7 @@ window.elegirPremio=function(idx,btn){
   btn.style.background='var(--gl)';
   btn.style.borderColor='var(--g)';
   btn.style.color='var(--g)';
-  window._premioElegido={idx,texto:btn.dataset.premio};
+  window._premioElegido={idx,texto:btn.dataset.premio,textoVisible:btn.dataset.premio.replace(/#\d+\s*/,'')};
   document.getElementById('btn-confirmar-premio').style.display='block';
 };
 
@@ -6637,6 +6637,7 @@ window.elegirPremio=function(idx,btn){
 window.confirmarPremioElegido=function(){
   if(!window._premioElegido){toast('Selecciona un premio primero');return;}
   const premio=window._premioElegido.texto;
+  const premioVisible=window._premioElegido.textoVisible||premio.replace(/#\d+\s*/,'');
   const dirPerfil=currentUser?.direccion||'';
 
   // Ocultar lista de premios y mostrar formulario de envío
@@ -6654,7 +6655,7 @@ window.confirmarPremioElegido=function(){
     '<div style="background:var(--gl);border:1px solid rgba(22,168,107,.2);border-radius:var(--rads);padding:10px 12px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">'+
       '<span style="font-size:22px;">🎁</span>'+
       '<div><div style="font-size:11px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Premio elegido</div>'+
-      '<div style="font-size:14px;font-weight:800;color:var(--g);">'+escapeHtml(premio)+'</div></div>'+
+      '<div style="font-size:14px;font-weight:800;color:var(--g);">'+escapeHtml(premioVisible)+'</div></div>'+
     '</div>'+
 
     '<label style="font-size:12px;font-weight:600;">📍 Dirección de envío *</label>'+
@@ -6744,7 +6745,7 @@ window.enviarPremioFinal=async function(){
       '🎯 Drop: <b>'+dropName+'</b>\n\n'+
       '👤 Ganador: <b>'+currentUser.name+'</b>\n'+
       '📱 Teléfono: '+(telefono||'—')+'\n\n'+
-      '🎁 Premio elegido:\n<b>'+premio+'</b>\n\n'+
+      '🎁 Premio elegido:\n<b>'+premioVisible+'</b>\n\n'+
       '📍 Dirección de envío:\n<b>'+direccion+'</b>\n'+
       (comentarios?'\n💬 Comentarios del ganador:\n'+comentarios+'\n':'')+
       '\n⚡ Panel: https://dropsoficial.netlify.app'+(c?.adminToken?'?admintoken='+c.adminToken:''),
@@ -9366,7 +9367,7 @@ window.añadirCatalogoAPremios=function(nombreEncoded){
 // Modal selector de catálogo desde Config
 
 // ── Carrito selector catálogo ────────────────────────────────
-window._carritoSel=new Map(); // id -> nombre
+window._carritoSel=new Map(); // id -> {nombre, ref}
 
 window.anadirAlCarritoSel=function(id,nombreEnc,btn){
   const nombre=decodeURIComponent(nombreEnc);
@@ -9374,7 +9375,9 @@ window.anadirAlCarritoSel=function(id,nombreEnc,btn){
     window._carritoSel.delete(id);
     if(btn){btn.style.background='';btn.style.color='';btn.textContent='🛒';}
   } else {
-    window._carritoSel.set(id,nombre);
+    const docs=(window._catSelDocs||[]).length?(window._catSelDocs||[]):(window._catDocs||[]);
+    const prod=docs.find(p=>p.id===id||p.nombre===nombre);
+    window._carritoSel.set(id,{nombre,ref:prod?.ref||null});
     if(btn){btn.style.background='var(--g)';btn.style.color='#fff';btn.textContent='✓';}
   }
   const count=window._carritoSel.size;
@@ -9386,12 +9389,14 @@ window.anadirCarritoSel=function(){
   if(!window._carritoSel.size){toast('Añade productos al carrito primero');return;}
   const ta=document.getElementById('cfg-premios');
   if(!ta){toast('Ve a Config para ver los premios');return;}
-  const nombres=[...window._carritoSel.values()];
+  const lineas=[...window._carritoSel.values()].map(p=>p.ref?('#'+p.ref+' '+p.nombre):p.nombre);
   const actual=ta.value.trim();
-  ta.value=actual?(actual+'\n'+nombres.join('\n')):nombres.join('\n');
+  ta.value=actual?(actual+'\n'+lineas.join('\n')):lineas.join('\n');
+  actualizarPreviewPremios();
+  autoGuardarPremios();
   window._carritoSel.clear();
   document.getElementById('modal-cat-selector')?.classList.remove('open');
-  toast('✅ '+nombres.length+' producto'+(nombres.length>1?'s':'')+' añadidos a premios');
+  toast('✅ '+lineas.length+' producto'+(lineas.length>1?'s':'')+' añadidos a premios');
 };
 
 

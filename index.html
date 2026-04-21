@@ -9593,38 +9593,7 @@ window.quitarProductoCombo=function(idx){
   renderComboProductos();
 };
 
-window.guardarCombo=async function(){
-  const nombre=document.getElementById('combo-nombre')?.value.trim();
-  if(!nombre){toast('Ponle un nombre al combo');return;}
-  if(!_comboProductos.length){toast('Añade al menos un producto');return;}
-
-  // Guardar el combo en cfg-combos de Firestore (aparte de cfg-premios)
-  const nombreCombo=nombre+' ('+_comboProductos.map(p=>p.nombre).join(' + ')+')';
-
-  // Añadir a la textarea de premios
-  const ta=document.getElementById('cfg-premios');
-  if(ta){
-    const actual=ta.value.trim();
-    ta.value=actual?(actual+'\n'+nombreCombo):nombreCombo;
-  }
-
-  // Guardar metadata del combo en Firestore para tener los links
-  try{
-    const comboData={
-      nombre:nombreCombo,
-      productos:_comboProductos,
-      ts:serverTimestamp()
-    };
-    await setDoc(
-      doc(db,'communities',currentCommId,'subs',currentSubId,'combos',nombreCombo.replace(/[^a-zA-Z0-9]/g,'_').slice(0,80)),
-      comboData
-    );
-  }catch(e){console.warn('guardarCombo Firestore:',e.message);}
-
-  document.getElementById('modal-combo-builder')?.classList.remove('open');
-  toast('✅ Combo "'+nombre+'" añadido');
-  renderCombosPreview();
-};
+// guardarCombo — ver versión actualizada arriba
 
 // Mostrar preview de combos con links en la config
 async function renderCombosPreview(){

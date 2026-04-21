@@ -9118,7 +9118,15 @@ window.guardarCombo=async function(){
       ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')
     });
     document.getElementById('modal-crear-combo')?.classList.remove('open');
-    toast('✅ Combo "'+nombre+'" guardado en catálogo');
+    // Añadir el combo directamente a los premios del drop
+    const ta=document.getElementById('cfg-premios');
+    if(ta){
+      const texto='#'+ref+' '+nombre;
+      const actual=ta.value.trim();
+      ta.value=actual?(actual+'\n'+texto):texto;
+      actualizarPreviewPremios();
+    }
+    toast('✅ Combo "'+nombre+'" guardado y añadido a premios');
     buildCatalogo();
   }catch(e){toast('Error: '+e.message);}
 };

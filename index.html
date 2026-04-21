@@ -9097,6 +9097,7 @@ function actualizarComboLista(){
 }
 
 window.guardarCombo=async function(){
+  console.log('guardarCombo llamado, items:', window._comboItems);
   const nombre=document.getElementById('combo-nombre')?.value.trim();
   if(!nombre){toast('Ponle un nombre al combo');return;}
   if(!window._comboItems.length){toast('Añade al menos un producto');return;}

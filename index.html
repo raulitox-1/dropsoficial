@@ -8967,7 +8967,7 @@ window.abrirCrearCombo=async function(){
   let m=document.getElementById('modal-crear-combo');
   if(!m){m=document.createElement('div');m.id='modal-crear-combo';m.className='modal-bg';document.body.appendChild(m);}
   window._comboItems=[];
-  // Construir modal con createElement para evitar problemas de comillas
+  window._comboFiltro='todos';
   const modal=document.createElement('div');
   modal.className='modal';
   modal.style.cssText='max-width:480px;max-height:90vh;display:flex;flex-direction:column;';
@@ -8977,12 +8977,33 @@ window.abrirCrearCombo=async function(){
       <button id="combo-close-btn" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
     </div>
     <label style="font-size:12px;font-weight:700;margin-bottom:6px;display:block;">Nombre del combo</label>
-    <input type="text" id="combo-nombre" placeholder="Ej: Pack Surfcasting Iniciación" style="margin-bottom:12px;"/>
-    <label style="font-size:12px;font-weight:700;margin-bottom:6px;display:block;">Buscar producto del catálogo</label>
-    <input type="text" id="combo-buscar" placeholder="Nombre, marca o #ref..." style="margin-bottom:8px;" oninput="buscarEnCombo(this.value)"/>
-    <div id="combo-resultados" style="max-height:160px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);margin-bottom:10px;"></div>
+    <input type="text" id="combo-nombre" placeholder="Ej: Pack Surfcasting Iniciación" style="margin-bottom:10px;"/>
+    <label style="font-size:12px;font-weight:700;margin-bottom:6px;display:block;">Añadir productos</label>
+    <input type="text" id="combo-buscar" placeholder="Nombre, marca o #ref..." style="margin-bottom:6px;" oninput="buscarEnCombo(this.value)"/>
+    <div style="display:flex;gap:4px;overflow-x:auto;margin-bottom:6px;padding-bottom:2px;" id="combo-filtros">
+      <button class="btn btn-s btn-g combo-f" data-f="todos" onclick="setComboFiltro(this)">Todos</button>
+      <button class="btn btn-s btn-neu combo-f" data-f="cana" onclick="setComboFiltro(this)">🎣 Cañas</button>
+      <button class="btn btn-s btn-neu combo-f" data-f="carrete" onclick="setComboFiltro(this)">🔄 Carretes</button>
+      <button class="btn btn-s btn-neu combo-f" data-f="señuelo" onclick="setComboFiltro(this)">🦑 Señuelos</button>
+      <button class="btn btn-s btn-neu combo-f" data-f="hilo" onclick="setComboFiltro(this)">🧵 Hilos</button>
+      <button class="btn btn-s btn-neu combo-f" data-f="accesorio" onclick="setComboFiltro(this)">🔧 Acc.</button>
+    </div>
+    <div style="display:flex;gap:4px;overflow-x:auto;margin-bottom:6px;padding-bottom:2px;">
+      <button class="btn btn-s btn-neu combo-m" data-m="todos" onclick="setComboModal(this)">Todas</button>
+      <button class="btn btn-s btn-neu combo-m" data-m="surfcasting" onclick="setComboModal(this)">🌊 Surf</button>
+      <button class="btn btn-s btn-neu combo-m" data-m="spinning" onclick="setComboModal(this)">🌀 Spinning</button>
+      <button class="btn btn-s btn-neu combo-m" data-m="eging" onclick="setComboModal(this)">🦑 Eging</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+      <span style="font-size:11px;color:var(--tx3);flex-shrink:0;">Precio:</span>
+      <input type="number" id="combo-pmin" placeholder="Min €" style="width:70px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:6px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="buscarEnCombo(document.getElementById('combo-buscar').value)"/>
+      <span style="font-size:11px;color:var(--tx3);">—</span>
+      <input type="number" id="combo-pmax" placeholder="Max €" style="width:70px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:6px 8px;font-size:12px;color:var(--tx);outline:none;" oninput="buscarEnCombo(document.getElementById('combo-buscar').value)"/>
+      <button class="btn btn-s btn-neu" onclick="document.getElementById('combo-pmin').value='';document.getElementById('combo-pmax').value='';buscarEnCombo('')">✕</button>
+    </div>
+    <div id="combo-resultados" style="max-height:150px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);margin-bottom:10px;"></div>
     <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Productos añadidos:</div>
-    <div id="combo-items-lista" style="max-height:120px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);padding:8px;margin-bottom:10px;min-height:40px;font-size:12px;color:var(--tx2);">Ninguno aún</div>
+    <div id="combo-items-lista" style="max-height:110px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);padding:8px;margin-bottom:10px;min-height:36px;font-size:12px;color:var(--tx2);">Ninguno aún</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <span style="font-size:12px;color:var(--tx2);">Coste total (solo admin):</span>
       <span id="combo-precio-total" style="font-size:14px;font-weight:800;color:var(--g);">0€</span>
@@ -8995,20 +9016,43 @@ window.abrirCrearCombo=async function(){
   document.getElementById('combo-close-btn').onclick=()=>m.classList.remove('open');
   document.getElementById('combo-guardar-btn').onclick=()=>guardarCombo();
   window._comboCatDocs=window._catDocs||[];
+  window._comboFiltro='todos';
+  window._comboModal='todos';
   buscarEnCombo('');
+};
+
+window.setComboFiltro=function(btn){
+  window._comboFiltro=btn.dataset.f;
+  document.querySelectorAll('.combo-f').forEach(b=>b.className='btn btn-s '+(b===btn?'btn-g':'btn-neu')+' combo-f');
+  buscarEnCombo(document.getElementById('combo-buscar')?.value||'');
+};
+
+window.setComboModal=function(btn){
+  window._comboModal=btn.dataset.m;
+  document.querySelectorAll('.combo-m').forEach(b=>b.className='btn btn-s '+(b===btn?'btn-g':'btn-neu')+' combo-m');
+  buscarEnCombo(document.getElementById('combo-buscar')?.value||'');
 };
 
 window.buscarEnCombo=function(q){
   const ql=q.toLowerCase();
+  const f=window._comboFiltro||'todos';
+  const mod=window._comboModal||'todos';
+  const pmin=parseFloat(document.getElementById('combo-pmin')?.value)||null;
+  const pmax=parseFloat(document.getElementById('combo-pmax')?.value)||null;
   const docs=window._comboCatDocs||[];
   const res=document.getElementById('combo-resultados');
   if(!res)return;
-  const filtered=docs.filter(p=>!p.esCombo&&(
-    !ql||(p.nombre&&p.nombre.toLowerCase().includes(ql))||
-    (p.ref&&p.ref.includes(ql))||
-    (p.marca&&p.marca.toLowerCase().includes(ql))
-  )).slice(0,30);
+  const filtered=docs.filter(p=>{
+    if(p.esCombo)return false;
+    const fOk=f==='todos'||p.categoria===f;
+    const mOk=mod==='todos'||p.subcategoria===mod;
+    const qOk=!ql||(p.nombre&&p.nombre.toLowerCase().includes(ql))||(p.ref&&p.ref.includes(ql))||(p.marca&&p.marca.toLowerCase().includes(ql));
+    const precio=p.precioMin||p.precio||null;
+    const pOk=(!pmin||precio>=pmin)&&(!pmax||precio<=pmax);
+    return fOk&&mOk&&qOk&&pOk;
+  }).slice(0,30);
   res.innerHTML='';
+  if(!filtered.length){res.innerHTML='<div style="padding:10px;font-size:12px;color:var(--tx3);text-align:center;">Sin resultados</div>';return;}
   filtered.forEach(p=>{
     const ya=!!window._comboItems.find(i=>i.id===p.id);
     const div=document.createElement('div');

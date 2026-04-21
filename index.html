@@ -8863,6 +8863,7 @@ function renderCatDocs(docs,el){
       ta.value=actual?(actual+'\n'+'#'+p.ref+' '+p.nombre):'#'+p.ref+' '+p.nombre;
       innerGo('config');ta.focus();
       toast('✅ "#'+p.ref+' '+p.nombre+'" añadido a premios');
+      actualizarPreviewPremios();autoGuardarPremios();
       updateDoc(doc(db,'communities',currentCommId,'catalogo',p.id),{vecesUsado:(p.vecesUsado||0)+1}).catch(()=>{});
     });
     div.querySelector('.cat-cart-btn').addEventListener('click',()=>{
@@ -8885,6 +8886,22 @@ function renderCatDocs(docs,el){
 }
 
 
+
+
+// Guardar premios automáticamente en Firestore
+async function autoGuardarPremios(){
+  const ta=document.getElementById('cfg-premios');
+  if(!ta||!currentCommId||!currentSubId)return;
+  try{
+    const existingCfg=communities[currentCommId]?.subs?.[currentSubId]?.config||{};
+    const newPremios=ta.value.trim();
+    await updateDoc(doc(db,'communities',currentCommId),{
+      [`subs.${currentSubId}.config`]:{...existingCfg,premios:newPremios}
+    });
+    if(communities[currentCommId]?.subs?.[currentSubId]?.config)
+      communities[currentCommId].subs[currentSubId].config.premios=newPremios;
+  }catch(e){console.warn('autoGuardarPremios:',e.message);}
+}
 
 // ── Preview precios premios (solo admin) ──────────────────────
 window.actualizarPreviewPremios=function(){
@@ -8953,7 +8970,7 @@ window.añadirCarritoARifa=function(){
   document.querySelectorAll('.cat-cart-btn').forEach(b=>{b.style.background='';b.style.color='';b.textContent='🛒';});
   innerGo('config');ta.focus();
   toast('✅ '+items.length+' productos añadidos a premios');
-  actualizarPreviewPremios();
+  actualizarPreviewPremios();autoGuardarPremios();
 };
 
 window.vaciarCarritoCat=function(){
@@ -9125,6 +9142,7 @@ window.guardarCombo=async function(){
       const actual=ta.value.trim();
       ta.value=actual?(actual+'\n'+texto):texto;
       actualizarPreviewPremios();
+      autoGuardarPremios();
     }
     toast('✅ Combo "'+nombre+'" guardado y añadido a premios');
     buildCatalogo();
@@ -9497,7 +9515,7 @@ window.seleccionarDeCatalogo=function(nombreEncoded){
   const texto=prod?('#'+prod.ref+' '+nombre):nombre;
   const actual=ta.value.trim();
   ta.value=actual?(actual+'\n'+texto):texto;
-  actualizarPreviewPremios();
+  actualizarPreviewPremios();autoGuardarPremios();
   document.getElementById('modal-cat-selector')?.classList.remove('open');
   toast('✅ "'+nombre+'" añadido a premios');
 };

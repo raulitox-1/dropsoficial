@@ -9438,7 +9438,8 @@ window.abrirSelectorCombos=async function(){
       div.querySelector('button').onclick=()=>{
         const ta=document.getElementById('cfg-premios');
         if(ta){
-          const texto='#'+p.ref+' '+p.nombre;
+          const productos=p.productosCombo?p.productosCombo.map(prod=>prod.replace(/^#\d+\s*/,'')).join(' + '):'';
+          const texto=p.nombre+(productos?' ('+productos+')':'');
           const actual=ta.value.trim();
           ta.value=actual?(actual+'\n'+texto):texto;
           actualizarPreviewPremios();

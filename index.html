@@ -9438,23 +9438,15 @@ window.filtrarSelectorCatalogo=function(){
 window.seleccionarDeCatalogo=function(nombreEncoded){
   const nombre=decodeURIComponent(nombreEncoded);
   const ta=document.getElementById('cfg-premios');
-  if(ta){
-    const actual=ta.value.trim();
-    ta.value=actual?(actual+'\n'+nombre):nombre;
-    toast('✅ "'+nombre+'" añadido');
-  }
+  if(!ta){toast('⚠️ Ve a la pestaña Config del drop primero');return;}
+  // Buscar ref en catálogo
+  const prod=(window._catDocs||[]).find(p=>p.nombre===nombre);
+  const texto=prod?('#'+prod.ref+' '+nombre):nombre;
+  const actual=ta.value.trim();
+  ta.value=actual?(actual+'\n'+texto):texto;
+  actualizarPreviewPremios();
   document.getElementById('modal-cat-selector')?.classList.remove('open');
-};
-
-window.seleccionarDeCatalogo=function(nombreEncoded){
-  const nombre=decodeURIComponent(nombreEncoded);
-  const ta=document.getElementById('cfg-premios');
-  if(ta){
-    const actual=ta.value.trim();
-    ta.value=actual?(actual+'\n'+nombre):nombre;
-    toast('✅ "'+nombre+'" añadido');
-  }
-  document.getElementById('modal-cat-selector')?.classList.remove('open');
+  toast('✅ "'+nombre+'" añadido a premios');
 };
 
 // ── Constructor de combos con productos del catálogo ──────────

@@ -6586,13 +6586,14 @@ window.abrirModalEnvioGanador=function(){
   }
 
   const premiosBtns=premios.length>0
-    ? premios.map((p,i)=>
-        '<button class="btn btn-neu" style="width:100%;text-align:left;padding:14px 16px;margin-bottom:8px;font-size:13px;border-radius:var(--rad);display:flex;align-items:center;gap:10px;" '+
+    ? premios.map((p,i)=>{
+        const textoVisible=p.replace(/#\d+\s*/,'');
+        return '<button class="btn btn-neu" style="width:100%;text-align:left;padding:14px 16px;margin-bottom:8px;font-size:13px;border-radius:var(--rad);display:flex;align-items:center;gap:10px;" '+
           'onclick="elegirPremio('+i+',this)" data-premio="'+escapeHtml(p)+'">'+
           '<span style="background:var(--gl);color:var(--g);border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">'+(i+1)+'</span>'+
-          '<span>'+escapeHtml(p)+'</span>'+
-        '</button>'
-      ).join('')
+          '<span>'+escapeHtml(textoVisible)+'</span>'+
+        '</button>';
+      }).join('')
     : '<div style="color:var(--tx2);font-size:13px;text-align:center;padding:20px;">El organizador no ha configurado los premios todavía. Espera a que te contacte.</div>';
 
   m.innerHTML=
@@ -8921,8 +8922,10 @@ window.actualizarPreviewPremios=function(){
     let prod=null;
     if(refMatch)prod=catDocs.find(p=>p.ref===refMatch[1].padStart(3,'0'));
     if(!prod){
-      const nombre=linea.replace(/#\d+\s*/,'').toLowerCase();
-      prod=catDocs.find(p=>p.nombre&&p.nombre.toLowerCase().includes(nombre.slice(0,20)));
+      const textoLimpio=linea.replace(/#\d+\s*/,'').toLowerCase();
+      prod=catDocs.find(p=>p.esCombo&&textoLimpio.startsWith(p.nombre.toLowerCase()));
+      if(!prod)prod=catDocs.find(p=>p.nombre&&textoLimpio.startsWith(p.nombre.toLowerCase()));
+      if(!prod)prod=catDocs.find(p=>p.nombre&&p.nombre.toLowerCase().includes(textoLimpio.slice(0,20)));
     }
     let precioHtml='<span style="color:var(--tx3);">—</span>';
     if(prod){
@@ -9843,7 +9846,7 @@ window.mostrarBannerGanador=function(g, isAdmin){
   const existing=document.getElementById('winner-splash');
   if(existing)existing.remove();
   const numStr=String(g.num??'?').padStart(2,'0');
-  const premiosLista=g.premios?(g.premios.split('\n').filter(p=>p.trim()).map(p=>'<div style="font-size:12px;color:rgba(255,255,255,.85);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.15);">🎁 '+escapeHtml(p.trim())+'</div>').join('')):'';
+  const premiosLista=g.premios?(g.premios.split('\n').filter(p=>p.trim()).map(p=>'<div style="font-size:12px;color:rgba(255,255,255,.85);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.15);">🎁 '+escapeHtml(p.trim().replace(/#\d+\s*/,''))+'</div>').join('')):'';
   const wb=document.createElement('div');
   wb.id='winner-splash';
   wb.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';

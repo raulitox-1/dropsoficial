@@ -1357,6 +1357,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="señuelo" onclick="setCatFilter(this)">🦑 Señuelos</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="hilo" onclick="setCatFilter(this)">🧵 Hilos</button>
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="accesorio" onclick="setCatFilter(this)">🔧 Accesorios</button>
+      <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="combo" onclick="setCatFilter(this)">🎁 Combos</button>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;padding-bottom:4px;">
       <button type="button" class="cat-filter-btn btn btn-neu btn-s" data-cat="surfcasting" onclick="setCatFilter(this)">🌊 Surfcasting</button>
@@ -1372,8 +1373,14 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
     </div>
     <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
       <button type="button" id="cat-select-mode-btn" class="btn btn-neu btn-s" onclick="toggleCatSelectMode()">☑️ Seleccionar</button>
-      <div id="cat-select-bar" style="display:none;flex:1;display:none;align-items:center;gap:8px;">
-        <span id="cat-select-count" style="font-size:12px;color:var(--tx2);">0 seleccionados</span>
+      <button type="button" class="btn btn-neu btn-s" onclick="abrirCrearCombo()">🎁 Crear combo</button>
+      <div id="cat-carrito-bar" style="display:none;flex:1;align-items:center;gap:6px;">
+        <span id="cat-carrito-count" style="font-size:12px;color:var(--tx2);white-space:nowrap;">🛒 0</span>
+        <button class="btn btn-s btn-g" onclick="añadirCarritoARifa()">+ A la rifa</button>
+        <button class="btn btn-s btn-neu" onclick="vaciarCarritoCat()">✕</button>
+      </div>
+      <div id="cat-select-bar" style="display:none;flex:1;align-items:center;gap:8px;">
+        <span id="cat-select-count" style="font-size:12px;color:var(--tx2);">0 sel.</span>
         <button class="btn btn-s btn-neu" onclick="seleccionarTodosCat()">Todos</button>
         <button class="btn btn-s btn-ko" onclick="borrarSeleccionadosCat()">🗑️ Eliminar</button>
         <button class="btn btn-s btn-neu" onclick="toggleCatSelectMode()">Cancelar</button>
@@ -1473,7 +1480,17 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         <button class="btn btn-s btn-g" onclick="abrirConstructorCombos()" type="button">⚡ Crear combo</button>
       </div>
     </div>
-    <textarea id="cfg-premios" style="height:120px;font-size:12px;" placeholder="🏆 Premio 1&#10;🏆 Premio 2&#10;🏆 Premio 3..."></textarea>
+    <textarea id="cfg-premios" style="height:120px;font-size:12px;" placeholder="🏆 Premio 1&#10;🏆 Premio 2&#10;🏆 Premio 3..." oninput="actualizarPreviewPremios()"></textarea>
+    <!-- Preview precios premios (solo admin) -->
+    <div id="premios-precio-preview" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;margin-top:6px;margin-bottom:4px;">
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;">💰 Coste estimado (solo tú lo ves)</div>
+      <div id="premios-precio-lista" style="font-size:12px;"></div>
+      <div style="height:1px;background:var(--bd);margin:6px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;">
+        <span>Total estimado</span>
+        <span id="premios-precio-total" style="color:var(--g);">—</span>
+      </div>
+    </div>
     <!-- Vista previa de combos con links -->
     <div id="combos-preview-wrap" style="display:none;margin-top:8px;"></div>
     <div style="background:var(--bg2);border-radius:var(--rads);padding:10px 12px;margin-bottom:10px;">
@@ -8827,10 +8844,15 @@ function renderCatDocs(docs,el){
           (p.links&&Object.keys(p.links).length?
             Object.entries(p.links).map(([tienda,url])=>'<a href="'+escapeHtml(url)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;margin-right:8px;">🔗 '+escapeHtml(tienda)+'</a>').join('')
             :(p.link?'<a href="'+escapeHtml(p.link)+'" target="_blank" style="font-size:12px;color:var(--bl);font-weight:600;">🔗 Ver producto →</a>':''))+
+          // Precio admin para combos
+          (p.esCombo&&p.precioTotalAdmin?'<div style="font-size:11px;color:var(--a);font-weight:700;margin-top:3px;">💰 Coste combo: '+p.precioTotalAdmin+'€ (solo admin)</div>':'')+
+          // Productos del combo
+          (p.esCombo&&p.productosCombo?'<div style="font-size:11px;color:var(--tx3);margin-top:2px;">'+p.productosCombo.map(n=>'• '+n).join('<br>')+'</div>':'')+
           vecesHtml+
         '</div>'+
         '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">'+
           '<button class="btn btn-s btn-g cat-add-btn">+ Premio</button>'+
+          '<button class="btn btn-s btn-neu cat-cart-btn" title="Añadir al carrito">🛒</button>'+
           '<button class="btn btn-s btn-ko cat-del-btn">🗑️</button>'+
         '</div>'+
       '</div>';
@@ -8843,6 +8865,17 @@ function renderCatDocs(docs,el){
       toast('✅ "#'+p.ref+' '+p.nombre+'" añadido a premios');
       updateDoc(doc(db,'communities',currentCommId,'catalogo',p.id),{vecesUsado:(p.vecesUsado||0)+1}).catch(()=>{});
     });
+    div.querySelector('.cat-cart-btn').addEventListener('click',()=>{
+      const btn=div.querySelector('.cat-cart-btn');
+      if(window._catCarrito.has(p.id)){
+        window._catCarrito.delete(p.id);
+        btn.style.background='';btn.style.color='';btn.textContent='🛒';
+      } else {
+        window._catCarrito.set(p.id,{ref:p.ref,nombre:p.nombre,precio:p.precioMin||p.precio||null});
+        btn.style.background='var(--g)';btn.style.color='#fff';btn.textContent='✓';
+      }
+      actualizarCarritoCat();
+    });
     div.querySelector('.cat-del-btn').addEventListener('click',()=>{
       if(!confirm('¿Borrar "'+p.nombre+'" del catálogo?'))return;
       deleteDoc(doc(db,'communities',currentCommId,'catalogo',p.id)).then(()=>buildCatalogo()).catch(e=>toast('Error: '+e.message));
@@ -8850,6 +8883,200 @@ function renderCatDocs(docs,el){
     el.appendChild(div);
   });
 }
+
+
+
+// ── Preview precios premios (solo admin) ──────────────────────
+window.actualizarPreviewPremios=function(){
+  const ta=document.getElementById('cfg-premios');
+  const wrap=document.getElementById('premios-precio-preview');
+  const lista=document.getElementById('premios-precio-lista');
+  const totalEl=document.getElementById('premios-precio-total');
+  if(!ta||!wrap||!lista)return;
+  const lineas=(ta.value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lineas.length){wrap.style.display='none';return;}
+  const catDocs=window._catDocs||[];
+  let total=0;let hayPrecios=false;
+  const html=lineas.map(linea=>{
+    // Buscar en catálogo por ref (#001) o nombre
+    const refMatch=linea.match(/#(\d+)/);
+    let prod=null;
+    if(refMatch)prod=catDocs.find(p=>p.ref===refMatch[1].padStart(3,'0'));
+    if(!prod){
+      const nombre=linea.replace(/#\d+\s*/,'').toLowerCase();
+      prod=catDocs.find(p=>p.nombre&&p.nombre.toLowerCase().includes(nombre.slice(0,20)));
+    }
+    let precioHtml='<span style="color:var(--tx3);">—</span>';
+    if(prod){
+      const precio=prod.precioTotalAdmin||prod.precioMin||prod.precio||null;
+      if(precio){
+        total+=parseFloat(precio);hayPrecios=true;
+        const color=prod.esCombo?'var(--a)':'var(--g)';
+        precioHtml='<span style="color:'+color+';font-weight:700;">'+precio+'€'+(prod.esCombo?' 🎁':'')+'</span>';
+      }
+    }
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bd);font-size:12px;">'+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">'+escapeHtml(linea)+'</span>'+
+      precioHtml+
+    '</div>';
+  }).join('');
+  lista.innerHTML=html;
+  totalEl.textContent=hayPrecios?total.toFixed(2)+'€':'—';
+  wrap.style.display='block';
+};
+
+// ── CARRITO DEL CATÁLOGO ─────────────────────────────────────
+window._catCarrito=new Map(); // id -> {ref, nombre, precio}
+
+function actualizarCarritoCat(){
+  const n=window._catCarrito.size;
+  const bar=document.getElementById('cat-carrito-bar');
+  const count=document.getElementById('cat-carrito-count');
+  if(bar)bar.style.display=n>0?'flex':'none';
+  if(count){
+    const total=[...window._catCarrito.values()].reduce((s,p)=>s+(p.precio||0),0);
+    count.textContent='🛒 '+n+(total?' ('+total.toFixed(0)+'€)':'');
+  }
+}
+
+window.añadirCarritoARifa=function(){
+  if(!window._catCarrito.size){toast('El carrito está vacío');return;}
+  const ta=document.getElementById('cfg-premios');
+  if(!ta){toast('Ve a Config para ver los premios');return;}
+  const items=[...window._catCarrito.values()];
+  const lineas=items.map(p=>'#'+(p.ref||'?')+' '+p.nombre);
+  const actual=ta.value.trim();
+  ta.value=actual?(actual+'\n'+lineas.join('\n')):lineas.join('\n');
+  window._catCarrito.clear();
+  actualizarCarritoCat();
+  // Quitar verde de botones
+  document.querySelectorAll('.cat-cart-btn').forEach(b=>{b.style.background='';b.style.color='';b.textContent='🛒';});
+  innerGo('config');ta.focus();
+  toast('✅ '+items.length+' productos añadidos a premios');
+  actualizarPreviewPremios();
+};
+
+window.vaciarCarritoCat=function(){
+  window._catCarrito.clear();
+  actualizarCarritoCat();
+  document.querySelectorAll('.cat-cart-btn').forEach(b=>{b.style.background='';b.style.color='';b.textContent='🛒';});
+};
+
+// ── CONSTRUCTOR DE COMBOS ────────────────────────────────────
+window.abrirCrearCombo=async function(){
+  let m=document.getElementById('modal-crear-combo');
+  if(!m){m=document.createElement('div');m.id='modal-crear-combo';m.className='modal-bg';document.body.appendChild(m);}
+  window._comboItems=[];
+  // Construir modal con createElement para evitar problemas de comillas
+  const modal=document.createElement('div');
+  modal.className='modal';
+  modal.style.cssText='max-width:480px;max-height:90vh;display:flex;flex-direction:column;';
+  modal.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;">🎁 Crear combo</div>
+      <button id="combo-close-btn" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <label style="font-size:12px;font-weight:700;margin-bottom:6px;display:block;">Nombre del combo</label>
+    <input type="text" id="combo-nombre" placeholder="Ej: Pack Surfcasting Iniciación" style="margin-bottom:12px;"/>
+    <label style="font-size:12px;font-weight:700;margin-bottom:6px;display:block;">Buscar producto del catálogo</label>
+    <input type="text" id="combo-buscar" placeholder="Nombre, marca o #ref..." style="margin-bottom:8px;" oninput="buscarEnCombo(this.value)"/>
+    <div id="combo-resultados" style="max-height:160px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);margin-bottom:10px;"></div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Productos añadidos:</div>
+    <div id="combo-items-lista" style="max-height:120px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);padding:8px;margin-bottom:10px;min-height:40px;font-size:12px;color:var(--tx2);">Ninguno aún</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <span style="font-size:12px;color:var(--tx2);">Coste total (solo admin):</span>
+      <span id="combo-precio-total" style="font-size:14px;font-weight:800;color:var(--g);">0€</span>
+    </div>
+    <button id="combo-guardar-btn" class="btn btn-g" style="width:100%;padding:12px;">💾 Guardar combo en catálogo</button>
+  `;
+  m.innerHTML='';
+  m.appendChild(modal);
+  m.classList.add('open');
+  document.getElementById('combo-close-btn').onclick=()=>m.classList.remove('open');
+  document.getElementById('combo-guardar-btn').onclick=()=>guardarCombo();
+  window._comboCatDocs=window._catDocs||[];
+  buscarEnCombo('');
+};
+
+window.buscarEnCombo=function(q){
+  const ql=q.toLowerCase();
+  const docs=window._comboCatDocs||[];
+  const res=document.getElementById('combo-resultados');
+  if(!res)return;
+  const filtered=docs.filter(p=>!p.esCombo&&(
+    !ql||(p.nombre&&p.nombre.toLowerCase().includes(ql))||
+    (p.ref&&p.ref.includes(ql))||
+    (p.marca&&p.marca.toLowerCase().includes(ql))
+  )).slice(0,30);
+  res.innerHTML='';
+  filtered.forEach(p=>{
+    const ya=!!window._comboItems.find(i=>i.id===p.id);
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;';
+    const precio=p.precioMin||p.precio||null;
+    const span=document.createElement('span');
+    span.innerHTML='<b>#'+(p.ref||'?')+'</b> '+escapeHtml(p.nombre||'')+(precio?' <span style="color:var(--g);">'+precio+'€</span>':'');
+    const btn=document.createElement('button');
+    btn.className='btn btn-s '+(ya?'btn-ko':'btn-g');
+    btn.textContent=ya?'✕':'+';
+    btn.onclick=()=>toggleComboItem(p.id,p.ref||'',p.nombre||'',precio||0,btn);
+    div.appendChild(span);div.appendChild(btn);
+    res.appendChild(div);
+  });
+};
+
+window.toggleComboItem=function(id,ref,nombre,precio,btn){
+  const idx=window._comboItems.findIndex(i=>i.id===id);
+  if(idx>=0){
+    window._comboItems.splice(idx,1);
+    btn.className='btn btn-s btn-g';btn.textContent='+';
+  } else {
+    window._comboItems.push({id,ref,nombre,precio});
+    btn.className='btn btn-s btn-ko';btn.textContent='✕';
+  }
+  actualizarComboLista();
+};
+
+function actualizarComboLista(){
+  const lista=document.getElementById('combo-items-lista');
+  const totalEl=document.getElementById('combo-precio-total');
+  if(!lista)return;
+  if(!window._comboItems.length){lista.innerHTML='<span style="color:var(--tx3);">Ninguno aún</span>';if(totalEl)totalEl.textContent='0€';return;}
+  lista.innerHTML=window._comboItems.map((p,i)=>
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bd);">'+
+      '<span>#'+p.ref+' '+escapeHtml(p.nombre)+'</span>'+
+      '<span style="color:var(--g);">'+(p.precio||'—')+(p.precio?'€':'')+'</span>'+
+    '</div>'
+  ).join('');
+  const total=window._comboItems.reduce((s,p)=>s+(parseFloat(p.precio)||0),0);
+  if(totalEl)totalEl.textContent=total.toFixed(2)+'€';
+}
+
+window.guardarCombo=async function(){
+  const nombre=document.getElementById('combo-nombre')?.value.trim();
+  if(!nombre){toast('Ponle un nombre al combo');return;}
+  if(!window._comboItems.length){toast('Añade al menos un producto');return;}
+  const total=window._comboItems.reduce((s,p)=>s+(parseFloat(p.precio)||0),0);
+  try{
+    // Obtener máximo ref
+    let maxRef=0;
+    (window._catDocs||[]).forEach(d=>{const r=parseInt(d.ref||'0');if(r>maxRef)maxRef=r;});
+    maxRef++;
+    const ref=String(maxRef).padStart(3,'0');
+    await addDoc(collection(db,'communities',currentCommId,'catalogo'),{
+      nombre,ref,categoria:'combo',subcategoria:'combo',
+      esCombo:true,
+      productosCombo:window._comboItems.map(p=>'#'+p.ref+' '+p.nombre),
+      itemsCombo:window._comboItems,
+      precioTotalAdmin:parseFloat(total.toFixed(2)),
+      precio:null,precioMin:null,precioMax:null,
+      ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')
+    });
+    document.getElementById('modal-crear-combo')?.classList.remove('open');
+    toast('✅ Combo "'+nombre+'" guardado en catálogo');
+    buildCatalogo();
+  }catch(e){toast('Error: '+e.message);}
+};
 
 // ── Selección múltiple catálogo ──────────────────────────────
 let _catSelectMode=false;

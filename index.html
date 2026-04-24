@@ -523,35 +523,30 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   </div>
   <!-- Mercadillo banner -->
 <div style="padding:0 14px 8px;">
-  <div onclick="openMerc()" style="
+  <div style="
     background:linear-gradient(135deg,#071f14,#0d5c3a,#16a86b);
     border-radius:20px;padding:20px 22px;cursor:pointer;
     display:flex;align-items:center;gap:18px;margin-bottom:8px;
     transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;
     box-shadow:0 4px 20px rgba(13,90,55,.35);
-    position:relative;overflow:hidden;
-  "
-  onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 32px rgba(13,90,55,.45)'"
-  onmouseleave="this.style.transform='none';this.style.boxShadow='0 4px 20px rgba(13,90,55,.35)'">
+    position:relative;overflow:hidden;opacity:.75;
+  ">
     <div style="font-size:44px;flex-shrink:0;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));">🛒</div>
     <div style="flex:1;">
-      <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.5px;">Mercadillo</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.5px;">Mercadillo</div>
+        <span style="background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em;">PRÓXIMAMENTE</span>
+      </div>
       <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;font-weight:500;">Compra y vende material de segunda mano</div>
       <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:5px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;">Pesca · Deportes · Tecnología y más</div>
     </div>
-    <div style="background:rgba(255,255,255,.15);border-radius:99px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0;backdrop-filter:blur(8px);">→</div>
+    <div style="background:rgba(255,255,255,.15);border-radius:99px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0;backdrop-filter:blur(8px);">🔒</div>
   </div>
 </div>
 <div style="padding:12px 14px 6px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">🏘️ Comunidades</div>
 <!-- Filtros de categoría -->
 <div id="cat-filter-home" style="display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none;">
   <button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Pesca" onclick="filtrarComunidades(this)">🎣 Pesca</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Fútbol" onclick="filtrarComunidades(this)">⚽ Fútbol</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Gaming" onclick="filtrarComunidades(this)">🎮 Gaming</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Motor" onclick="filtrarComunidades(this)">🏎️ Motor</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Tecnología" onclick="filtrarComunidades(this)">💻 Tecnología</button>
-  <button class="home-cat-btn btn btn-s btn-neu" data-cat="General" onclick="filtrarComunidades(this)">🎯 General</button>
 </div>
 <div class="comm-list" id="comm-list"></div>
 
@@ -2059,6 +2054,32 @@ async function init(){
 // ── Filtros de categoría en home ─────────────────────────────
 window._homeCatFilter='todas';
 
+async function cargarCategoriasHome(){
+  const bar=document.getElementById('cat-filter-home');
+  if(!bar)return;
+  try{
+    const snap=await getDoc(doc(db,'_config','categorias'));
+    const cats=snap.exists()?snap.data().lista||[]:[];
+    // Limpiar y reconstruir
+    bar.innerHTML='<button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>';
+    cats.forEach(cat=>{
+      const btn=document.createElement('button');
+      btn.className='home-cat-btn btn btn-s btn-neu';
+      btn.dataset.cat=cat.valor;
+      btn.onclick=function(){filtrarComunidades(this);};
+      btn.textContent=cat.emoji+' '+cat.nombre;
+      bar.appendChild(btn);
+    });
+  }catch(_){
+    // Fallback con categorías por defecto
+    bar.innerHTML=`
+      <button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>
+      <button class="home-cat-btn btn btn-s btn-neu" data-cat="Pesca" onclick="filtrarComunidades(this)">🎣 Pesca</button>
+      <button class="home-cat-btn btn btn-s btn-neu" data-cat="General" onclick="filtrarComunidades(this)">🎯 General</button>
+    `;
+  }
+}
+
 window.filtrarComunidades=function(btn){
   window._homeCatFilter=btn.dataset.cat;
   document.querySelectorAll('.home-cat-btn').forEach(b=>{
@@ -2086,7 +2107,7 @@ window.abrirFormularioColaboracion=function(tipo){
     <input type="text" id="colab-tel" placeholder="Teléfono (opcional)" style="margin-bottom:8px;"/>
     ${esMarca
       ?'<input type="text" id="colab-web" placeholder="Web o Instagram" style="margin-bottom:8px;"/>'
-      :'<input type="text" id="colab-comunidad" placeholder="¿Qué tipo de comunidad quieres crear?" style="margin-bottom:8px;"/>'}
+      :'<input type="text" id="colab-comunidad" placeholder="¿Qué tipo de comunidad quieres crear?" style="margin-bottom:8px;"/><select id="colab-categoria" style="width:100%;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;margin-bottom:8px;font-family:inherit;"><option value="">— Categoría de la comunidad —</option><option value="Pesca">🎣 Pesca</option><option value="Fútbol">⚽ Fútbol</option><option value="Gaming">🎮 Gaming</option><option value="Motor">🏎️ Motor</option><option value="Tecnología">💻 Tecnología</option><option value="General">🎯 General</option><option value="Otro">📦 Otro</option></select>'}
     <textarea id="colab-mensaje" placeholder="${esMarca?'Cuéntanos sobre tu marca y cómo quieres colaborar...':'¿Por qué quieres ser organizador? Cuéntanos más...'}" style="height:90px;font-size:13px;margin-bottom:12px;"></textarea>
     <button class="btn btn-g" style="width:100%;padding:12px;" onclick="enviarSolicitudColaboracion('${tipo}')">Enviar solicitud</button>
   `;
@@ -2098,6 +2119,7 @@ window.enviarSolicitudColaboracion=async function(tipo){
   const email=document.getElementById('colab-email')?.value.trim();
   const tel=document.getElementById('colab-tel')?.value.trim()||'—';
   const extra=document.getElementById('colab-web')?.value.trim()||document.getElementById('colab-comunidad')?.value.trim()||'—';
+  const categoria=document.getElementById('colab-categoria')?.value||'';
   const mensaje=document.getElementById('colab-mensaje')?.value.trim();
   if(!nombre||!email){toast('Por favor rellena nombre y email');return;}
   if(!mensaje){toast('Por favor escríbenos un mensaje');return;}
@@ -2105,7 +2127,7 @@ window.enviarSolicitudColaboracion=async function(tipo){
   if(btn){btn.disabled=true;btn.textContent='Enviando...';}
   try{
     await addDoc(collection(db,'solicitudes'),{
-      tipo,nombre,email,tel,extra,mensaje,
+      tipo,nombre,email,tel,extra,categoria,mensaje,
       ts:serverTimestamp(),
       fecha:new Date().toLocaleDateString('es-ES'),
       estado:'pendiente'
@@ -5134,6 +5156,7 @@ function afterLogin(){
     if(pendingLink){ sessionStorage.removeItem('drops_pending_link'); setTimeout(()=>navigateFromNotif(pendingLink), 1000); }
   } else {
     document.getElementById('home').style.display='block';
+    cargarCategoriasHome();
     buildHome();
   }
 }

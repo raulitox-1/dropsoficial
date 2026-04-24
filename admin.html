@@ -331,6 +331,9 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <div class="nav-item" onclick="goPanel('solicitudes')">
       <span class="nav-icon">📋</span><span>Solicitudes</span>
     </div>
+    <div class="nav-item" onclick="goPanel('categorias')">
+      <span class="nav-icon">🏷️</span><span>Categorías</span>
+    </div>
     <div class="sidebar-footer">
       <strong>Super Admin</strong>
       <div id="sb-time"></div>
@@ -515,6 +518,18 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   </div>
 </div>
 
+<!-- PANEL CATEGORÍAS -->
+      <div class="panel" id="panel-categorias">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🏷️ Categorías</div>
+          <button class="btn btn-g" onclick="abrirCrearCategoria()">+ Nueva</button>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.5;">
+          Gestiona las categorías que aparecen en la pantalla de inicio para filtrar comunidades.
+        </div>
+        <div id="cat-admin-lista"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
 <!-- PANEL SOLICITUDES -->
       <div class="panel" id="panel-solicitudes">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -538,6 +553,16 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     </div>
     <label>Nombre *</label>
     <input id="mc-name" placeholder="Ej: Threefishh"/>
+    <label>Categoría</label>
+    <select id="mc-categoria" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;font-family:inherit;margin-bottom:4px;">
+      <option value="Pesca">🎣 Pesca</option>
+      <option value="Fútbol">⚽ Fútbol</option>
+      <option value="Gaming">🎮 Gaming</option>
+      <option value="Motor">🏎️ Motor</option>
+      <option value="Tecnología">💻 Tecnología</option>
+      <option value="General" selected>🎯 General</option>
+      <option value="Otro">📦 Otro</option>
+    </select>
     <label>Emoji</label>
     <input id="mc-emoji" placeholder="🎯" style="width:80px;font-size:20px;text-align:center;"/>
     <label>Descripción</label>
@@ -598,6 +623,9 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   </button>
   <button class="bnav-item" onclick="goPanel('solicitudes')" data-panel="solicitudes">
     <span class="bnav-icon">📋</span>Solicitudes
+  </button>
+  <button class="bnav-item" onclick="goPanel('categorias')" data-panel="categorias">
+    <span class="bnav-icon">🏷️</span>Categ.
   </button>
 </nav>
 
@@ -807,6 +835,92 @@ window.doLogout=function(){
 
 // ─── NAVIGATION ──────────────────────────────────────────
 
+
+// ── GESTIÓN DE CATEGORÍAS ────────────────────────────────────
+window.loadCategorias=async function(){
+  const el=document.getElementById('cat-admin-lista');
+  if(!el)return;
+  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const snap=await getDoc(doc(db,'_config','categorias'));
+    const cats=snap.exists()?snap.data().lista||[]:[];
+    if(!cats.length){
+      el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx2);font-size:13px;">No hay categorías. Pulsa + Nueva para crear una.</div>';
+      return;
+    }
+    el.innerHTML='';
+    cats.forEach((cat,i)=>{
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);margin-bottom:8px;';
+      div.innerHTML=
+        '<div style="display:flex;align-items:center;gap:10px;">'+
+          '<span style="font-size:22px;">'+cat.emoji+'</span>'+
+          '<div>'+
+            '<div style="font-weight:700;font-size:14px;">'+esc(cat.nombre)+'</div>'+
+            '<div style="font-size:11px;color:var(--tx3);">valor: '+esc(cat.valor)+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<button class="btn btn-s btn-ko" onclick="eliminarCategoria('+i+')">🗑️</button>';
+      el.appendChild(div);
+    });
+  }catch(e){el.innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>';}
+};
+
+window.abrirCrearCategoria=function(){
+  let m=document.getElementById('modal-nueva-cat');
+  if(!m){
+    m=document.createElement('div');m.id='modal-nueva-cat';m.className='modal-bg';
+    m.onclick=function(e){if(e.target===m)m.classList.remove('open');};
+    document.body.appendChild(m);
+  }
+  m.innerHTML=`
+    <div class="modal" style="max-width:360px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:800;">🏷️ Nueva categoría</div>
+        <button onclick="document.getElementById('modal-nueva-cat').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Emoji</label>
+      <input type="text" id="ncat-emoji" placeholder="🎣" style="width:80px;font-size:22px;text-align:center;margin-bottom:12px;"/>
+      <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Nombre visible</label>
+      <input type="text" id="ncat-nombre" placeholder="Ej: Pesca" style="margin-bottom:12px;"/>
+      <label style="font-size:12px;font-weight:700;display:block;margin-bottom-6px;font-size:11px;color:var(--tx3);">El nombre se usa también como valor de filtro</label>
+      <button class="btn btn-g" style="width:100%;padding:12px;margin-top:8px;" onclick="guardarCategoria()">Guardar categoría</button>
+    </div>
+  `;
+  m.classList.add('open');
+};
+
+window.guardarCategoria=async function(){
+  const emoji=document.getElementById('ncat-emoji')?.value.trim()||'🏷️';
+  const nombre=document.getElementById('ncat-nombre')?.value.trim();
+  if(!nombre){toast('Escribe un nombre para la categoría');return;}
+  const valor=nombre; // el valor de filtro es el mismo nombre
+  try{
+    const ref=doc(db,'_config','categorias');
+    const snap=await getDoc(ref);
+    const lista=snap.exists()?snap.data().lista||[]:[];
+    if(lista.find(c=>c.valor===valor)){toast('Esa categoría ya existe');return;}
+    lista.push({emoji,nombre,valor});
+    await setDoc(ref,{lista});
+    document.getElementById('modal-nueva-cat')?.classList.remove('open');
+    toast('✅ Categoría "'+nombre+'" creada');
+    loadCategorias();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.eliminarCategoria=async function(idx){
+  if(!confirm('¿Eliminar esta categoría?'))return;
+  try{
+    const ref=doc(db,'_config','categorias');
+    const snap=await getDoc(ref);
+    const lista=snap.exists()?snap.data().lista||[]:[];
+    lista.splice(idx,1);
+    await setDoc(ref,{lista});
+    toast('🗑️ Categoría eliminada');
+    loadCategorias();
+  }catch(e){toast('Error: '+e.message);}
+};
+
 // ── SOLICITUDES ───────────────────────────────────────────────
 let _solTab='pendiente';
 
@@ -879,7 +993,9 @@ window.goPanel=function(name){
   document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
   document.querySelector(`.bnav-item[data-panel="${name}"]`)?.classList.add('active');
   if(name==='solicitudes')loadSolicitudes();
-  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación',solicitudes:'Solicitudes'};
+  if(name==='categorias')loadCategorias();
+  // Al abrir comunidades, cargar categorías
+  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación',solicitudes:'Solicitudes',categorias:'Categorías'};
   document.getElementById('topbar-title').textContent=titles[name]||name;
   currentPanel=name;
   // Scroll to top on panel change (mobile)
@@ -1043,6 +1159,7 @@ window.editComm=function(commId){
   document.getElementById('mc-pin').value=c.pin||'';
   document.getElementById('mc-pass').value='';
   document.getElementById('mc-wa').value=c.waLink||'';
+  if(document.getElementById('mc-categoria'))document.getElementById('mc-categoria').value=c.categoria||'General';
   document.getElementById('modal-comm-title').textContent='Editar comunidad';
   document.getElementById('btn-save-comm').dataset.editId=commId;
   openModal('modal-comm');
@@ -1061,6 +1178,7 @@ window.saveComm=async function(){
       emoji:document.getElementById('mc-emoji').value.trim()||'🎯',
       desc:document.getElementById('mc-desc').value.trim(),
       waLink:document.getElementById('mc-wa').value.trim(),
+      categoria:document.getElementById('mc-categoria')?.value||'General',
     };
     const pass=document.getElementById('mc-pass').value;
     if(pass)data.adminPass=pass;

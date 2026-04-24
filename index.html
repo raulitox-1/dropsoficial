@@ -4619,7 +4619,7 @@ window.updatePayInfo=function(){
   // Datos por método
   const datos={
     'Bizum':{valor:cfg.bizum,icono:'📱',label:'Bizum'},
-    'Transferencia bancaria':{valor:cfg.transfer,icono:'🏦',label:'IBAN'},
+    'Transferencia bancaria':{valor:cfg.transfer,icono:'🏦',label:'IBAN',aviso:'ℹ️ Pon tu nombre real como concepto. El nombre del titular da igual, solo importa el número de cuenta.'},
     'PayPal':{valor:cfg.paypal,icono:'💙',label:'PayPal'}
   };
   const d=datos[method]||{valor:'',icono:'💳',label:''};
@@ -4630,6 +4630,7 @@ window.updatePayInfo=function(){
       <div style="font-size:16px;font-weight:800;color:var(--tx);letter-spacing:.02em;">${d.valor}</div>
       ${totalAPagar?`<div style="font-size:12px;color:var(--tx2);margin-top:4px;">Importe: <strong style="color:var(--g);">${totalAPagar}€</strong> (${totalNums} × ${precio}€)</div>`:''}
       <div style="font-size:11px;color:var(--tx3);margin-top:4px;">Concepto: Drop ${cfg.rifaName||sub?.name||''}</div>
+      ${d.aviso?`<div style="font-size:11px;color:var(--bl);margin-top:6px;background:rgba(59,130,246,.08);border-radius:6px;padding:6px 8px;">${d.aviso}</div>`:''}
     </div>`;
     if(btns){
       btns.innerHTML='';
@@ -7321,6 +7322,7 @@ function mostrarPantallaPago(rifaNombre,nRifa,precio,commId,subId){
         <div style="font-size:13px;font-weight:600;margin-bottom:6px;">🏦 IBAN: <span style="font-size:12px;">ES65 1583 0001 1590 6984 8933</span></div>
         <button onclick="navigator.clipboard.writeText('ES65 1583 0001 1590 6984 8933').then(()=>toast('✓ IBAN copiado'))" class="btn btn-s btn-neu" style="width:100%;margin-bottom:8px;">📋 Copiar IBAN</button>
         <div style="font-size:11px;color:var(--tx3);">Concepto: Drops ${rifaNombre} - ${commId}</div>
+        <div style="font-size:11px;color:var(--bl);margin-top:6px;background:rgba(59,130,246,.08);border-radius:6px;padding:6px 8px;">ℹ️ Para transferencia: pon tu nombre como concepto. El nombre del titular da igual, solo importa el número de cuenta.</div>
       </div>
       <div style="font-size:12px;font-weight:700;margin-bottom:8px;">📤 Sube el comprobante</div>
       <div style="background:var(--bg2);border:2px dashed var(--bd);border-radius:var(--rads);padding:14px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('pago-rifa-file').click()">
@@ -7982,21 +7984,52 @@ window.saveSubConfig=async function(){
 
   // Si está activando una rifa que no estaba activa → verificar billing
   if(rifaActiva&&!yaEstabaActiva){
-    const check=await checkPuedeActivarRifa(currentCommId);
-    if(!check.ok){
-      if(check.motivo==='deuda'){
-        toast('🚫 Comunidad bloqueada por deuda. Regulariza el pago para continuar.');
-        document.getElementById('cfg-activa').checked=false;
-        window.toggleRifaActiva&&window.toggleRifaActiva();
-        return;
-      }
-      if(check.motivo==='pendiente_confirmacion'){
-        toast('⏳ El comprobante de la rifa anterior está pendiente de confirmación. Espera a que se apruebe.');
-        document.getElementById('cfg-activa').checked=false;
-        window.toggleRifaActiva&&window.toggleRifaActiva();
-        return;
-      }
+    // Verificar si HAY ALGUNA sección de esta comunidad con pago pendiente
+    const bloqueada=await checkComunidadBloqueada(currentCommId);
+    if(bloqueada){
+      toast('🚫 Comunidad bloqueada por deuda. Regulariza el pago para continuar.');
+      document.getElementById('cfg-activa').checked=false;
+      window.toggleRifaActiva&&window.toggleRifaActiva();
+      return;
     }
+    // Verificar si CUALQUIER sección de esta comunidad tiene pago pendiente sin confirmar
+    try{
+      const commData=communities[currentCommId];
+      const todasSecciones=Object.keys(commData?.subs||{});
+      for(const sid of todasSecciones){
+        const rifaPago=await checkRifaPagada(currentCommId,sid);
+        if(!rifaPago.pagada&&rifaPago.enviado){
+          toast('⏳ Hay un comprobante de pago pendiente de confirmación en otra sección. Espera a que se apruebe.');
+          document.getElementById('cfg-activa').checked=false;
+          window.toggleRifaActiva&&window.toggleRifaActiva();
+          return;
+        }
+        // Verificar si hay pago pendiente SIN comprobante (rifa cerrada sin pagar)
+        const pagoSnap=await getDoc(doc(db,'superadmin','facturacion','pagos_rifa',currentCommId+'_'+sid));
+        if(!pagoSnap.exists()){
+          // Buscar en rifas_log si hay rifas cerradas de este mes sin pago confirmado
+          const mes=new Date().toISOString().slice(0,7);
+          const logSnap=await getDocs(query(
+            collection(db,'superadmin','facturacion','rifas_log'),
+            where('commId','==',currentCommId),
+            where('subId','==',sid),
+            where('mes','==',mes)
+          ));
+          if(!logSnap.empty&&!rifaPago.pagada){
+            // Hay rifas cerradas sin pago confirmado — bloquear
+            toast('🚫 Tienes rifas sin pagar en esta comunidad. Realiza el pago antes de activar una nueva rifa.');
+            mostrarPantallaPago(
+              communities[currentCommId]?.subs?.[sid]?.config?.rifaName||'Rifa anterior',
+              logSnap.size, logSnap.size<=3?25:logSnap.size<=10?15:10,
+              currentCommId,sid
+            );
+            document.getElementById('cfg-activa').checked=false;
+            window.toggleRifaActiva&&window.toggleRifaActiva();
+            return;
+          }
+        }
+      }
+    }catch(e){console.warn('check billing:',e.message);}
   }
   const newCfg={
     ...existingCfg,

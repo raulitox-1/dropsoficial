@@ -13193,6 +13193,14 @@ window.addEventListener('scroll',function(){
   const btn=document.getElementById('btn-scroll-top');
   if(btn)btn.style.display=window.scrollY>300?'flex':'none';
 },{passive:true});
+// También detectar scroll en el contenedor de la app
+document.addEventListener('scroll',function(e){
+  const btn=document.getElementById('btn-scroll-top');
+  if(btn){
+    const scrolled=window.scrollY||(e.target?.scrollTop||0);
+    btn.style.display=scrolled>300?'flex':'none';
+  }
+},{passive:true,capture:true});
 </script>
 </body>
 </html>

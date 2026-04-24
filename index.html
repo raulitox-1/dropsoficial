@@ -1272,6 +1272,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <div style="font-size:13px;color:var(--tx2);">Tienes pagos pendientes con Drops Oficial. No puedes realizar nuevos sorteos ni crear nuevas rifas hasta que regularices el pago. Contacta con el administrador.</div>
     </div>
 
+    <div id="sorteo-pago-aviso" style="display:none;"></div>
     <div id="sorteo-contenido">
     <div class="sec">Números confirmados</div>
     <div id="sorteo-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;"></div>
@@ -7263,7 +7264,8 @@ window.checkSorteoGate = async function(){
   const contenidoEl = document.getElementById('sorteo-contenido');
   if(!gateEl || !deudaEl || !contenidoEl) return;
 
-  // Check si comunidad bloqueada por deuda anterior
+  // Solo bloquear si la comunidad tiene deuda confirmada (bloqueada explícitamente por el superadmin)
+  // NO bloquear por pago pendiente de la rifa actual — eso solo aplica a activar la siguiente rifa
   const bloqueada = await checkComunidadBloqueada(currentCommId);
   if(bloqueada){
     deudaEl.style.display = 'block';
@@ -7275,18 +7277,37 @@ window.checkSorteoGate = async function(){
   // Check si esta rifa concreta ya está pagada
   const { pagada, enviado } = await checkRifaPagada(currentCommId, currentSubId);
 
-  if(pagada){
-    // Sorteo libre — todo normal
-    gateEl.style.display = 'none';
-    deudaEl.style.display = 'none';
-    contenidoEl.style.display = 'block';
-    return;
-  }
+  // Siempre mostrar el sorteo — el pago se exige solo para la SIGUIENTE rifa
+  gateEl.style.display = 'none';
+  deudaEl.style.display = 'none';
+  contenidoEl.style.display = 'block';
 
-  // Hay que pagar — mostrar gate
-  const { nRifa, precio } = await calcPrecioRifaActual(currentCommId);
-  const sub = communities[currentCommId]?.subs?.[currentSubId];
-  const cfg = sub?.config||{};
+  // Si no está pagada, mostrar aviso informativo (no bloqueante) encima del sorteo
+  const avisoEl=document.getElementById('sorteo-pago-aviso');
+  if(avisoEl){
+    if(!pagada){
+      const { nRifa, precio } = await calcPrecioRifaActual(currentCommId);
+      const sub2 = communities[currentCommId]?.subs?.[currentSubId];
+      const rifaNombre = sub2?.config?.rifaName || sub2?.name || 'Drop';
+      avisoEl.style.display='block';
+      avisoEl.innerHTML=`
+        <div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rads);padding:12px 14px;margin-bottom:12px;">
+          <div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:4px;">💶 Pago pendiente — ${precio}€</div>
+          <div style="font-size:12px;color:#92400e;margin-bottom:8px;">Rifa nº${nRifa} del mes. Debes abonar <strong>${precio}€</strong> antes de activar la siguiente rifa.</div>
+          <div style="font-size:12px;color:#92400e;margin-bottom:8px;"><strong>Bizum:</strong> 634 XX XX XX &nbsp;|&nbsp; <strong>IBAN:</strong> ES65 1583 0001 1590 6984 8933</div>
+          ${enviado
+            ?'<div style="color:#059669;font-size:12px;font-weight:700;">✅ Comprobante enviado — pendiente de confirmación</div>'
+            :`<div style="display:flex;gap:8px;align-items:center;">
+                <input type="file" id="aviso-comp-file" accept="image/*,application/pdf" style="font-size:11px;flex:1;" onchange="window._rifaCompFile=this.files[0]"/>
+                <button onclick="enviarComprobantePagoRifa()" class="btn btn-s" style="background:#f59e0b;color:#fff;flex-shrink:0;">📤 Enviar</button>
+              </div>`
+          }
+        </div>`;
+    } else {
+      avisoEl.style.display='none';
+    }
+  }
+  return;
   const msgEl = document.getElementById('sorteo-gate-msg');
   const sub2 = communities[currentCommId]?.subs?.[currentSubId];
   const rifaNombre = sub2?.config?.rifaName || sub2?.name || 'Drop';

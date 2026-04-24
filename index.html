@@ -4785,6 +4785,8 @@ window.reservar=async function(){
     const premioPreferencia=premiosElegidos.length>0?premiosElegidos:null;
     // Generar código único de pago para este participante
     const pagoRef=generarRefPago(currentCommId,currentSubId);
+    // Guardar en localStorage para leerlo inmediatamente sin esperar snapshot
+    localStorage.setItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+(partUid||name),pagoRef);
     cart.forEach(n=>{const r=doc(collection(db,'communities',currentCommId,'subs',currentSubId,'participants'));batch.set(r,{num:n,name,phone,uid:partUid,method:null,status:'reserved',proofUrl:null,premioPreferencia:premioPreferencia,pagoRef,ts:serverTimestamp()});});
     await batch.commit();
     partReservedNums=[...cart];cart=[];
@@ -4847,19 +4849,22 @@ window.reservar=async function(){
       document.getElementById('step3-pay-section').style.display='block';
       // Mostrar referencia individual
       const refBox=document.getElementById('drop-ref-box');
-      const refCode=document.getElementById('drop-ref-code');
       if(refBox&&refCode){
-        // Buscar en memoria primero
-        let refPersonal=null;
-        for(const n of partReservedNums){
-          if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
+        // 1. Leer de localStorage (guardado al reservar — inmediato)
+        const partUidKey=(currentUser?.uid||currentUser?.username||document.getElementById('part-name')?.value||'');
+        let refPersonal=localStorage.getItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+partUidKey);
+        // 2. Si no está en localStorage, buscar en participants (snapshot)
+        if(!refPersonal){
+          for(const n of partReservedNums){
+            if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
+          }
         }
         if(refPersonal){
           refCode.textContent=refPersonal;
           refBox.style.display='block';
           window._currentDropRef=refPersonal;
         } else {
-          // Leer directamente de Firestore
+          // 3. Leer directamente de Firestore como último recurso
           refBox.style.display='block';
           refCode.textContent='Cargando...';
           (async()=>{
@@ -4876,13 +4881,13 @@ window.reservar=async function(){
             }
             if(!ref2){
               ref2=generarRefPago(currentCommId,currentSubId);
-              // Guardar en Firestore para todos sus números
               const b=writeBatch(db);
               partReservedNums.forEach(n=>{
                 const p=participants[n];
                 if(p)b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
               });
               b.commit().catch(()=>{});
+              if(partUidKey)localStorage.setItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+partUidKey,ref2);
             }
             refCode.textContent=ref2;
             window._currentDropRef=ref2;

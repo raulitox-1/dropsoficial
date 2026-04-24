@@ -2154,7 +2154,7 @@ function buildHome(){
   const el=document.getElementById('comm-list');el.innerHTML='';
   const activeCat=window._homeCatFilter||'todas';
   let comms=Object.values(communities);
-  if(activeCat!=='todas')comms=comms.filter(c=>(c.categoria||'General')===activeCat);
+  if(activeCat!=='todas')comms=comms.filter(c=>(c.categoria||'General').toLowerCase()===activeCat.toLowerCase());
   if(!comms.length){
     el.innerHTML='<div style="text-align:center;padding:30px 20px;color:var(--tx2);font-size:13px;">No hay comunidades en esta categoría todavía.</div>';
     return;

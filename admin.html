@@ -909,7 +909,7 @@ window.loadCategorias=async function(){
 
       // Rellenar con comunidades de esta categoría
       const zone=card.querySelector('.cat-drop-zone');
-      comms.filter(cm=>(cm.categoria||'')===cat.valor).forEach(cm=>{
+      comms.filter(cm=>(cm.categoria||'').toLowerCase()===cat.valor.toLowerCase()).forEach(cm=>{
         const chip=crearChipComm(cm);
         zone.appendChild(chip);
       });

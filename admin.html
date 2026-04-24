@@ -823,6 +823,7 @@ window.addEventListener('resize', applyMobileLayout);
 window.doLogin=function(){
   const pw=document.getElementById('login-pw').value;
   if(pw===SUPER_PASS){
+    localStorage.setItem('drops_admin_auth','1');
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').classList.add('visible');
     applyMobileLayout();
@@ -837,6 +838,7 @@ window.doLogin=function(){
 };
 
 window.doLogout=function(){
+  localStorage.removeItem('drops_admin_auth');
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-pw').value='';
@@ -2270,6 +2272,16 @@ window.abrirHistComm = async function(commId){
   }catch(e){ document.getElementById('modal-hc-content').innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>'; }
 };
 
+
+// Auto-login si ya autenticado en este dispositivo
+if(localStorage.getItem('drops_admin_auth')==='1'){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  saveSuperAdminPushToken();
+  iniciarListenerNotifAdmin();
+  loadDashboard();
+  setTimeout(()=>loadStats(),500);
+}
 </script>
 </body>
 </html>

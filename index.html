@@ -2060,7 +2060,6 @@ async function cargarCategoriasHome(){
   try{
     const snap=await getDoc(doc(db,'_config','categorias'));
     const cats=snap.exists()?snap.data().lista||[]:[];
-    // Limpiar y reconstruir
     bar.innerHTML='<button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>';
     cats.forEach(cat=>{
       const btn=document.createElement('button');
@@ -2070,13 +2069,10 @@ async function cargarCategoriasHome(){
       btn.textContent=cat.emoji+' '+cat.nombre;
       bar.appendChild(btn);
     });
-  }catch(_){
-    // Fallback con categorías por defecto
-    bar.innerHTML=`
-      <button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>
-      <button class="home-cat-btn btn btn-s btn-neu" data-cat="Pesca" onclick="filtrarComunidades(this)">🎣 Pesca</button>
-      <button class="home-cat-btn btn btn-s btn-neu" data-cat="General" onclick="filtrarComunidades(this)">🎯 General</button>
-    `;
+    console.log('Categorías cargadas:',cats.length);
+  }catch(e){
+    console.warn('cargarCategoriasHome error:',e.message);
+    bar.innerHTML='<button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>';
   }
 }
 
@@ -2152,6 +2148,7 @@ window.enviarSolicitudColaboracion=async function(tipo){
 
 function buildHome(){
   const el=document.getElementById('comm-list');el.innerHTML='';
+  cargarCategoriasHome(); // siempre recargar categorías
   const activeCat=window._homeCatFilter||'todas';
   let comms=Object.values(communities);
   if(activeCat!=='todas')comms=comms.filter(c=>(c.categoria||'General').toLowerCase()===activeCat.toLowerCase());

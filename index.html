@@ -1129,7 +1129,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <div class="card"><div class="sec">Tus números</div><div id="s3-nums" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div><div class="row"><span style="font-size:13px;color:var(--tx2);">Total</span><span style="font-size:20px;font-weight:700;color:var(--g);" id="s3-total"></span></div></div>
        <div id="payment-form" style="display:none;">
        <div class="sec">Datos de pago</div>
-       <div class="card" style="font-size:14px;font-weight:600;" id="pay-info-display"></div>
+       <div id="pay-info-display" style="font-size:14px;font-weight:600;"></div>
+       <div id="pay-copy-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:4px;"></div>
        <div style="height:8px;"></div>
        <div class="alert a-info" style="margin-bottom:10px;">
          ✈️ <strong>Envío incluido a península.</strong> Tubo &gt;1.5m a cargo del ganador.<br><br>🎁 <strong>¡Drop gratuito!</strong> Si pagas por <strong>Transferencia o PayPal</strong> acumulas <strong>3 entradas</strong>. Con Bizum acumulas <strong>1 entrada</strong>.
@@ -4607,18 +4608,54 @@ window.updatePayInfo=function(){
   const sub=communities[currentCommId]?.subs?.[currentSubId];
   const cfg=sub?.config||{};
   const el=document.getElementById('pay-info-display');
+  const btns=document.getElementById('pay-copy-btns');
   if(!el)return;
-  const map={
-    'Bizum': cfg.bizum ? '📱 Bizum al '+cfg.bizum : 'Contacta con el organizador.',
-    'Transferencia bancaria': cfg.transfer ? '🏦 Transferencia: '+cfg.transfer : 'Contacta con el organizador.',
-    'PayPal': cfg.paypal ? '💙 PayPal: '+cfg.paypal : 'Contacta con el organizador.',
-    'Revolut': cfg.revolut ? '⚡ Revolut: '+cfg.revolut : 'Contacta con el organizador.'
+
+  // Calcular importe total a pagar (números × precio)
+  const totalNums=cart.length||partReservedNums?.length||0;
+  const precio=cfg.price||12;
+  const totalAPagar=totalNums*precio;
+
+  // Datos por método
+  const datos={
+    'Bizum':{valor:cfg.bizum,icono:'📱',label:'Bizum'},
+    'Transferencia bancaria':{valor:cfg.transfer,icono:'🏦',label:'IBAN'},
+    'PayPal':{valor:cfg.paypal,icono:'💙',label:'PayPal'}
   };
-  el.textContent=map[method]||'Contacta con el organizador.';
-  // Show/hide bizum warning
+  const d=datos[method]||{valor:'',icono:'💳',label:''};
+
+  if(d.valor){
+    el.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:12px 14px;">
+      <div style="font-size:11px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${d.icono} ${d.label}</div>
+      <div style="font-size:16px;font-weight:800;color:var(--tx);letter-spacing:.02em;">${d.valor}</div>
+      ${totalAPagar?`<div style="font-size:12px;color:var(--tx2);margin-top:4px;">Importe: <strong style="color:var(--g);">${totalAPagar}€</strong> (${totalNums} × ${precio}€)</div>`:''}
+      <div style="font-size:11px;color:var(--tx3);margin-top:4px;">Concepto: Drop ${cfg.rifaName||sub?.name||''}</div>
+    </div>`;
+    if(btns){
+      btns.innerHTML='';
+      // Botón copiar valor (número/IBAN/email)
+      const b1=document.createElement('button');
+      b1.className='btn btn-s btn-neu';b1.style.flex='1';
+      b1.innerHTML='📋 Copiar '+d.label;
+      b1.onclick=()=>navigator.clipboard.writeText(d.valor).then(()=>toast('✓ '+d.label+' copiado'));
+      btns.appendChild(b1);
+      // Botón copiar importe
+      if(totalAPagar){
+        const b2=document.createElement('button');
+        b2.className='btn btn-s btn-neu';b2.style.flex='1';
+        b2.innerHTML='💶 Copiar importe';
+        b2.onclick=()=>navigator.clipboard.writeText(totalAPagar+'').then(()=>toast('✓ Importe copiado: '+totalAPagar+'€'));
+        btns.appendChild(b2);
+      }
+    }
+  } else {
+    el.innerHTML='<div style="color:var(--tx2);font-size:13px;">Contacta con el organizador para los datos de pago.</div>';
+    if(btns)btns.innerHTML='';
+  }
+
+  // Show/hide warnings
   const bw=document.getElementById('bizum-warn');
   if(bw)bw.style.display=method==='Bizum'?'block':'none';
-  // Show/hide paypal warning
   const pw=document.getElementById('paypal-warn');
   if(pw)pw.style.display=method==='PayPal'?'block':'none';
 };

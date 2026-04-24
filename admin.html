@@ -530,14 +530,18 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
 
 <!-- PANEL CATEGORÍAS -->
       <div class="panel" id="panel-categorias">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
           <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🏷️ Categorías</div>
           <button class="btn btn-g" onclick="abrirCrearCategoria()">+ Nueva</button>
         </div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.5;">
-          Gestiona las categorías que aparecen en la pantalla de inicio para filtrar comunidades.
-        </div>
-        <div id="cat-admin-lista"><div class="loading"><div class="spinner"></div></div></div>
+
+        <!-- Comunidades sin categoría / drag source -->
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Comunidades — arrastra a una categoría</div>
+        <div id="cat-comms-pool" style="display:flex;flex-wrap:wrap;gap:6px;min-height:44px;background:var(--bg2);border:2px dashed var(--bd);border-radius:var(--rads);padding:10px;margin-bottom:20px;"></div>
+
+        <!-- Categorías con drop zones -->
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Categorías</div>
+        <div id="cat-admin-lista"></div>
       </div>
 
     </div>
@@ -841,32 +845,108 @@ window.doLogout=function(){
 // ── GESTIÓN DE CATEGORÍAS ────────────────────────────────────
 window.loadCategorias=async function(){
   const el=document.getElementById('cat-admin-lista');
-  if(!el)return;
+  const pool=document.getElementById('cat-comms-pool');
+  if(!el||!pool)return;
   el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  pool.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+
   try{
-    const snap=await getDoc(doc(db,'_config','categorias'));
-    const cats=snap.exists()?snap.data().lista||[]:[];
+    // Cargar categorías y comunidades en paralelo
+    const [catSnap,commSnap]=await Promise.all([
+      getDoc(doc(db,'_config','categorias')),
+      getDocs(collection(db,'communities'))
+    ]);
+    const cats=catSnap.exists()?catSnap.data().lista||[]:[];
+    const comms=[];
+    commSnap.forEach(d=>comms.push({id:d.id,...d.data()}));
+
+    // Renderizar pool de comunidades (draggables)
+    pool.innerHTML='';
+    comms.forEach(comm=>{
+      const chip=document.createElement('div');
+      chip.draggable=true;
+      chip.dataset.commId=comm.id;
+      chip.dataset.commName=comm.name||comm.id;
+      chip.dataset.commEmoji=comm.emoji||'🎯';
+      chip.style.cssText='display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--bd);border-radius:99px;padding:5px 10px;font-size:12px;font-weight:600;cursor:grab;user-select:none;';
+      chip.innerHTML='<span>'+(comm.emoji||'🎯')+'</span><span>'+esc(comm.name||comm.id)+'</span>';
+      if(comm.categoria){
+        chip.style.opacity='.5';
+        chip.title='Ya en: '+comm.categoria;
+      }
+      chip.addEventListener('dragstart',e=>{
+        e.dataTransfer.setData('commId',comm.id);
+        e.dataTransfer.setData('commName',comm.name||comm.id);
+        chip.style.opacity='.4';
+      });
+      chip.addEventListener('dragend',()=>{chip.style.opacity=comm.categoria?'.5':'1';});
+      pool.appendChild(chip);
+    });
+    if(!comms.length)pool.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:4px;">No hay comunidades</div>';
+
+    // Renderizar categorías con drop zones
+    el.innerHTML='';
     if(!cats.length){
       el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx2);font-size:13px;">No hay categorías. Pulsa + Nueva para crear una.</div>';
       return;
     }
-    el.innerHTML='';
     cats.forEach((cat,i)=>{
-      const div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);margin-bottom:8px;';
-      div.innerHTML=
-        '<div style="display:flex;align-items:center;gap:10px;">'+
-          '<span style="font-size:22px;">'+cat.emoji+'</span>'+
-          '<div>'+
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:12px 14px;margin-bottom:10px;';
+      card.innerHTML=
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-size:22px;">'+cat.emoji+'</span>'+
             '<div style="font-weight:700;font-size:14px;">'+esc(cat.nombre)+'</div>'+
-            '<div style="font-size:11px;color:var(--tx3);">valor: '+esc(cat.valor)+'</div>'+
           '</div>'+
+          '<button class="btn btn-s btn-ko" onclick="eliminarCategoria('+i+')">🗑️</button>'+
         '</div>'+
-        '<button class="btn btn-s btn-ko" onclick="eliminarCategoria('+i+')">🗑️</button>';
-      el.appendChild(div);
+        '<div class="cat-drop-zone" data-cat="'+esc(cat.valor)+'" style="'+
+          'min-height:36px;border:2px dashed var(--bd);border-radius:var(--rads);padding:6px;'+
+          'display:flex;flex-wrap:wrap;gap:5px;transition:background .15s;'+
+        '"></div>';
+      el.appendChild(card);
+
+      // Rellenar con comunidades de esta categoría
+      const zone=card.querySelector('.cat-drop-zone');
+      comms.filter(cm=>(cm.categoria||'')===cat.valor).forEach(cm=>{
+        const chip=crearChipComm(cm);
+        zone.appendChild(chip);
+      });
+
+      // Drop events
+      zone.addEventListener('dragover',e=>{e.preventDefault();zone.style.background='var(--gl)';});
+      zone.addEventListener('dragleave',()=>{zone.style.background='';});
+      zone.addEventListener('drop',async e=>{
+        e.preventDefault();
+        zone.style.background='';
+        const commId=e.dataTransfer.getData('commId');
+        if(!commId)return;
+        try{
+          await updateDoc(doc(db,'communities',commId),{categoria:cat.valor});
+          toast('✅ Comunidad movida a '+cat.nombre);
+          loadCategorias();
+        }catch(err){toast('Error: '+err.message);}
+      });
     });
-  }catch(e){el.innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>';}
+  }catch(e){
+    el.innerHTML='<div style="color:var(--r);">Error: '+e.message+'</div>';
+  }
 };
+
+function crearChipComm(comm){
+  const chip=document.createElement('div');
+  chip.draggable=true;
+  chip.dataset.commId=comm.id;
+  chip.style.cssText='display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--g);border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;cursor:grab;';
+  chip.innerHTML='<span>'+(comm.emoji||'🎯')+'</span><span>'+esc(comm.name||comm.id)+'</span>';
+  chip.addEventListener('dragstart',e=>{
+    e.dataTransfer.setData('commId',comm.id);
+    chip.style.opacity='.4';
+  });
+  chip.addEventListener('dragend',()=>{chip.style.opacity='1';});
+  return chip;
+}
 
 window.abrirCrearCategoria=function(){
   let m=document.getElementById('modal-nueva-cat');

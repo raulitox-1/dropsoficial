@@ -11706,6 +11706,13 @@ onAuthStateChanged(auth, async (firebaseUser)=>{
         buildHome();
         // Guardar pushToken si ya tiene permiso
         setTimeout(()=>{ if(typeof saveTokenIfPermitted==='function')saveTokenIfPermitted(); },3000);
+        // Mostrar botón de notificaciones si no tiene permiso aún
+        setTimeout(()=>{
+          if('Notification' in window && Notification.permission==='default'){
+            const btn=document.getElementById('ss-push-btn');
+            if(btn)btn.style.display='block';
+          }
+        },2000);
       } else {
         showGlobalLogin();
       }
@@ -11770,7 +11777,7 @@ async function initPushNotifications(){
     } else if(Notification.permission === 'default'){
       // Mostrar botón para que el usuario lo pulse conscientemente
       const btn=document.getElementById('ss-push-btn');
-      if(btn&&currentUser)btn.style.display='block';
+      if(btn)btn.style.display='block';
     }
   }catch(e){console.warn('Push init error:', e.message);}
 

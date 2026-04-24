@@ -4847,55 +4847,7 @@ window.reservar=async function(){
       document.getElementById('payment-form').style.display='block';
       document.getElementById('step3-wait-msg').style.display='none';
       document.getElementById('step3-pay-section').style.display='block';
-      // Mostrar referencia individual
-      const refBox=document.getElementById('drop-ref-box');
-      const refCode=document.getElementById('drop-ref-code');
-      if(refBox&&refCode){
-        const numsKey='pagoRef_'+currentCommId+'_'+currentSubId+'_nums_'+[...partReservedNums].sort().join('-');
-        const refPersonal=localStorage.getItem(numsKey);
-        if(refPersonal){
-          refCode.textContent=refPersonal;
-          refBox.style.display='block';
-          window._currentDropRef=refPersonal;
-        } else {
-          // No está en localStorage — leer de Firestore directamente
-          refBox.style.display='block';
-          refCode.textContent='Cargando...';
-          (async()=>{
-            let ref2=null;
-            // Buscar en participants del snapshot
-            for(const n of partReservedNums){
-              if(participants[n]?.pagoRef){ref2=participants[n].pagoRef;break;}
-            }
-            // Si aún no está (snapshot no llegó) leer de Firestore
-            if(!ref2){
-              for(const n of partReservedNums){
-                try{
-                  const snap=await getDocs(query(
-                    collection(db,'communities',currentCommId,'subs',currentSubId,'participants'),
-                    where('num','==',n)
-                  ));
-                  snap.forEach(d=>{if(d.data().pagoRef)ref2=d.data().pagoRef;});
-                  if(ref2)break;
-                }catch(_){}
-              }
-            }
-            // Si tampoco tiene (reserva antigua sin código) generar uno nuevo
-            if(!ref2){
-              ref2=generarRefPago(currentCommId,currentSubId);
-              const b=writeBatch(db);
-              partReservedNums.forEach(n=>{
-                const p=participants[n];
-                if(p)b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
-              });
-              b.commit().catch(()=>{});
-            }
-            localStorage.setItem(numsKey,ref2);
-            refCode.textContent=ref2;
-            window._currentDropRef=ref2;
-          })();
-        }
-      }
+      mostrarCodigoPago();
     } else {
       document.getElementById('payment-form').style.display='none';
       document.getElementById('step3-wait-msg').style.display='block';
@@ -5711,28 +5663,7 @@ window.buscarMisNumeros = async function(){
     document.getElementById('payment-form').style.display='block';
     document.getElementById('step3-wait-msg').style.display='none';
     document.getElementById('step3-pay-section').style.display='block';
-    // Mostrar código de pago individual — viene directo de Firestore en misParts
-    const refBox=document.getElementById('drop-ref-box');
-    const refCode=document.getElementById('drop-ref-code');
-    if(refBox&&refCode){
-      const refPersonal=misParts.find(p=>p.pagoRef)?.pagoRef||null;
-      if(refPersonal){
-        refCode.textContent=refPersonal;
-        refBox.style.display='block';
-        window._currentDropRef=refPersonal;
-      } else {
-        // No tiene código aún — generar y guardar
-        const ref2=generarRefPago(currentCommId,currentSubId);
-        refCode.textContent=ref2;
-        refBox.style.display='block';
-        window._currentDropRef=ref2;
-        const b=writeBatch(db);
-        misParts.forEach(p=>{
-          b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
-        });
-        b.commit().catch(()=>{});
-      }
-    }
+    mostrarCodigoPago();
   } else {
     document.getElementById('payment-form').style.display='none';
     document.getElementById('step3-wait-msg').style.display='block';
@@ -7457,6 +7388,46 @@ function listenRifaPago(commId, subId){
 
 // Muestra u oculta el bloqueo del sorteo
 
+
+
+// Mostrar código de pago individual — lee de Firestore garantizado
+async function mostrarCodigoPago(){
+  const refBox=document.getElementById('drop-ref-box');
+  const refCode=document.getElementById('drop-ref-code');
+  if(!refBox||!refCode||!partReservedNums.length)return;
+  refBox.style.display='block';
+  refCode.textContent='Cargando...';
+  try{
+    // Leer directamente de Firestore los documentos de los números de esta persona
+    let pagoRef=null;
+    for(const num of partReservedNums){
+      const snap=await getDocs(query(
+        collection(db,'communities',currentCommId,'subs',currentSubId,'participants'),
+        where('num','==',num)
+      ));
+      snap.forEach(d=>{if(d.data().pagoRef)pagoRef=d.data().pagoRef;});
+      if(pagoRef)break;
+    }
+    // Si no tiene código (reserva antigua), generar y guardar
+    if(!pagoRef){
+      pagoRef=generarRefPago(currentCommId,currentSubId);
+      const b=writeBatch(db);
+      for(const num of partReservedNums){
+        const snap=await getDocs(query(
+          collection(db,'communities',currentCommId,'subs',currentSubId,'participants'),
+          where('num','==',num)
+        ));
+        snap.forEach(d=>b.update(d.ref,{pagoRef}));
+      }
+      await b.commit();
+    }
+    refCode.textContent=pagoRef;
+    window._currentDropRef=pagoRef;
+  }catch(e){
+    console.warn('mostrarCodigoPago error:',e.message);
+    refBox.style.display='none';
+  }
+}
 
 // ── OCR AUTO-VERIFICACIÓN DE COMPROBANTES ───────────────────
 const OCR_API_KEY='K86980234588957';

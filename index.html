@@ -1583,6 +1583,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
     </div>
     <input type="file" id="sub-img-input" accept="image/*" style="display:none;" onchange="onSubImgChosen(event)"/>
     <button class="btn btn-g" style="width:100%;" onclick="saveSubConfig()">Guardar</button>
+    <div id="rifa-precio-info" style="margin-top:10px;"></div>
     <button class="btn btn-neu" style="width:100%;margin-top:8px;font-size:12px;" onclick="quitarBannerGanador()">🗑️ Quitar banner del ganador anterior</button>
     <div style="height:10px;"></div>
     <button class="btn btn-ko" style="width:100%;" onclick="resetRifa()">Borrar participantes y nuevo drop</button>
@@ -2057,19 +2058,28 @@ window._homeCatFilter='todas';
 async function cargarCategoriasHome(){
   const bar=document.getElementById('cat-filter-home');
   if(!bar)return;
+  const activeCat=window._homeCatFilter||'todas';
   try{
     const snap=await getDoc(doc(db,'_config','categorias'));
     const cats=snap.exists()?snap.data().lista||[]:[];
-    bar.innerHTML='<button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>';
+    bar.innerHTML='';
+    // Botón Todas
+    const btnTodas=document.createElement('button');
+    btnTodas.className='home-cat-btn btn btn-s '+(activeCat==='todas'?'btn-g':'btn-neu');
+    btnTodas.dataset.cat='todas';
+    btnTodas.onclick=function(){filtrarComunidades(this);};
+    btnTodas.textContent='Todas';
+    bar.appendChild(btnTodas);
+    // Resto de categorías
     cats.forEach(cat=>{
       const btn=document.createElement('button');
-      btn.className='home-cat-btn btn btn-s btn-neu';
+      const isActive=activeCat.toLowerCase()===cat.valor.toLowerCase();
+      btn.className='home-cat-btn btn btn-s '+(isActive?'btn-g':'btn-neu');
       btn.dataset.cat=cat.valor;
       btn.onclick=function(){filtrarComunidades(this);};
       btn.textContent=cat.emoji+' '+cat.nombre;
       bar.appendChild(btn);
     });
-    console.log('Categorías cargadas:',cats.length);
   }catch(e){
     console.warn('cargarCategoriasHome error:',e.message);
     bar.innerHTML='<button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>';
@@ -2081,7 +2091,9 @@ window.filtrarComunidades=function(btn){
   document.querySelectorAll('.home-cat-btn').forEach(b=>{
     b.className='home-cat-btn btn btn-s '+(b===btn?'btn-g':'btn-neu');
   });
-  buildHome();
+  // Solo filtrar comunidades, no recargar categorías
+  const el=document.getElementById('comm-list');
+  if(el)renderCommunidades(el);
 };
 
 // ── Formulario colaboración / organizador ─────────────────────
@@ -2146,39 +2158,45 @@ window.enviarSolicitudColaboracion=async function(tipo){
   }
 };
 
-function buildHome(){
-  const el=document.getElementById('comm-list');el.innerHTML='';
-  cargarCategoriasHome(); // siempre recargar categorías
+function renderCommunidades(el){
   const activeCat=window._homeCatFilter||'todas';
   let comms=Object.values(communities);
   if(activeCat!=='todas')comms=comms.filter(c=>(c.categoria||'General').toLowerCase()===activeCat.toLowerCase());
+  el.innerHTML='';
   if(!comms.length){
     el.innerHTML='<div style="text-align:center;padding:30px 20px;color:var(--tx2);font-size:13px;">No hay comunidades en esta categoría todavía.</div>';
     return;
   }
   comms.forEach(c=>{
-      const subs=c.subs?Object.values(c.subs):[];
-      const d=document.createElement('div');
-      d.className='comm-item';
-      d.innerHTML=
-        (c.imageUrl
-          ?'<div class="comm-banner-wrap"><img class="comm-banner" src="'+c.imageUrl+'" alt="'+c.name+'" loading="lazy"/><div class="comm-banner-gradient"></div></div>'
-          :'<div class="comm-banner-placeholder">'+(c.emoji||'🎯')+'</div>')+
-        '<div class="comm-body">'+
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'+
-            '<div style="font-size:28px;line-height:1;">'+(c.emoji||'🎯')+'</div>'+
-            '<div>'+
-              '<div class="comm-name">'+c.name+'</div>'+
-              (c.desc?'<div class="comm-desc">'+c.desc+'</div>':'')+
-            '</div>'+
+    const subs=c.subs?Object.values(c.subs):[];
+    const d=document.createElement('div');
+    d.className='comm-item';
+    d.innerHTML=
+      (c.imageUrl
+        ?'<div class="comm-banner-wrap"><img class="comm-banner" src="'+c.imageUrl+'" alt="'+c.name+'" loading="lazy"/><div class="comm-banner-gradient"></div></div>'
+        :'<div class="comm-banner-placeholder">'+(c.emoji||'🎯')+'</div>')+
+      '<div class="comm-body">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'+
+          '<div style="font-size:28px;line-height:1;">'+(c.emoji||'🎯')+'</div>'+
+          '<div>'+
+            '<div class="comm-name">'+c.name+'</div>'+
+            (c.desc?'<div class="comm-desc">'+c.desc+'</div>':'')+
           '</div>'+
-          (subs.length?'<div class="comm-subs">'+subs.map(s=>'<span class="sub-pill">'+(s.emoji||'')+' '+s.name+'</span>').join('')+'</div>':'')+
-          '<div class="comm-lock" style="margin-top:8px;">🔒 Necesitas el PIN del grupo</div>'+
-        '</div>';
-      d.onclick=()=>openPinGate(c.id);
-      el.appendChild(d);
+        '</div>'+
+        (subs.length?'<div class="comm-subs">'+subs.map(s=>'<span class="sub-pill">'+(s.emoji||'')+' '+s.name+'</span>').join('')+'</div>':'')+
+        '<div class="comm-lock" style="margin-top:8px;">🔒 Necesitas el PIN del grupo</div>'+
+      '</div>';
+    d.onclick=()=>openPinGate(c.id);
+    el.appendChild(d);
   });
 }
+
+function buildHome(){
+  const el=document.getElementById('comm-list');
+  cargarCategoriasHome();
+  renderCommunidades(el);
+}
+
 
 window.openPinGate=function(id){
   currentCommId=id;const c=communities[id];
@@ -7723,16 +7741,88 @@ function fillConfig(){
   }else if(progInfo){progInfo.style.display='none';}
 }
 
+
+// ── BILLING: Verificar antes de activar nueva rifa ───────────
+async function checkPuedeActivarRifa(commId){
+  // 1. ¿Comunidad bloqueada por deuda?
+  const bloqueada=await checkComunidadBloqueada(commId);
+  if(bloqueada)return{ok:false,motivo:'deuda'};
+
+  // 2. ¿Plan mensual activo?
+  try{
+    const planSnap=await getDoc(doc(db,'superadmin','facturacion','comunidades',commId));
+    if(planSnap.exists()){
+      const pd=planSnap.data();
+      const mes=new Date().toISOString().slice(0,7);
+      if(pd.planActual==='mensual'&&pd.mesPlan===mes){
+        return{ok:true,plan:'mensual'};
+      }
+    }
+  }catch(_){}
+
+  // 3. ¿Rifa anterior de este drop sin pagar?
+  const subId=editingSubId||currentSubId;
+  const rifaPago=await checkRifaPagada(commId,subId);
+  if(!rifaPago.pagada&&rifaPago.enviado){
+    return{ok:false,motivo:'pendiente_confirmacion'};
+  }
+
+  // 4. Calcular precio de esta rifa
+  const{nRifa,precio}=await calcPrecioRifaActual(commId);
+  return{ok:true,nRifa,precio,plan:'por_rifa'};
+}
+
+async function mostrarInfoPrecioRifa(){
+  const commId=currentCommId;
+  if(!commId)return;
+  const infoEl=document.getElementById('rifa-precio-info');
+  if(!infoEl)return;
+  try{
+    // ¿Plan mensual activo?
+    const planSnap=await getDoc(doc(db,'superadmin','facturacion','comunidades',commId));
+    const mes=new Date().toISOString().slice(0,7);
+    if(planSnap.exists()&&planSnap.data().planActual==='mensual'&&planSnap.data().mesPlan===mes){
+      infoEl.innerHTML='<div style="background:var(--gl);border-radius:var(--rads);padding:8px 12px;font-size:12px;color:var(--g);font-weight:700;">✅ Plan mensual activo — rifas ilimitadas este mes</div>';
+      return;
+    }
+    const{nRifa,precio}=await calcPrecioRifaActual(commId);
+    const siguiente=nRifa<=3?'(1-3 rifas = 25€/rifa)':nRifa<=10?'(4-10 rifas = 15€/rifa)':'(11+ rifas = 10€/rifa)';
+    infoEl.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;font-size:12px;">
+      <div style="font-weight:700;margin-bottom:4px;">💶 Coste de esta rifa: <span style="color:var(--a);font-size:14px;">${precio}€</span></div>
+      <div style="color:var(--tx2);">Rifa nº${nRifa} de este mes ${siguiente}</div>
+      <div style="color:var(--tx3);margin-top:4px;font-size:11px;">Plan mensual 150€ = rifas ilimitadas</div>
+    </div>`;
+  }catch(_){}
+}
+
 window.saveSubConfig=async function(){
   const name=document.getElementById('cfg-name').value.trim();
   if(!name){toast('Escribe el nombre del premio');return;}
   const rifaActiva=document.getElementById('cfg-activa').checked;
   const tgToken=document.getElementById('cfg-tgtoken').value.trim();
   const tgChat=document.getElementById('cfg-tgchat').value.trim();
-  // Use editingSubId (fixed when Config opened) — NOT currentSubId which may have drifted
   const targetSubId=editingSubId||currentSubId;
-  // Preserve existing fields (activaAt, etc.) not shown in the form
   const existingCfg=communities[currentCommId]?.subs?.[targetSubId]?.config||{};
+  const yaEstabaActiva=existingCfg.rifaActiva===true;
+
+  // Si está activando una rifa que no estaba activa → verificar billing
+  if(rifaActiva&&!yaEstabaActiva){
+    const check=await checkPuedeActivarRifa(currentCommId);
+    if(!check.ok){
+      if(check.motivo==='deuda'){
+        toast('🚫 Comunidad bloqueada por deuda. Regulariza el pago para continuar.');
+        document.getElementById('cfg-activa').checked=false;
+        window.toggleRifaActiva&&window.toggleRifaActiva();
+        return;
+      }
+      if(check.motivo==='pendiente_confirmacion'){
+        toast('⏳ El comprobante de la rifa anterior está pendiente de confirmación. Espera a que se apruebe.');
+        document.getElementById('cfg-activa').checked=false;
+        window.toggleRifaActiva&&window.toggleRifaActiva();
+        return;
+      }
+    }
+  }
   const newCfg={
     ...existingCfg,
     rifaName:name,
@@ -8578,7 +8668,7 @@ window.innerGo=function(tab){
   if(tab==='participar'){window._lastCountdownTarget=null;renderAll();}
   if(tab==='chat'){buildChat();}
   if(tab==='dpanel'){buildDpAdmin();}
-  if(tab==='pagos')buildPagos(cfg);if(tab==='sorteo'){buildSorteoChips();cargarGanadorEleccion();}if(tab==='finanzas')buildFinanzas(cfg);if(tab==='historial')buildHistorial();if(tab==='config'){buildSubListAdmin();fillConfig();}if(tab==='gratis')buildRifaGratis();if(tab==='embajadores')buildEmbajadores();if(tab==='ranking')buildPublicRanking();
+  if(tab==='pagos')buildPagos(cfg);if(tab==='sorteo'){buildSorteoChips();cargarGanadorEleccion();}if(tab==='finanzas')buildFinanzas(cfg);if(tab==='historial')buildHistorial();if(tab==='config'){buildSubListAdmin();fillConfig();mostrarInfoPrecioRifa();}if(tab==='gratis')buildRifaGratis();if(tab==='embajadores')buildEmbajadores();if(tab==='ranking')buildPublicRanking();
   if(tab==='sugerencias')buildSugerencias();
   if(tab==='votacion')buildVotacion();
   if(tab==='catalogo')buildCatalogo();

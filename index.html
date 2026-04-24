@@ -5711,6 +5711,28 @@ window.buscarMisNumeros = async function(){
     document.getElementById('payment-form').style.display='block';
     document.getElementById('step3-wait-msg').style.display='none';
     document.getElementById('step3-pay-section').style.display='block';
+    // Mostrar código de pago individual — viene directo de Firestore en misParts
+    const refBox=document.getElementById('drop-ref-box');
+    const refCode=document.getElementById('drop-ref-code');
+    if(refBox&&refCode){
+      const refPersonal=misParts.find(p=>p.pagoRef)?.pagoRef||null;
+      if(refPersonal){
+        refCode.textContent=refPersonal;
+        refBox.style.display='block';
+        window._currentDropRef=refPersonal;
+      } else {
+        // No tiene código aún — generar y guardar
+        const ref2=generarRefPago(currentCommId,currentSubId);
+        refCode.textContent=ref2;
+        refBox.style.display='block';
+        window._currentDropRef=ref2;
+        const b=writeBatch(db);
+        misParts.forEach(p=>{
+          b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
+        });
+        b.commit().catch(()=>{});
+      }
+    }
   } else {
     document.getElementById('payment-form').style.display='none';
     document.getElementById('step3-wait-msg').style.display='block';

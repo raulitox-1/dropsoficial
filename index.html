@@ -4845,28 +4845,49 @@ window.reservar=async function(){
       document.getElementById('payment-form').style.display='block';
       document.getElementById('step3-wait-msg').style.display='none';
       document.getElementById('step3-pay-section').style.display='block';
-      // Mostrar referencia individual — leer la del participante guardada en Firestore
+      // Mostrar referencia individual
       const refBox=document.getElementById('drop-ref-box');
       const refCode=document.getElementById('drop-ref-code');
       if(refBox&&refCode){
-        // Buscar el pagoRef de cualquiera de los números reservados por este participante
+        // Buscar en memoria primero
         let refPersonal=null;
         for(const n of partReservedNums){
           if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
         }
-        // Si no tiene (reserva antigua), generar uno nuevo y guardarlo
-        if(!refPersonal){
-          refPersonal=generarRefPago(currentCommId,currentSubId);
-          const batch2=writeBatch(db);
-          partReservedNums.forEach(n=>{
-            const p=participants[n];
-            if(p)batch2.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:refPersonal});
-          });
-          batch2.commit().catch(()=>{});
+        if(refPersonal){
+          refCode.textContent=refPersonal;
+          refBox.style.display='block';
+          window._currentDropRef=refPersonal;
+        } else {
+          // Leer directamente de Firestore
+          refBox.style.display='block';
+          refCode.textContent='Cargando...';
+          (async()=>{
+            let ref2=null;
+            for(const n of partReservedNums){
+              try{
+                const snap=await getDocs(query(
+                  collection(db,'communities',currentCommId,'subs',currentSubId,'participants'),
+                  where('num','==',n)
+                ));
+                snap.forEach(d=>{if(d.data().pagoRef)ref2=d.data().pagoRef;});
+                if(ref2)break;
+              }catch(_){}
+            }
+            if(!ref2){
+              ref2=generarRefPago(currentCommId,currentSubId);
+              // Guardar en Firestore para todos sus números
+              const b=writeBatch(db);
+              partReservedNums.forEach(n=>{
+                const p=participants[n];
+                if(p)b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
+              });
+              b.commit().catch(()=>{});
+            }
+            refCode.textContent=ref2;
+            window._currentDropRef=ref2;
+          })();
         }
-        refCode.textContent=refPersonal;
-        refBox.style.display='block';
-        window._currentDropRef=refPersonal;
       }
     } else {
       document.getElementById('payment-form').style.display='none';
@@ -5725,6 +5746,21 @@ function stopCountdown(){
 
 function startCountdown(activaAt){
   stopCountdown();
+  // Notificar que ha empezado la cuenta atrás (solo si hay usuario logueado)
+  try{
+    if(currentCommId&&currentSubId&&currentUser){
+      const sub=communities[currentCommId]?.subs?.[currentSubId];
+      const nombre=sub?.config?.rifaName||sub?.name||'Drop';
+      const fecha=new Date(activaAt).toLocaleString('es-ES',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+      addNotif(currentUser.uid||currentUser.username,currentCommId,{
+        icon:'⏳',text:'¡Cuenta atrás iniciada!',
+        sub:nombre+' se abre el '+fecha,
+        link:'nueva-rifa:'+currentCommId+':'+currentSubId,
+        tipo:'info',dedupKey:'countdown-start-'+currentCommId+'-'+currentSubId+'-'+activaAt
+      });
+    }
+  }catch(_){}
+  let _notifadaFin=false;
   function update(){
     const remaining=activaAt-Date.now();
     if(remaining<=0){
@@ -5734,7 +5770,24 @@ function startCountdown(activaAt){
       const el2=document.getElementById('public-countdown-txt');
       if(el1)el1.textContent='¡Activando!';
       if(el2)el2.textContent='¡Activando!';
-      // 🔑 Trigger real activation immediately
+      // Notificar que se ha abierto la rifa
+      if(!_notifadaFin&&currentCommId&&currentSubId){
+        _notifadaFin=true;
+        try{
+          const sub2=communities[currentCommId]?.subs?.[currentSubId];
+          const nombre2=sub2?.config?.rifaName||sub2?.name||'Drop';
+          getDocs(collection(db,'communities',currentCommId,'users')).then(snap=>{
+            snap.forEach(ud=>{
+              addNotif(ud.id,currentCommId,{
+                icon:'🎯',text:'¡'+nombre2+' ya está abierto!',
+                sub:'La rifa ha comenzado — reserva tus números ahora',
+                link:'nueva-rifa:'+currentCommId+':'+currentSubId,
+                tipo:'info',dedupKey:'countdown-end-'+currentCommId+'-'+currentSubId+'-'+activaAt
+              });
+            });
+          }).catch(()=>{});
+        }catch(_){}
+      }
       checkProgramada&&checkProgramada();
       return;
     }

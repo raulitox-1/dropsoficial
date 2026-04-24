@@ -4785,8 +4785,12 @@ window.reservar=async function(){
     const premioPreferencia=premiosElegidos.length>0?premiosElegidos:null;
     // Generar código único de pago para este participante
     const pagoRef=generarRefPago(currentCommId,currentSubId);
-    // Guardar en localStorage para leerlo inmediatamente sin esperar snapshot
+    // Guardar con los números como clave — única por persona en este drop
+    const pagoRefKey='pagoRef_'+currentCommId+'_'+currentSubId+'_nums_'+[...cart].sort().join('-');
+    localStorage.setItem(pagoRefKey,pagoRef);
+    // También guardar con UID/nombre como fallback
     localStorage.setItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+(partUid||name),pagoRef);
+    window._lastPagoRef=pagoRef; // guardar también en memoria para esta sesión
     cart.forEach(n=>{const r=doc(collection(db,'communities',currentCommId,'subs',currentSubId,'participants'));batch.set(r,{num:n,name,phone,uid:partUid,method:null,status:'reserved',proofUrl:null,premioPreferencia:premioPreferencia,pagoRef,ts:serverTimestamp()});});
     await batch.commit();
     partReservedNums=[...cart];cart=[];
@@ -4851,18 +4855,23 @@ window.reservar=async function(){
       const refBox=document.getElementById('drop-ref-box');
       const refCode=document.getElementById('drop-ref-code');
       if(refBox&&refCode){
-        const partUidKey=(currentUser?.uid||currentUser?.username||document.getElementById('part-name')?.value||'');
-        let refPersonal=localStorage.getItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+partUidKey);
-        if(!refPersonal){
-          for(const n of partReservedNums){
-            if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
-          }
-        }
+        // Buscar por los números reservados — clave única por persona
+        const numsKey='pagoRef_'+currentCommId+'_'+currentSubId+'_nums_'+[...partReservedNums].sort().join('-');
+        let refPersonal=localStorage.getItem(numsKey)
+          // Fallback: en memoria (misma sesión)
+          || window._lastPagoRef
+          // Fallback: por UID/nombre
+          || localStorage.getItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+(currentUser?.uid||currentUser?.username||document.getElementById('part-name')?.value||''))
+          // Fallback: en participants del snapshot
+          || partReservedNums.map(n=>participants[n]?.pagoRef).find(Boolean)
+          || null;
+
         if(refPersonal){
           refCode.textContent=refPersonal;
           refBox.style.display='block';
           window._currentDropRef=refPersonal;
         } else {
+          // Último recurso: leer de Firestore
           refBox.style.display='block';
           refCode.textContent='Cargando...';
           (async()=>{
@@ -4885,7 +4894,7 @@ window.reservar=async function(){
                 if(p)b.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:ref2});
               });
               b.commit().catch(()=>{});
-              if(partUidKey)localStorage.setItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+partUidKey,ref2);
+              localStorage.setItem(numsKey,ref2);
             }
             refCode.textContent=ref2;
             window._currentDropRef=ref2;

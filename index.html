@@ -4783,7 +4783,9 @@ window.reservar=async function(){
     const seleccionados=window._premiosSeleccionados?[...window._premiosSeleccionados]:[];
     const premiosElegidos=seleccionados.map(i=>premiosArr2[i]).filter(Boolean);
     const premioPreferencia=premiosElegidos.length>0?premiosElegidos:null;
-    cart.forEach(n=>{const r=doc(collection(db,'communities',currentCommId,'subs',currentSubId,'participants'));batch.set(r,{num:n,name,phone,uid:partUid,method:null,status:'reserved',proofUrl:null,premioPreferencia:premioPreferencia,ts:serverTimestamp()});});
+    // Generar código único de pago para este participante
+    const pagoRef=generarRefPago(currentCommId,currentSubId);
+    cart.forEach(n=>{const r=doc(collection(db,'communities',currentCommId,'subs',currentSubId,'participants'));batch.set(r,{num:n,name,phone,uid:partUid,method:null,status:'reserved',proofUrl:null,premioPreferencia:premioPreferencia,pagoRef,ts:serverTimestamp()});});
     await batch.commit();
     partReservedNums=[...cart];cart=[];
     const price=communities[currentCommId]?.subs?.[currentSubId]?.config?.price||12;
@@ -4843,12 +4845,25 @@ window.reservar=async function(){
       document.getElementById('payment-form').style.display='block';
       document.getElementById('step3-wait-msg').style.display='none';
       document.getElementById('step3-pay-section').style.display='block';
-      // Mostrar referencia individual por participante
+      // Mostrar referencia individual — leer la del participante guardada en Firestore
       const refBox=document.getElementById('drop-ref-box');
       const refCode=document.getElementById('drop-ref-code');
       if(refBox&&refCode){
-        // Generar código único para esta persona en este drop
-        const refPersonal=generarRefPago(currentCommId,currentSubId);
+        // Buscar el pagoRef de cualquiera de los números reservados por este participante
+        let refPersonal=null;
+        for(const n of partReservedNums){
+          if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
+        }
+        // Si no tiene (reserva antigua), generar uno nuevo y guardarlo
+        if(!refPersonal){
+          refPersonal=generarRefPago(currentCommId,currentSubId);
+          const batch2=writeBatch(db);
+          partReservedNums.forEach(n=>{
+            const p=participants[n];
+            if(p)batch2.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{pagoRef:refPersonal});
+          });
+          batch2.commit().catch(()=>{});
+        }
         refCode.textContent=refPersonal;
         refBox.style.display='block';
         window._currentDropRef=refPersonal;
@@ -5840,7 +5855,13 @@ window.enviarPago=async function(){
     const subData=communities[currentCommId]?.subs?.[currentSubId];
     const cfgData=subData?.config||{};
     const total=partReservedNums.length*(cfgData.price||12);
-    const dropRef=window._currentDropRef||subData?.dropRef||null;
+    // Usar el pagoRef del participante (guardado en reserva)
+    let dropRef=window._currentDropRef||null;
+    if(!dropRef){
+      for(const n of partReservedNums){
+        if(participants[n]?.pagoRef){dropRef=participants[n].pagoRef;break;}
+      }
+    }
 
     let estadoOCR='pending';
     let autoConfirmado=false;
@@ -6302,7 +6323,7 @@ function buildPagos(cfg){
   const grouped={};
   allPart.filter(p=>p.status!=='free').forEach(p=>{
     const key=p.name+'|'+(p.phone||'');
-    if(!grouped[key])grouped[key]={name:p.name,phone:p.phone,method:null,status:p.status,proofUrl:null,notaAdmin:'',nums:[],ids:[],hasPending:false,hasConfirmed:false,hasReserved:false,premioPreferencia:null,ocrVerificado:false,dropRef:''};
+    if(!grouped[key])grouped[key]={name:p.name,phone:p.phone,method:null,status:p.status,proofUrl:null,notaAdmin:'',nums:[],ids:[],hasPending:false,hasConfirmed:false,hasReserved:false,premioPreferencia:null,ocrVerificado:false,dropRef:'',pagoRef:''};
     grouped[key].nums.push(p.num);
     grouped[key].ids.push(p.id);
     if(p.status==='pending'){grouped[key].hasPending=true;grouped[key].status='pending';}
@@ -6315,6 +6336,7 @@ function buildPagos(cfg){
     if(p.premioPreferencia)grouped[key].premioPreferencia=p.premioPreferencia;
     if(p.ocrVerificado)grouped[key].ocrVerificado=true;
     if(p.dropRef)grouped[key].dropRef=p.dropRef;
+    if(p.pagoRef)grouped[key].pagoRef=p.pagoRef;
   });
 
   const all=Object.values(grouped);
@@ -8295,7 +8317,7 @@ window.saveSubConfig=async function(){
               icon:'🎯',
               text:'¡Nuevo drop disponible!',
               sub:prizeName+' — Entra y reserva tus números antes de que se llene',
-              link:'participar',
+              link:'nueva-rifa:'+currentCommId+':'+targetSubId,
               tipo:'info',
               dedupKey:'rifa-activa-'+currentCommId+'-'+targetSubId+'-'+Date.now()
             });
@@ -11363,6 +11385,56 @@ function navigateFromNotif(link){
     enterApp(currentCommId);
     requestCommAdmin();
     setTimeout(()=>innerGo('dpanel'),400);
+  } else if(link.startsWith('nueva-rifa:')){
+    // Nueva rifa — llevar al drop activo
+    const parts=link.split(':');
+    const targetComm=parts[1]||currentCommId;
+    const targetSub=parts[2];
+    document.getElementById('home').style.display='none';
+    document.getElementById('sub-selector').style.display='none';
+    if(communities[targetComm]){
+      enterApp(targetComm);
+      if(targetSub)selectSub(targetComm,targetSub);
+    } else {
+      getDocs(collection(db,'communities')).then(snap=>{
+        snap.forEach(d=>{communities[d.id]={id:d.id,...d.data()};});
+        enterApp(targetComm);
+        if(targetSub)selectSub(targetComm,targetSub);
+      });
+    }
+  } else if(link.startsWith('pago-rifa:')){
+    // Pago de rifa al admin — mostrar pantalla de pago
+    const parts=link.split(':');
+    const targetComm=parts[1]||currentCommId;
+    const targetSub=parts[2];
+    const precio=parts[3]||25;
+    currentCommId=targetComm;
+    if(targetSub)currentSubId=targetSub;
+    const sub=communities[targetComm]?.subs?.[targetSub];
+    mostrarPantallaPago(sub?.config?.rifaName||'Drop',1,Number(precio),targetComm,targetSub||currentSubId);
+  } else if(link.startsWith('sorteo:')){
+    // Ir al sorteo de una sección
+    const parts=link.split(':');
+    const targetComm=parts[1]||currentCommId;
+    const targetSub=parts[2];
+    document.getElementById('home').style.display='none';
+    document.getElementById('sub-selector').style.display='none';
+    enterApp(targetComm);
+    setTimeout(()=>{
+      if(targetSub)selectSub(targetComm,targetSub);
+      setTimeout(()=>innerGo('sorteo'),400);
+    },400);
+  } else if(link.startsWith('admin-pagos:')){
+    // Admin — ir a pagos de una sección específica
+    const parts=link.split(':');
+    const targetComm=parts[1]||currentCommId;
+    const targetSub=parts[2];
+    document.getElementById('sub-selector').style.display='none';
+    currentCommId=targetComm;
+    if(targetSub)currentSubId=targetSub;
+    enterApp(targetComm);
+    requestCommAdmin();
+    setTimeout(()=>innerGo('pagos'),500);
   }
 }
 

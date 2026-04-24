@@ -321,6 +321,7 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <div class="nav-section">Herramientas</div>
     <div class="nav-item" onclick="goPanel('notificaciones')">
       <span class="nav-icon">🔔</span><span>Notificaciones</span>
+      <span id="notif-admin-badge" style="display:none;background:var(--r);color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:1px 6px;margin-left:auto;">0</span>
     </div>
     <div class="nav-item" onclick="goPanel('estadisticas')">
       <span class="nav-icon">📈</span><span>Estadísticas</span>
@@ -626,6 +627,7 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   </button>
   <button class="bnav-item" onclick="goPanel('notificaciones')" data-panel="notificaciones">
     <span class="bnav-icon">🔔</span>Notifs
+    <span id="notif-admin-badge-bnav" style="display:none;position:absolute;top:4px;right:4px;background:var(--r);color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:0 4px;min-width:14px;text-align:center;">0</span>
   </button>
   <button class="bnav-item" onclick="goPanel('solicitudes')" data-panel="solicitudes">
     <span class="bnav-icon">📋</span>Solicitudes
@@ -827,6 +829,7 @@ window.doLogin=function(){
     initApp();
     // Guardar pushToken del super admin para recibir alertas de comprobantes
     saveSuperAdminPushToken();
+    iniciarListenerNotifAdmin();
   } else {
     document.getElementById('login-err').textContent='Contraseña incorrecta';
     document.getElementById('login-pw').value='';
@@ -1085,7 +1088,19 @@ window.goPanel=function(name){
   if(name==='dashboard')loadDashboard();
   else if(name==='comunidades')loadComms();
   else if(name==='usuarios')loadUsers();
-  else if(name==='notificaciones')loadNotifPanel();
+  else if(name==='notificaciones'){
+    loadNotifPanel();
+    // Marcar todas como leídas
+    setTimeout(async()=>{
+      try{
+        const snap=await getDocs(collection(db,'superadmin','notificaciones'));
+        const batch=writeBatch(db);
+        snap.forEach(d=>{if(!d.data().leida)batch.update(d.ref,{leida:true});});
+        await batch.commit();
+        actualizarBadgeAdmin(0);
+      }catch(_){}
+    },500);
+  }
   else if(name==='estadisticas')loadStats();
   else if(name==='facturacion')loadFacturacion();
 };
@@ -1481,6 +1496,51 @@ async function loadNotifDestOptions(){
     opt.textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
     sel.appendChild(opt);
   });
+}
+
+
+// ── LISTENER TIEMPO REAL NOTIFICACIONES ADMIN ────────────────
+let _notifAdminUnsub=null;
+let _notifAdminNoLeidas=0;
+
+function iniciarListenerNotifAdmin(){
+  if(_notifAdminUnsub)_notifAdminUnsub();
+  _notifAdminUnsub=onSnapshot(
+    collection(db,'superadmin','notificaciones'),
+    (snap)=>{
+      let noLeidas=0;
+      snap.docChanges().forEach(change=>{
+        if(change.type==='added'){
+          const data=change.doc.data();
+          if(!data.leida){
+            noLeidas++;
+            // Mostrar notificación nativa del navegador
+            if(Notification.permission==='granted'){
+              new Notification(data.text||'Nueva notificación',{
+                body:data.sub||'',
+                icon:'/favicon.ico',
+                tag:'admin-notif-'+change.doc.id,
+                requireInteraction:true
+              });
+            }
+          }
+        }
+      });
+      // Contar todas las no leídas
+      _notifAdminNoLeidas=snap.docs.filter(d=>!d.data().leida).length;
+      actualizarBadgeAdmin(_notifAdminNoLeidas);
+    },
+    (err)=>console.warn('listener notif admin:',err.message)
+  );
+}
+
+function actualizarBadgeAdmin(n){
+  const badge=document.getElementById('notif-admin-badge');
+  const badgeBnav=document.getElementById('notif-admin-badge-bnav');
+  if(badge){badge.textContent=n;badge.style.display=n>0?'inline':'none';}
+  if(badgeBnav){badgeBnav.textContent=n;badgeBnav.style.display=n>0?'inline':'none';}
+  // Badge en título de la pestaña
+  document.title=n>0?'('+n+') Super Admin — Drops Oficial':'Super Admin — Drops Oficial';
 }
 
 window.loadNotifPanel=function(){

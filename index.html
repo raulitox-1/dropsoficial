@@ -1129,6 +1129,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <div class="card"><div class="sec">Tus números</div><div id="s3-nums" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div><div class="row"><span style="font-size:13px;color:var(--tx2);">Total</span><span style="font-size:20px;font-weight:700;color:var(--g);" id="s3-total"></span></div></div>
        <div id="payment-form" style="display:none;">
        <div class="sec">Datos de pago</div>
+       <!-- Referencia del drop para OCR -->
+       <div id="drop-ref-box" style="display:none;background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #f59e0b;border-radius:var(--rads);padding:12px;margin-bottom:10px;text-align:center;">
+         <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">⚠️ Pon este código como concepto</div>
+         <div style="font-size:20px;font-weight:900;color:#b45309;letter-spacing:2px;" id="drop-ref-code">—</div>
+         <button onclick="navigator.clipboard.writeText(document.getElementById('drop-ref-code').textContent).then(()=>toast('✓ Código copiado'))" class="btn btn-s" style="background:#f59e0b;color:#fff;margin-top:6px;width:100%;font-size:12px;">📋 Copiar código</button>
+       </div>
        <div id="pay-info-display" style="font-size:14px;font-weight:600;"></div>
        <div id="pay-copy-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;margin-bottom:4px;"></div>
        <div style="height:8px;"></div>
@@ -1152,7 +1158,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
        </div>
        <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="onFileChosen(event)"/>
        <img id="proof-img" style="display:none;width:100%;border-radius:var(--rads);max-height:200px;object-fit:cover;border:.5px solid var(--bd);margin-top:8px;"/>
-       <button class="btn btn-g" style="width:100%;margin-top:10px;" id="btn-enviar" onclick="enviarPago()" disabled>Enviar comprobante</button>
+       <div id="ocr-pago-result" style="display:none;margin-top:8px;"></div>
+       <button class="btn btn-g" style="width:100%;margin-top:10px;" id="btn-enviar" onclick="enviarPago()" disabled>📤 Enviar y verificar</button>
        </div>
     </div>
     <div id="step4" style="display:none;">
@@ -4836,6 +4843,16 @@ window.reservar=async function(){
       document.getElementById('payment-form').style.display='block';
       document.getElementById('step3-wait-msg').style.display='none';
       document.getElementById('step3-pay-section').style.display='block';
+      // Mostrar referencia individual por participante
+      const refBox=document.getElementById('drop-ref-box');
+      const refCode=document.getElementById('drop-ref-code');
+      if(refBox&&refCode){
+        // Generar código único para esta persona en este drop
+        const refPersonal=generarRefPago(currentCommId,currentSubId);
+        refCode.textContent=refPersonal;
+        refBox.style.display='block';
+        window._currentDropRef=refPersonal;
+      }
     } else {
       document.getElementById('payment-form').style.display='none';
       document.getElementById('step3-wait-msg').style.display='block';
@@ -5813,21 +5830,59 @@ window.toggleRifaActiva = function(){
 
 window.enviarPago=async function(){
   if(!chosenFile||!partReservedNums.length)return;
-  const btn=document.getElementById('btn-enviar');btn.disabled=true;btn.textContent='Subiendo...';
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true;btn.textContent='🔍 Verificando...';
+  const ocrEl=document.getElementById('ocr-pago-result');
+
   try{
+    // 1. OCR — verificar referencia e importe
+    const method=document.getElementById('pay-method').value;
+    const subData=communities[currentCommId]?.subs?.[currentSubId];
+    const cfgData=subData?.config||{};
+    const total=partReservedNums.length*(cfgData.price||12);
+    const dropRef=window._currentDropRef||subData?.dropRef||null;
+
+    let estadoOCR='pending';
+    let autoConfirmado=false;
+
+    if(dropRef){
+      const ocr=await verificarComprobanteOCR(chosenFile,dropRef,total);
+      console.log('OCR participante:',ocr);
+      if(ocr.autoAprobado){
+        estadoOCR='confirmed';
+        autoConfirmado=true;
+        if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:var(--gl);border-radius:var(--rads);padding:8px;font-size:12px;color:var(--g);font-weight:700;margin-bottom:8px;">✅ Verificado automáticamente</div>';}
+      } else {
+        estadoOCR='pending';
+        const motivos=[];
+        if(!ocr.refEncontrada)motivos.push('código no encontrado');
+        if(!ocr.importeEncontrado)motivos.push('importe no coincide ('+total+'€)');
+        if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rads);padding:8px;font-size:11px;color:#92400e;margin-bottom:8px;">⚠️ '+motivos.join(', ')+' — pendiente de revisión manual</div>';}
+      }
+    }
+
+    btn.textContent='📤 Subiendo...';
+
+    // 2. Subir foto
     let proofUrl=null;
     try{
-      const sr=ref(storage,`${currentCommId}/${currentSubId}/c/${Date.now()}.jpg`);
+      const sr=window.ref(storage,`${currentCommId}/${currentSubId}/c/${Date.now()}.jpg`);
       const sn=await uploadBytes(sr,chosenFile);
       proofUrl=await getDownloadURL(sn.ref);
-      console.log('Upload OK:',proofUrl);
     }catch(storageErr){
-      console.error('Storage error:',storageErr.code, storageErr.message);
-      toast('Aviso: comprobante sin imagen ('+storageErr.code+')');
+      console.error('Storage error:',storageErr.code,storageErr.message);
     }
-    const method=document.getElementById('pay-method').value;
+
+    // 3. Actualizar participantes
     const batch=writeBatch(db);
-    partReservedNums.forEach(n=>{const p=participants[n];if(p)batch.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{status:'pending',method,proofUrl});});
+    partReservedNums.forEach(n=>{
+      const p=participants[n];
+      if(p)batch.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{
+        status:estadoOCR,method,proofUrl,
+        ocrVerificado:autoConfirmado,
+        dropRef:dropRef||''
+      });
+    });
     await batch.commit();
     const el4=document.getElementById('s4-nums');el4.innerHTML='';
     partReservedNums.forEach(n=>{const s=document.createElement('span');s.className='badge b-c';s.style.fontSize='13px';s.textContent='Nº '+(n<10?'0'+n:n);el4.appendChild(s);});
@@ -5835,14 +5890,14 @@ window.enviarPago=async function(){
     const sub=communities[currentCommId]?.subs?.[currentSubId];
     const cfg=sub?.config||{};
     const numsStr=partReservedNums.map(n=>n<10?'0'+n:n).join(', ');
-    const total=partReservedNums.length*(cfg.price||12);
+    const totalMsg=partReservedNums.length*(subData?.config?.price||12);
     const pname=document.getElementById('part-name')?.value||'Participante';
     const pphone=document.getElementById('part-phone')?.value||'—';
      const tMsg='🎯 Nuevo pago en Drops Oficial\n\n'+
        '👤 '+pname+'\n'+
        '📱 '+pphone+'\n'+
        '🎰 Numeros: '+numsStr+'\n'+
-       '💶 Total: '+total+'€\n'+
+       '💶 Total: '+totalMsg+'€\n'+
        '💳 Metodo: '+method+'\n'+
        '📦 '+(communities[currentCommId]?.name||'')+' > '+(sub?.name||'')+'\n\n'+
        '⚡ Accede al panel admin para verificarlo:\n'+'https://dropsoficial.netlify.app'+(communities[currentCommId]?.adminToken?'?admintoken='+communities[currentCommId].adminToken:'');
@@ -6247,7 +6302,7 @@ function buildPagos(cfg){
   const grouped={};
   allPart.filter(p=>p.status!=='free').forEach(p=>{
     const key=p.name+'|'+(p.phone||'');
-    if(!grouped[key])grouped[key]={name:p.name,phone:p.phone,method:null,status:p.status,proofUrl:null,notaAdmin:'',nums:[],ids:[],hasPending:false,hasConfirmed:false,hasReserved:false,premioPreferencia:null};
+    if(!grouped[key])grouped[key]={name:p.name,phone:p.phone,method:null,status:p.status,proofUrl:null,notaAdmin:'',nums:[],ids:[],hasPending:false,hasConfirmed:false,hasReserved:false,premioPreferencia:null,ocrVerificado:false,dropRef:''};
     grouped[key].nums.push(p.num);
     grouped[key].ids.push(p.id);
     if(p.status==='pending'){grouped[key].hasPending=true;grouped[key].status='pending';}
@@ -6258,6 +6313,8 @@ function buildPagos(cfg){
     if(p.method)grouped[key].method=p.method;
     if(p.notaAdmin)grouped[key].notaAdmin=p.notaAdmin;
     if(p.premioPreferencia)grouped[key].premioPreferencia=p.premioPreferencia;
+    if(p.ocrVerificado)grouped[key].ocrVerificado=true;
+    if(p.dropRef)grouped[key].dropRef=p.dropRef;
   });
 
   const all=Object.values(grouped);
@@ -6292,11 +6349,11 @@ function buildPagos(cfg){
   filtered.sort((a,b)=>a.nums[0]-b.nums[0]).forEach(g=>{
     const d=document.createElement('div');d.className='card';
     const badge=g.hasPending
-      ?'<span class="badge b-p">Comprobante enviado</span>'
+      ?'<span class="badge b-p">Comprobante enviado</span>'+(g.ocrVerificado?'':' <span style="background:#fff8e1;color:#92400e;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">⚠️ Revisar manual</span>')
       :g.hasRejected&&!g.hasPending
         ?'<span class="badge b-r" style="background:#fee2e2;color:#991b1b;">❌ Pago rechazado</span>'
       :g.hasConfirmed&&!g.hasReserved
-        ?'<span class="badge b-c">Confirmado</span>'
+        ?'<span class="badge b-c">'+(g.ocrVerificado?'🤖 ':'')+'Confirmado</span>'
         :'<span class="badge b-r">Sin pago</span>';
     // Separar por estado usando participants[n] que está indexado por número
     const reservedNums=g.nums.filter(n=>participants[n]?.status==='reserved').sort((a,b)=>a-b);
@@ -7296,6 +7353,74 @@ function listenRifaPago(commId, subId){
 
 // Muestra u oculta el bloqueo del sorteo
 
+
+// ── OCR AUTO-VERIFICACIÓN DE COMPROBANTES ───────────────────
+const OCR_API_KEY='K86980234588957';
+
+function generarRefPago(commId,subId){
+  // Código único por persona — siempre diferente
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const ts=Date.now().toString(36).toUpperCase().slice(-3);
+  let code='';
+  for(let i=0;i<3;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  let code2='';
+  for(let i=0;i<3;i++)code2+=chars[Math.floor(Math.random()*chars.length)];
+  return 'DRP-'+code+ts+'-'+code2;
+}
+
+async function verificarComprobanteOCR(imageFile,refEsperada,importeEsperado){
+  return new Promise((resolve)=>{
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      try{
+        const base64=e.target.result.split(',')[1];
+        const formData=new FormData();
+        formData.append('base64Image','data:image/jpeg;base64,'+base64);
+        formData.append('apikey',OCR_API_KEY);
+        formData.append('language','spa');
+        formData.append('isOverlayRequired','false');
+        formData.append('detectOrientation','true');
+        formData.append('scale','true');
+
+        const resp=await fetch('https://api.ocr.space/parse/image',{
+          method:'POST',body:formData
+        });
+        const data=await resp.json();
+        const texto=(data?.ParsedResults?.[0]?.ParsedText||'').toUpperCase();
+        console.log('OCR texto:',texto);
+
+        // Verificar referencia
+        const refEncontrada=refEsperada&&texto.includes(refEsperada.toUpperCase());
+
+        // Verificar importe — buscar el número con posibles formatos (25, 25.00, 25,00)
+        const importeStr=String(importeEsperado).replace('.',',');
+        const importeStr2=String(importeEsperado);
+        const importeEncontrado=texto.includes(importeStr)||texto.includes(importeStr2)||
+          texto.includes(importeStr+'€')||texto.includes(importeStr2+' EUR');
+
+        // Detectar método
+        let metodo='desconocido';
+        if(texto.includes('BIZUM'))metodo='Bizum';
+        else if(texto.includes('TRANSFERENCIA')||texto.includes('TRANSFERENC')||texto.includes('IBAN'))metodo='Transferencia';
+        else if(texto.includes('PAYPAL')||texto.includes('PAY PAL'))metodo='PayPal';
+
+        resolve({
+          ok:refEncontrada&&importeEncontrado,
+          refEncontrada,
+          importeEncontrado,
+          metodo,
+          texto:texto.slice(0,500),
+          autoAprobado:refEncontrada&&importeEncontrado
+        });
+      }catch(e){
+        console.warn('OCR error:',e.message);
+        resolve({ok:false,error:e.message,autoAprobado:false});
+      }
+    };
+    reader.readAsDataURL(imageFile);
+  });
+}
+
 // ── Pantalla de pago obligatoria tras cerrar rifa ────────────
 function mostrarPantallaPago(rifaNombre,nRifa,precio,commId,subId){
   let m=document.getElementById('modal-pago-rifa');
@@ -7305,6 +7430,11 @@ function mostrarPantallaPago(rifaNombre,nRifa,precio,commId,subId){
     m.style.cssText='position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;';
     document.body.appendChild(m);
   }
+  // Generar referencia única para este pago
+  const ref=generarRefPago(commId,subId);
+  window._pagoRifaRef=ref;
+  window._pagoRifaImporte=precio;
+
   m.innerHTML=`
     <div style="background:var(--bg);border-radius:var(--rad);padding:24px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;">
       <div style="text-align:center;margin-bottom:20px;">
@@ -7312,27 +7442,36 @@ function mostrarPantallaPago(rifaNombre,nRifa,precio,commId,subId){
         <div style="font-size:18px;font-weight:900;margin-bottom:4px;">Pago pendiente</div>
         <div style="font-size:13px;color:var(--tx2);">Rifa "${rifaNombre}" completada</div>
       </div>
-      <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:16px;margin-bottom:16px;">
+
+      <!-- Referencia obligatoria -->
+      <div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #f59e0b;border-radius:var(--rads);padding:14px;margin-bottom:14px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">⚠️ Pon este código como concepto del pago</div>
+        <div style="font-size:24px;font-weight:900;color:#b45309;letter-spacing:2px;">${ref}</div>
+        <button onclick="navigator.clipboard.writeText('${ref}').then(()=>toast('✓ Referencia copiada'))" class="btn btn-s" style="background:#f59e0b;color:#fff;margin-top:8px;width:100%;">📋 Copiar referencia</button>
+        <div style="font-size:11px;color:#92400e;margin-top:6px;">Sin este código no se puede verificar automáticamente</div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:14px;margin-bottom:14px;">
         <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">💶 Datos de pago — Drops Oficial</div>
-        <div style="font-size:28px;font-weight:900;color:var(--a);margin-bottom:12px;">${precio}€</div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">Rifa nº${nRifa} de este mes</div>
-        <div style="height:1px;background:var(--bd);margin:10px 0;"></div>
+        <div style="font-size:26px;font-weight:900;color:var(--a);margin-bottom:10px;">${precio}€</div>
         <div style="font-size:13px;font-weight:600;margin-bottom:6px;">📱 Bizum: <span id="pago-bizum-val">634 XX XX XX</span></div>
         <button onclick="navigator.clipboard.writeText(document.getElementById('pago-bizum-val').textContent.trim()).then(()=>toast('✓ Bizum copiado'))" class="btn btn-s btn-neu" style="width:100%;margin-bottom:8px;">📋 Copiar Bizum</button>
-        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">🏦 IBAN: <span style="font-size:12px;">ES65 1583 0001 1590 6984 8933</span></div>
-        <button onclick="navigator.clipboard.writeText('ES65 1583 0001 1590 6984 8933').then(()=>toast('✓ IBAN copiado'))" class="btn btn-s btn-neu" style="width:100%;margin-bottom:8px;">📋 Copiar IBAN</button>
-        <div style="font-size:11px;color:var(--tx3);">Concepto: Drops ${rifaNombre} - ${commId}</div>
-        <div style="font-size:11px;color:var(--bl);margin-top:6px;background:rgba(59,130,246,.08);border-radius:6px;padding:6px 8px;">ℹ️ Para transferencia: pon tu nombre como concepto. El nombre del titular da igual, solo importa el número de cuenta.</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">🏦 Transferencia: <span style="font-size:11px;">ES65 1583 0001 1590 6984 8933</span></div>
+        <div style="font-size:11px;color:var(--bl);background:rgba(59,130,246,.08);border-radius:6px;padding:6px 8px;margin-bottom:6px;">ℹ️ Pon tu nombre como concepto + el código ${ref}</div>
+        <button onclick="navigator.clipboard.writeText('ES65 1583 0001 1590 6984 8933').then(()=>toast('✓ IBAN copiado'))" class="btn btn-s btn-neu" style="width:100%;margin-bottom:4px;">📋 Copiar IBAN</button>
       </div>
+
       <div style="font-size:12px;font-weight:700;margin-bottom:8px;">📤 Sube el comprobante</div>
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">La IA verificará automáticamente el código y el importe.</div>
       <div style="background:var(--bg2);border:2px dashed var(--bd);border-radius:var(--rads);padding:14px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('pago-rifa-file').click()">
         <div style="font-size:24px;margin-bottom:4px;">📸</div>
         <div style="font-size:12px;color:var(--tx2);" id="pago-file-txt">Toca para subir foto del comprobante</div>
       </div>
       <input type="file" id="pago-rifa-file" accept="image/*,application/pdf" style="display:none;" onchange="onPagoRifaFile(this)"/>
       <img id="pago-rifa-preview" style="display:none;width:100%;border-radius:var(--rads);max-height:150px;object-fit:cover;margin-bottom:8px;"/>
-      <button id="btn-enviar-pago-rifa" class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="enviarPagoRifaModal('${commId}','${subId}','${rifaNombre}','${precio}')" disabled>
-        📤 Enviar comprobante
+      <div id="pago-ocr-result" style="display:none;margin-bottom:8px;"></div>
+      <button id="btn-enviar-pago-rifa" class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="enviarPagoRifaModal('${commId}','${subId}','${rifaNombre}','${precio}','${ref}')" disabled>
+        📤 Enviar y verificar
       </button>
       <button onclick="cerrarPantallaPago()" style="width:100%;background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;margin-top:10px;padding:8px;">
         Lo hago más tarde (la próxima rifa quedará bloqueada)
@@ -7360,43 +7499,86 @@ window.cerrarPantallaPago=function(){
   if(m)m.style.display='none';
 };
 
-window.enviarPagoRifaModal=async function(commId,subId,rifaNombre,precio){
+window.enviarPagoRifaModal=async function(commId,subId,rifaNombre,precio,ref){
   if(!window._pagoRifaFile){toast('Selecciona el comprobante primero');return;}
   const btn=document.getElementById('btn-enviar-pago-rifa');
-  btn.disabled=true;btn.textContent='Enviando...';
+  const ocrEl=document.getElementById('pago-ocr-result');
+  btn.disabled=true;btn.textContent='🔍 Verificando con OCR...';
+
   try{
-    // Subir comprobante a Storage
+    // 1. OCR — verificar referencia e importe
+    let estadoOCR='pendiente';
+    let ocrInfo='';
+    if(ocrEl)ocrEl.style.display='block';
+
+    const ocr=await verificarComprobanteOCR(window._pagoRifaFile,ref||window._pagoRifaRef,Number(precio)||window._pagoRifaImporte);
+    console.log('OCR result:',ocr);
+
+    if(ocr.autoAprobado){
+      estadoOCR='confirmado';
+      ocrInfo='✅ Verificado automáticamente — referencia y importe correctos';
+      if(ocrEl)ocrEl.innerHTML='<div style="background:var(--gl);border-radius:var(--rads);padding:10px;font-size:12px;color:var(--g);font-weight:700;">'+ocrInfo+'</div>';
+    } else {
+      estadoOCR='pendiente';
+      const motivos=[];
+      if(!ocr.refEncontrada)motivos.push('no se encontró la referencia '+((ref||window._pagoRifaRef)||''));
+      if(!ocr.importeEncontrado)motivos.push('no se encontró el importe de '+precio+'€');
+      ocrInfo='⚠️ Revisión manual necesaria: '+motivos.join(', ');
+      if(ocrEl)ocrEl.innerHTML='<div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rads);padding:10px;font-size:12px;color:#92400e;">'+ocrInfo+'</div>';
+    }
+
+    btn.textContent='📤 Guardando...';
+
+    // 2. Subir comprobante a Storage
     let proofUrl=null;
     try{
-      const sr=ref(storage,`${commId}/${subId}/pago/${Date.now()}.jpg`);
-      const sn=await uploadBytes(sr,window._pagoRifaFile);
+      const sr=ref&&ref.storage?ref:storage;
+      const storRef=window.ref(storage,`${commId}/${subId}/pago/${Date.now()}.jpg`);
+      const sn=await uploadBytes(storRef,window._pagoRifaFile);
       proofUrl=await getDownloadURL(sn.ref);
     }catch(e){console.warn('upload:',e.message);}
-    // Guardar en Firestore
+
+    // 3. Guardar en Firestore
+    const refCodigo=ref||window._pagoRifaRef||'';
     await setDoc(doc(db,'superadmin','facturacion','pagos_rifa',commId+'_'+subId),{
       commId,subId,rifaNombre,precio:Number(precio),
-      estado:'pendiente',
+      estado:estadoOCR,
+      refCodigo,
+      ocrTexto:ocr.texto||'',
+      ocrMetodo:ocr.metodo||'',
       proofUrl:proofUrl||'',
+      autoVerificado:ocr.autoAprobado,
       ts:serverTimestamp(),
       fecha:new Date().toLocaleDateString('es-ES')
     });
-    // Notificar al super admin
-    try{
-      await addDoc(collection(db,'superadmin','notificaciones'),{
-        icon:'💶',
-        text:'Comprobante de pago recibido',
-        sub:commId+' — '+rifaNombre+' — '+precio+'€',
-        tipo:'accion',
-        ts:serverTimestamp(),
-        leida:false
-      });
-    }catch(_){}
-    cerrarPantallaPago();
-    toast('✅ Comprobante enviado. Te confirmaremos el pago pronto.');
+
+    // 4. Si auto-aprobado, resolver sticky y desbloquear
+    if(ocr.autoAprobado){
+      try{resolveSticky&&resolveSticky('pago-rifa-'+commId+'-'+subId);}catch(_){}
+      setTimeout(()=>{
+        cerrarPantallaPago();
+        toast('✅ Pago verificado automáticamente. ¡Ya puedes activar la siguiente rifa!');
+      },1500);
+    } else {
+      // 5. Notificar al super admin para revisión manual
+      try{
+        await addDoc(collection(db,'superadmin','notificaciones'),{
+          icon:'💶',
+          text:'Comprobante pendiente de revisión manual',
+          sub:commId+' — '+rifaNombre+' — '+precio+'€ — '+ocrInfo,
+          tipo:'accion',
+          ts:serverTimestamp(),leida:false
+        });
+      }catch(_){}
+      setTimeout(()=>{
+        cerrarPantallaPago();
+        toast('📤 Comprobante enviado. Pendiente de verificación manual.');
+      },1500);
+    }
     window._pagoRifaFile=null;
   }catch(e){
     toast('Error: '+e.message);
-    btn.disabled=false;btn.textContent='📤 Enviar comprobante';
+    btn.disabled=false;btn.textContent='📤 Enviar y verificar';
   }
 };
 
@@ -8667,13 +8849,23 @@ window.abrirPago=async function(){
   const sub=communities[currentCommId]?.subs?.[currentSubId];
   const cfg=sub?.config||{};
   const c=communities[currentCommId];
-  const appUrl='https://dropsoficial.netlify.app'; // plain URL for participants — no admin token
+  const appUrl='https://dropsoficial.netlify.app';
   const reserved=Object.values(participants).filter(p=>p.status==='reserved'||p.status==='pending'||p.status==='confirmed');
-  
   if(!reserved.length){toast('No hay participantes');return;}
-  
-  // Build individual WhatsApp links
-  const modal=document.getElementById('modal-whatsapp-links');
+
+  // Generar referencia única para este drop si no existe
+  let dropRef=sub?.dropRef||null;
+  if(!dropRef){
+    dropRef=generarRefPago(currentCommId,currentSubId);
+    try{
+      await updateDoc(doc(db,'communities',currentCommId),{
+        [`subs.${currentSubId}.dropRef`]:dropRef
+      });
+      if(communities[currentCommId]?.subs?.[currentSubId])
+        communities[currentCommId].subs[currentSubId].dropRef=dropRef;
+    }catch(_){}
+  }
+  window._currentDropRef=dropRef;
   const body=document.getElementById('modal-wa-body');
   body.innerHTML='';
   

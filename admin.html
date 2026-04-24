@@ -518,19 +518,6 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   </div>
 </div>
 
-<!-- PANEL CATEGORÍAS -->
-      <div class="panel" id="panel-categorias">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🏷️ Categorías</div>
-          <button class="btn btn-g" onclick="abrirCrearCategoria()">+ Nueva</button>
-        </div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.5;">
-          Gestiona las categorías que aparecen en la pantalla de inicio para filtrar comunidades.
-        </div>
-        <div id="cat-admin-lista"><div class="loading"><div class="spinner"></div></div></div>
-      </div>
-
-<!-- PANEL SOLICITUDES -->
       <div class="panel" id="panel-solicitudes">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">📋 Solicitudes</div>
@@ -542,6 +529,18 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
           <button class="btn btn-s btn-neu sol-tab" data-t="rechazada" onclick="setSolTab(this)">❌ Rechazadas</button>
         </div>
         <div id="sol-lista"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+<!-- PANEL CATEGORÍAS -->
+      <div class="panel" id="panel-categorias">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🏷️ Categorías</div>
+          <button class="btn btn-g" onclick="abrirCrearCategoria()">+ Nueva</button>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.5;">
+          Gestiona las categorías que aparecen en la pantalla de inicio para filtrar comunidades.
+        </div>
+        <div id="cat-admin-lista"><div class="loading"><div class="spinner"></div></div></div>
       </div>
 
 <!-- MODAL COMUNIDAD -->

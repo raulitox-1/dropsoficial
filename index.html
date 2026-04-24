@@ -4849,11 +4849,10 @@ window.reservar=async function(){
       document.getElementById('step3-pay-section').style.display='block';
       // Mostrar referencia individual
       const refBox=document.getElementById('drop-ref-box');
+      const refCode=document.getElementById('drop-ref-code');
       if(refBox&&refCode){
-        // 1. Leer de localStorage (guardado al reservar — inmediato)
         const partUidKey=(currentUser?.uid||currentUser?.username||document.getElementById('part-name')?.value||'');
         let refPersonal=localStorage.getItem('pagoRef_'+currentCommId+'_'+currentSubId+'_'+partUidKey);
-        // 2. Si no está en localStorage, buscar en participants (snapshot)
         if(!refPersonal){
           for(const n of partReservedNums){
             if(participants[n]?.pagoRef){refPersonal=participants[n].pagoRef;break;}
@@ -4864,7 +4863,6 @@ window.reservar=async function(){
           refBox.style.display='block';
           window._currentDropRef=refPersonal;
         } else {
-          // 3. Leer directamente de Firestore como último recurso
           refBox.style.display='block';
           refCode.textContent='Cargando...';
           (async()=>{

@@ -328,8 +328,8 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <div class="nav-item" onclick="goPanel('facturacion')">
       <span class="nav-icon">💶</span><span>Facturación</span>
     </div>
-    <div class="nav-item" onclick="goPanel('catalogo-import')">
-      <span class="nav-icon">📦</span><span>Importar catálogo</span>
+    <div class="nav-item" onclick="goPanel('solicitudes')">
+      <span class="nav-icon">📋</span><span>Solicitudes</span>
     </div>
     <div class="sidebar-footer">
       <strong>Super Admin</strong>
@@ -511,53 +511,23 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
           <div id="fact-historial"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
-
-      <div class="panel" id="panel-catalogo-import">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:16px;">Importar catalogo desde web</div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.7;">
-          Tiendas: dulcemarpesca.com · marquitosfishing.com · pescaenvalencia.com · rhodani.com<br>
-          Productos iguales en varias tiendas se fusionan automaticamente en el mismo articulo.
-        </div>
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Comunidad</label>
-        <select id="ci-comm" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;margin-bottom:12px;font-family:inherit;"><option value="">Cargando...</option></select>
-        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">URL de la tienda</label>
-        <input type="url" id="ci-url" placeholder="https://marquitosfishing.com/collections/canas-surfcasting" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit;"/>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-          <div>
-            <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Tipo</label>
-            <select id="ci-tipo" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;font-family:inherit;">
-              <option value="cana">Cana</option><option value="carrete">Carrete</option>
-              <option value="senuelo">Senuelo</option><option value="hilo">Hilo</option><option value="accesorio">Accesorio</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Modalidad</label>
-            <select id="ci-subcat" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;font-family:inherit;">
-              <option value="surfcasting">Surfcasting</option><option value="spinning">Spinning</option><option value="eging">Eging</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-g" style="width:100%;padding:13px;font-size:15px;" onclick="iniciarImportCatalogo()" id="ci-btn">🔍 Buscar productos</button>
-        <div id="ci-log" style="margin-top:14px;font-size:12px;font-family:monospace;background:#0a0a0a;color:#22c55e;padding:14px;border-radius:var(--rads);min-height:50px;max-height:200px;overflow-y:auto;display:none;white-space:pre-wrap;"></div>
-        <!-- Preview productos antes de importar -->
-        <div id="ci-preview" style="display:none;margin-top:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-size:13px;font-weight:700;">Selecciona los productos a importar</div>
-            <div style="display:flex;gap:6px;">
-              <button class="btn btn-s btn-neu" onclick="ciSelectAll(true)">Todos</button>
-              <button class="btn btn-s btn-neu" onclick="ciSelectAll(false)">Ninguno</button>
-            </div>
-          </div>
-          <div id="ci-preview-list" style="max-height:350px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rads);"></div>
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn btn-g" style="flex:1;padding:12px;" onclick="confirmarImport()" id="ci-confirm-btn">✅ Importar seleccionados</button>
-            <button class="btn btn-neu" style="padding:12px;" onclick="cancelarImport()">Cancelar</button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>
+
+<!-- PANEL SOLICITUDES -->
+      <div class="panel" id="panel-solicitudes">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">📋 Solicitudes</div>
+          <button class="btn btn-neu btn-sm" onclick="loadSolicitudes()">↻ Refrescar</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+          <button class="btn btn-s btn-g sol-tab" data-t="pendiente" onclick="setSolTab(this)">⏳ Pendientes</button>
+          <button class="btn btn-s btn-neu sol-tab" data-t="aprobada" onclick="setSolTab(this)">✅ Aprobadas</button>
+          <button class="btn btn-s btn-neu sol-tab" data-t="rechazada" onclick="setSolTab(this)">❌ Rechazadas</button>
+        </div>
+        <div id="sol-lista"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
 
 <!-- MODAL COMUNIDAD -->
 <div class="modal-bg" id="modal-comm" onclick="if(event.target===this)closeModal('modal-comm')">
@@ -626,8 +596,8 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
   <button class="bnav-item" onclick="goPanel('notificaciones')" data-panel="notificaciones">
     <span class="bnav-icon">🔔</span>Notifs
   </button>
-  <button class="bnav-item" onclick="goPanel('catalogo-import')" data-panel="catalogo-import">
-    <span class="bnav-icon">📦</span>Importar
+  <button class="bnav-item" onclick="goPanel('solicitudes')" data-panel="solicitudes">
+    <span class="bnav-icon">📋</span>Solicitudes
   </button>
 </nav>
 
@@ -836,328 +806,80 @@ window.doLogout=function(){
 };
 
 // ─── NAVIGATION ──────────────────────────────────────────
-async function cargarComunidadesImport(){
-  const sel=document.getElementById('ci-comm');
-  if(!sel)return;
+
+// ── SOLICITUDES ───────────────────────────────────────────────
+let _solTab='pendiente';
+
+window.setSolTab=function(btn){
+  _solTab=btn.dataset.t;
+  document.querySelectorAll('.sol-tab').forEach(b=>b.className='btn btn-s '+(b===btn?'btn-g':'btn-neu')+' sol-tab');
+  loadSolicitudes();
+};
+
+window.loadSolicitudes=async function(){
+  const el=document.getElementById('sol-lista');
+  if(!el)return;
+  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   try{
-    const snap=await getDocs(collection(db,'communities'));
-    sel.innerHTML='<option value="">Selecciona comunidad</option>';
-    snap.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.data().name||d.id;sel.appendChild(o);});
-  }catch(e){sel.innerHTML='<option value="">Error</option>';}
-}
-
-function detectarTienda(url){
-  if(url.includes('dulcemarpesca.com'))return 'dulcemar';
-  if(url.includes('marquitosfishing.com'))return 'marquitos';
-  if(url.includes('pescaenvalencia.com'))return 'pescavalencia';
-  if(url.includes('rhodani.com'))return 'rhodani';
-  return null;
-}
-
-function normalizarNombre(n){
-  return n.toLowerCase()
-    .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úù]/g,'u')
-    .replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
-}
-
-function similitud(a,b){
-  const na=normalizarNombre(a), nb=normalizarNombre(b);
-  const wa=na.split(' '), wb=nb.split(' ');
-  const comunes=wa.filter(w=>w.length>3&&wb.includes(w)).length;
-  return comunes/Math.max(wa.length,wb.length);
-}
-
-async function fetchConProxy(url,logEl){
-  const proxies=[
-    async()=>{
-      const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
-      const d=await r.json();
-      if(!d.contents)throw new Error('Sin contenido');
-      return d.contents;
-    },
-    async()=>{
-      const r=await fetch('https://corsproxy.io/?url='+encodeURIComponent(url));
-      if(!r.ok)throw new Error('Status '+r.status);
-      return await r.text();
-    },
-    async()=>{
-      const r=await fetch('https://thingproxy.freeboard.io/fetch/'+url);
-      if(!r.ok)throw new Error('Status '+r.status);
-      return await r.text();
-    },
-    async()=>{
-      const r=await fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url));
-      if(!r.ok)throw new Error('Status '+r.status);
-      return await r.text();
+    const snap=await getDocs(collection(db,'solicitudes'));
+    const todas=[];
+    snap.forEach(d=>todas.push({id:d.id,...d.data()}));
+    const filtradas=todas.filter(s=>s.estado===_solTab).sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
+    if(!filtradas.length){
+      el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx2);font-size:13px;">No hay solicitudes '+(_solTab==='pendiente'?'pendientes':_solTab==='aprobada'?'aprobadas':'rechazadas')+'</div>';
+      return;
     }
-  ];
-  for(const tryP of proxies){
-    try{
-      const html=await tryP();
-      if(html&&html.length>500){
-        if(logEl)logEl.textContent+='\nProxy OK, '+html.length+' chars';
-        return html;
-      }
-    }catch(e){
-      if(logEl)logEl.textContent+='\nProxy fallido: '+e.message;
-    }
-  }
-  throw new Error('Todos los proxies fallaron. La web puede estar bloqueando peticiones externas.');
-}
-
-async function parsearProductos(url,tienda,logEl){
-  const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
-  const productos=[];
-  if(tienda==='marquitos'){
-    logEl.textContent+='\nCargando pagina de Marquitos Fishing...';
-    let html='';
-    const proxies=[
-      async()=>{const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));const d=await r.json();return d.contents||'';},
-      async()=>{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url));return await r.text();},
-      async()=>{const r=await fetch('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url));return await r.text();}
-    ];
-    for(const tryProxy of proxies){
-      try{
-        const result=await tryProxy();
-        if(result&&result.length>500){html=result;logEl.textContent+='\nProxy OK, '+html.length+' chars';break;}
-      }catch(e){logEl.textContent+='\nProxy fallido: '+e.message;}
-    }
-    if(!html||html.length<100){logEl.textContent+='\nNo se pudo cargar la pagina.';btn.disabled=false;return;}
-    const dom=new DOMParser().parseFromString(html,'text/html');
-    dom.querySelectorAll('script:not([src])').forEach(s=>{
-      if(productos.length)return;
-      try{
-        const t=s.textContent;
-        const matches=[...t.matchAll(/"title"\s*:\s*"([^"]{5,100})"[\s\S]{0,500}?"price"\s*:\s*(\d+)[\s\S]{0,200}?"handle"\s*:\s*"([^"]+)"/g)];
-        matches.forEach(m=>{
-          const nombre=m[1],precio=parseInt(m[2])/100,handle=m[3];
-          if(nombre&&handle)productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,
-            link:'https://marquitosfishing.com/products/'+handle,tienda:'Marquitos Fishing'});
-        });
-      }catch(_){}
+    el.innerHTML='';
+    filtradas.forEach(s=>{
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:16px;margin-bottom:12px;';
+      const esMarca=s.tipo==='marca';
+      card.innerHTML=
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-size:18px;">'+(esMarca?'🤝':'⚡')+'</span>'+
+            '<div>'+
+              '<div style="font-weight:700;font-size:14px;">'+esc(s.nombre||'')+'</div>'+
+              '<div style="font-size:11px;color:var(--tx3);">'+(esMarca?'Marca/Tienda':'Organizador')+' · '+s.fecha+'</div>'+
+            '</div>'+
+          '</div>'+
+          '<span style="font-size:11px;padding:3px 8px;border-radius:99px;background:'+(_solTab==='pendiente'?'var(--a-bg)':_solTab==='aprobada'?'var(--gl)':'rgba(220,50,50,.1)')+';">'+s.estado+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">📧 '+esc(s.email||'')+'  📱 '+esc(s.tel||'—')+'</div>'+
+        (esMarca?'<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">🌐 '+esc(s.extra||'—')+'</div>':'<div style="font-size:12px;color:var(--tx2);margin-bottom:4px;">🏘️ '+esc(s.extra||'—')+'</div>')+
+        '<div style="font-size:12px;color:var(--tx);background:var(--bg);border-radius:var(--rads);padding:10px;margin:8px 0;line-height:1.5;">'+esc(s.mensaje||'')+'</div>'+
+        (_solTab==='pendiente'?
+          '<div style="display:flex;gap:8px;margin-top:4px;">'+
+            '<button class="btn btn-g" style="flex:1;" onclick="resolverSolicitud(this)" data-id="'+s.id+'" data-estado="aprobada">✅ Aprobar</button>'+
+            '<button class="btn btn-ko" style="flex:1;" onclick="resolverSolicitud(this)" data-id="'+s.id+'" data-estado="rechazada">❌ Rechazar</button>'+
+          '</div>':'');
+      el.appendChild(card);
     });
-    if(!productos.length){
-      dom.querySelectorAll('h3 a[href*="/products/"],h2 a[href*="/products/"],[class*="card"] a[href*="/products/"]').forEach(el=>{
-        const nombre=el.textContent.trim();
-        if(nombre.length<5||productos.find(p=>p.nombre===nombre))return;
-        const href=el.getAttribute('href')||'';
-        const link=href.startsWith('http')?href:'https://marquitosfishing.com'+href;
-        let precio=null;
-        const wrap=el.closest('li,article,[class*="product"],[class*="card"]');
-        if(wrap){const pm=wrap.querySelector('[class*="price"]');
-          if(pm){const ps=pm.textContent.match(/[\d,.]+/);if(ps)precio=parseFloat(ps[0].replace(',','.'));}}
-        productos.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Marquitos Fishing'});
-      });
-    }
-    logEl.textContent+='\n'+productos.length+' productos parseados';
-  } else {
-    const html=await fetchConProxy(url,logEl);
-    if(tienda==='pescavalencia'){
-      // WooCommerce — parser ya hecho arriba, html cargado con fetchConProxy
-      logEl.textContent+='\nCargando Pesca en Valencia (todas las paginas)...';
-      const nombreTienda='Pesca en Valencia';
-      
-      // Función para parsear productos de un HTML de pescavalencia
-      function parsearPaginaPV(html2){
-        const prods=[];
-        const dom=new DOMParser().parseFromString(html2,'text/html');
-        dom.querySelectorAll('.products li, ul.products > li').forEach(li=>{
-          const tEl=li.querySelector('h2,h3,.woocommerce-loop-product__title');
-          if(!tEl)return;
-          const nombre=tEl.textContent.trim();
-          if(nombre.length<5)return;
-          let precio=null;
-          const pEl=li.querySelector('.price ins .amount, .price .amount, .woocommerce-Price-amount');
-          if(pEl){const ps=pEl.textContent.replace(/[^0-9,.]/g,'').replace(',','.');if(ps)precio=parseFloat(ps);}
-          let link='';
-          const lEl=li.querySelector('a[href*="/tienda/"]');
-          if(lEl)link=lEl.href||lEl.getAttribute('href')||'';
-          if(link&&!link.startsWith('http'))link='https://pescaenvalencia.com'+link;
-          if(nombre&&!prods.find(p=>p.nombre===nombre))
-            prods.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:nombreTienda});
-        });
-        // Fallback regex
-        if(!prods.length){
-          const allNm=[...html2.matchAll(/class="woocommerce-loop-product__title">([^<]+)<\/h2>/g)];
-          const allLk=[...html2.matchAll(/href="(https:\/\/pescaenvalencia\.com\/tienda\/[^"]+)"/g)];
-          const allPr=[...html2.matchAll(/class="woocommerce-Price-amount[^"]*"><bdi>([^<]+)<\/bdi>/g)];
-          allNm.forEach((m,i)=>{
-            const nombre=m[1].trim();
-            const link=allLk[i]?allLk[i][1]:'';
-            const pStr=allPr[i]?allPr[i][1].replace(/[^0-9,.]/g,'').replace(',','.'):'';
-            const precio=pStr?parseFloat(pStr):null;
-            if(!prods.find(p=>p.nombre===nombre))
-              prods.push({nombre,marca:'',precio,precioMin:precio,precioMax:precio,link,tienda:'Pesca en Valencia'});
-          });
-        }
-        // ¿Hay página siguiente?
-        const dom2=new DOMParser().parseFromString(html2,'text/html');
-        const nextEl=dom2.querySelector('.woocommerce-pagination .next, a.next.page-numbers');
-        const nextUrl=nextEl?nextEl.href||nextEl.getAttribute('href')||'':null;
-        return {prods,nextUrl};
-      }
+  }catch(e){el.innerHTML='<div style="color:var(--r);font-size:13px;">Error: '+e.message+'</div>';}
+};
 
-      // Cargar todas las páginas
-      let paginaUrl=url.includes('?')?url:url.replace(/\/$/,'')+'/?per_page=100';
-      let pagina=1;
-      while(paginaUrl){
-        logEl.textContent+='\nPagina '+pagina+': '+paginaUrl;
-        let html2='';
-        try{html2=await fetchConProxy(paginaUrl,null);}catch(e){logEl.textContent+='\nError pagina '+pagina+': '+e.message;break;}
-        const {prods,nextUrl}=parsearPaginaPV(html2);
-        prods.forEach(p=>{if(!productos.find(q=>q.nombre===p.nombre))productos.push(p);});
-        logEl.textContent+=' → '+prods.length+' productos';
-        logEl.scrollTop=logEl.scrollHeight;
-        if(!nextUrl||pagina>=20)break; // máximo 20 páginas
-        paginaUrl=nextUrl.startsWith('http')?nextUrl:'https://pescaenvalencia.com'+nextUrl;
-        pagina++;
-        await new Promise(r=>setTimeout(r,500)); // pausa entre páginas
-      }
-    } else {
-      // PrestaShop (dulcemar + rhodani)
-      const nombreTienda=tienda==='rhodani'?'Rhodani':'Dulcemar Pesca';
-      const domainMatch=tienda==='rhodani'?'rhodani.com':'dulcemarpesca.com';
-      const bloques=html.split('Añadir al carrito');
-      logEl.textContent+='\n'+bloques.length+' bloques encontrados';
-      bloques.forEach(b=>{
-        const nm=b.match(/##\s*\[([^\]]+)\]/);if(!nm)return;
-        const nombre=nm[1].trim();if(nombre.length<5)return;
-        let marca='';
-        const mm=b.match(/\[([A-Za-z][^\]]{1,30})\]\(https:\/\/[^)]+\)\n\n/);if(mm)marca=mm[1].trim();
-        let precio=null;
-        const pm=b.match(/(\d+(?:[,.]\d+)?)\s*€/);if(pm)precio=parseFloat(pm[1].replace(',','.'));
-        let link='';
-        const lm=b.match(/\]\((https:\/\/[^)]+\.html)\)/);if(lm)link=lm[1];
-        let metros=null,accion='';
-        const metm=b.match(/(\d+[.,]\d+)\s*metros?|medida\s+(\d+[.,]\d+)/i);
-        if(metm)metros=parseFloat((metm[1]||metm[2]).replace(',','.'));
-        const acm=b.match(/acci.n[^0-9]*(\d+[-]\d+\s*g)/i);if(acm)accion=acm[1].trim();
-        productos.push({nombre,marca,precio,precioMin:precio,precioMax:precio,link,metros,accion,tienda:nombreTienda});
-      });
-    }
-  }
-  return productos;
-}
+// esc defined above
 
-// Guardamos productos encontrados para el paso 2
-let _ciProductosPendientes=[];
-let _ciExistentes=[];
-let _ciMaxRef=0;
-let _ciCommId='';
-let _ciTipo='';
-let _ciSubcat='';
-
-window.iniciarImportCatalogo=async function(){
-  const commId=document.getElementById('ci-comm').value;
-  const url=document.getElementById('ci-url').value.trim();
-  const tipo=document.getElementById('ci-tipo').value;
-  const subcat=document.getElementById('ci-subcat').value;
-  const logEl=document.getElementById('ci-log');
-  const btn=document.getElementById('ci-btn');
-  const preview=document.getElementById('ci-preview');
-  if(!commId){alert('Selecciona una comunidad');return;}
-  if(!url){alert('Introduce una URL');return;}
-  const tienda=detectarTienda(url);
-  if(!tienda){alert('Tienda no soportada');return;}
-  logEl.style.display='block';
-  preview.style.display='none';
-  logEl.textContent='Tienda: '+tienda+'\nConectando...';
-  btn.disabled=true;
+window.resolverSolicitud=async function(btn){
+  const id=btn.dataset.id;
+  const estado=btn.dataset.estado;
+  if(!id||!estado)return;
   try{
-    const nuevos=await parsearProductos(url,tienda,logEl);
-    if(!nuevos.length){logEl.textContent+='\nNo se encontraron productos.';btn.disabled=false;return;}
-    // Cargar existentes
-    _ciExistentes=[];_ciMaxRef=0;
-    try{
-      const ex=await getDocs(collection(db,'communities',commId,'catalogo'));
-      ex.forEach(d=>{const data={id:d.id,...d.data()};_ciExistentes.push(data);const r=parseInt(data.ref||'0');if(r>_ciMaxRef)_ciMaxRef=r;});
-    }catch(_){}
-    _ciProductosPendientes=nuevos;
-    _ciCommId=commId;_ciTipo=tipo;_ciSubcat=subcat;
-    // Mostrar preview
-    const list=document.getElementById('ci-preview-list');
-    list.innerHTML='';
-    nuevos.forEach((p,i)=>{
-      const dup=_ciExistentes.find(e=>similitud(e.nombre,p.nombre)>0.6);
-      const div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);font-size:13px;';
-      div.innerHTML='<input type="checkbox" id="ci-chk-'+i+'" checked style="width:18px;height:18px;flex-shrink:0;accent-color:var(--g);">'+
-        '<label for="ci-chk-'+i+'" style="flex:1;cursor:pointer;">'+
-          '<div style="font-weight:600;">'+p.nombre+'</div>'+
-          '<div style="font-size:11px;color:var(--tx3);">'+(p.precio?p.precio+'€ · ':'')+p.tienda+(dup?' · <span style="color:var(--a);">Ya existe como #'+dup.ref+'</span>':'')+'</div>'+
-        '</label>';
-      list.appendChild(div);
-    });
-    preview.style.display='block';
-    logEl.textContent+='\n'+nuevos.length+' productos listos para revisar';
-  }catch(e){logEl.textContent+='\nError: '+e.message;}
-  btn.disabled=false;
+    await updateDoc(doc(db,'solicitudes',id),{estado,fechaResolucion:new Date().toLocaleDateString('es-ES')});
+    toast(estado==='aprobada'?'✅ Solicitud aprobada':'❌ Solicitud rechazada');
+    loadSolicitudes();
+  }catch(e){toast('Error: '+e.message);}
 };
-
-window.ciSelectAll=function(val){
-  _ciProductosPendientes.forEach((_,i)=>{
-    const chk=document.getElementById('ci-chk-'+i);
-    if(chk)chk.checked=val;
-  });
-};
-
-window.cancelarImport=function(){
-  document.getElementById('ci-preview').style.display='none';
-  _ciProductosPendientes=[];
-};
-
-window.confirmarImport=async function(){
-  const btn=document.getElementById('ci-confirm-btn');
-  const logEl=document.getElementById('ci-log');
-  btn.disabled=true;btn.textContent='Importando...';
-  let ok=0,fusionados=0;
-  let maxRef=_ciMaxRef;
-  const seleccionados=_ciProductosPendientes.filter((_,i)=>{
-    const chk=document.getElementById('ci-chk-'+i);
-    return chk&&chk.checked;
-  });
-  logEl.textContent+='\nImportando '+seleccionados.length+' productos seleccionados...';
-  for(const p of seleccionados){
-    const match=_ciExistentes.find(e=>similitud(e.nombre,p.nombre)>0.6);
-    if(match){
-      const linksActuales=match.links||{};
-      if(!linksActuales[p.tienda]){
-        linksActuales[p.tienda]=p.link;
-        try{await updateDoc(doc(db,'communities',_ciCommId,'catalogo',match.id),{links:linksActuales});fusionados++;}
-        catch(e){logEl.textContent+='\nError fusion: '+e.message;}
-      }
-    } else {
-      maxRef++;
-      const ref=String(maxRef).padStart(3,'0');
-      const linksObj={};if(p.link)linksObj[p.tienda]=p.link;
-      try{
-        const newDoc={nombre:p.nombre,marca:p.marca||'',precio:p.precio,precioMin:p.precioMin,precioMax:p.precioMax,
-          categoria:_ciTipo,subcategoria:_ciSubcat,metros:p.metros||null,accion:p.accion||'',
-          link:p.link||'',links:linksObj,ref,ts:serverTimestamp(),fecha:new Date().toLocaleDateString('es-ES')};
-        await addDoc(collection(db,'communities',_ciCommId,'catalogo'),newDoc);
-        _ciExistentes.push({...newDoc,id:ref});
-        logEl.textContent+='\n#'+ref+' '+p.nombre+(p.precio?' - '+p.precio+'e':'');
-        logEl.scrollTop=logEl.scrollHeight;ok++;
-        await new Promise(r=>setTimeout(r,100));
-      }catch(e){logEl.textContent+='\nError: '+e.message;}
-    }
-  }
-  logEl.textContent+='\n\n'+ok+' importados + '+fusionados+' fusionados!';
-  document.getElementById('ci-preview').style.display='none';
-  btn.disabled=false;btn.textContent='Importar seleccionados';
-  _ciProductosPendientes=[];
-};
-
 
 window.goPanel=function(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bnav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+name)?.classList.add('active');
-  if(name==='catalogo-import')cargarComunidadesImport();
   document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
   document.querySelector(`.bnav-item[data-panel="${name}"]`)?.classList.add('active');
-  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación','catalogo-import':'Importar catálogo'};
+  if(name==='solicitudes')loadSolicitudes();
+  const titles={dashboard:'Dashboard',comunidades:'Comunidades',usuarios:'Usuarios',notificaciones:'Notificaciones',estadisticas:'Estadísticas',facturacion:'Facturación',solicitudes:'Solicitudes'};
   document.getElementById('topbar-title').textContent=titles[name]||name;
   currentPanel=name;
   // Scroll to top on panel change (mobile)

@@ -543,8 +543,44 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   </div>
 </div>
 <div style="padding:12px 14px 6px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;">🏘️ Comunidades</div>
+<!-- Filtros de categoría -->
+<div id="cat-filter-home" style="display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none;">
+  <button class="home-cat-btn btn btn-s btn-g" data-cat="todas" onclick="filtrarComunidades(this)">Todas</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Pesca" onclick="filtrarComunidades(this)">🎣 Pesca</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Fútbol" onclick="filtrarComunidades(this)">⚽ Fútbol</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Gaming" onclick="filtrarComunidades(this)">🎮 Gaming</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Motor" onclick="filtrarComunidades(this)">🏎️ Motor</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="Tecnología" onclick="filtrarComunidades(this)">💻 Tecnología</button>
+  <button class="home-cat-btn btn btn-s btn-neu" data-cat="General" onclick="filtrarComunidades(this)">🎯 General</button>
+</div>
 <div class="comm-list" id="comm-list"></div>
-  <div style="text-align:center;padding-bottom:28px;"><button style="background:none;border:none;font-size:11px;color:var(--tx3);cursor:pointer;padding:8px;font-family:var(--f);" onclick="openSuperAdmin()">⚙️ Super Admin</button></div>
+
+<!-- Sección colaboración marcas -->
+<div style="margin:8px 14px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:var(--rad);padding:18px;cursor:pointer;" onclick="abrirFormularioColaboracion('marca')">
+  <div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:4px;">🤝 ¿Eres una marca o tienda?</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.5;">Colabora con nosotros y llega a miles de aficionados. Tus productos en cada sorteo.</div>
+  <div style="margin-top:10px;display:inline-block;background:var(--g);color:#fff;border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;">Contactar →</div>
+</div>
+
+<!-- Sección quiero ser organizador -->
+<div style="margin:8px 14px 20px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:18px;cursor:pointer;" onclick="abrirFormularioColaboracion('organizador')">
+  <div style="font-size:13px;font-weight:800;margin-bottom:4px;">⚡ ¿Quieres crear tu propia comunidad?</div>
+  <div style="font-size:11px;color:var(--tx2);line-height:1.5;">Organiza tus propios drops y sorteos. Gestiona tu comunidad con todas las herramientas de Drops Oficial.</div>
+  <div style="margin-top:10px;display:inline-block;background:var(--bg);border:1px solid var(--bd);border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;">Solicitar acceso →</div>
+</div>
+
+<div style="text-align:center;padding-bottom:28px;"><button style="background:none;border:none;font-size:11px;color:var(--tx3);cursor:pointer;padding:8px;font-family:var(--f);" onclick="openSuperAdmin()">⚙️ Super Admin</button></div>
+</div>
+
+<!-- MODAL COLABORACIÓN / ORGANIZADOR -->
+<div class="modal-bg" id="modal-colaboracion" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:440px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div id="colab-title" style="font-size:15px;font-weight:800;"></div>
+      <button onclick="document.getElementById('modal-colaboracion').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div id="colab-body"></div>
+  </div>
 </div>
 
 <!-- DROPS PARTICULARES SCREEN -->
@@ -2019,26 +2055,89 @@ async function init(){
   }
 }
 
+
+// ── Filtros de categoría en home ─────────────────────────────
+window._homeCatFilter='todas';
+
+window.filtrarComunidades=function(btn){
+  window._homeCatFilter=btn.dataset.cat;
+  document.querySelectorAll('.home-cat-btn').forEach(b=>{
+    b.className='home-cat-btn btn btn-s '+(b===btn?'btn-g':'btn-neu');
+  });
+  buildHome();
+};
+
+// ── Formulario colaboración / organizador ─────────────────────
+window.abrirFormularioColaboracion=function(tipo){
+  const m=document.getElementById('modal-colaboracion');
+  const title=document.getElementById('colab-title');
+  const body=document.getElementById('colab-body');
+  if(!m||!title||!body)return;
+  const esMarca=tipo==='marca';
+  title.textContent=esMarca?'🤝 Colaborar como marca':'⚡ Ser organizador';
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:14px;line-height:1.6;">
+      ${esMarca
+        ?'Cuéntanos sobre tu marca o tienda. Revisaremos tu solicitud y nos pondremos en contacto contigo.'
+        :'Rellena el formulario y revisaremos tu solicitud. Solo los organizadores aprobados pueden ver los precios y crear comunidades.'}
+    </div>
+    <input type="text" id="colab-nombre" placeholder="${esMarca?'Nombre de la marca/tienda':'Tu nombre completo'}" style="margin-bottom:8px;"/>
+    <input type="text" id="colab-email" placeholder="Email de contacto" style="margin-bottom:8px;"/>
+    <input type="text" id="colab-tel" placeholder="Teléfono (opcional)" style="margin-bottom:8px;"/>
+    ${esMarca
+      ?'<input type="text" id="colab-web" placeholder="Web o Instagram" style="margin-bottom:8px;"/>'
+      :'<input type="text" id="colab-comunidad" placeholder="¿Qué tipo de comunidad quieres crear?" style="margin-bottom:8px;"/>'}
+    <textarea id="colab-mensaje" placeholder="${esMarca?'Cuéntanos sobre tu marca y cómo quieres colaborar...':'¿Por qué quieres ser organizador? Cuéntanos más...'}" style="height:90px;font-size:13px;margin-bottom:12px;"></textarea>
+    <button class="btn btn-g" style="width:100%;padding:12px;" onclick="enviarSolicitudColaboracion('${tipo}')">Enviar solicitud</button>
+  `;
+  m.classList.add('open');
+};
+
+window.enviarSolicitudColaboracion=async function(tipo){
+  const nombre=document.getElementById('colab-nombre')?.value.trim();
+  const email=document.getElementById('colab-email')?.value.trim();
+  const tel=document.getElementById('colab-tel')?.value.trim()||'—';
+  const extra=document.getElementById('colab-web')?.value.trim()||document.getElementById('colab-comunidad')?.value.trim()||'—';
+  const mensaje=document.getElementById('colab-mensaje')?.value.trim();
+  if(!nombre||!email){toast('Por favor rellena nombre y email');return;}
+  if(!mensaje){toast('Por favor escríbenos un mensaje');return;}
+  const btn=document.querySelector('#modal-colaboracion .btn-g');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+  try{
+    await addDoc(collection(db,'solicitudes'),{
+      tipo,nombre,email,tel,extra,mensaje,
+      ts:serverTimestamp(),
+      fecha:new Date().toLocaleDateString('es-ES'),
+      estado:'pendiente'
+    });
+    // Notificar al super admin por Telegram
+    await notifyTelegram(
+      (tipo==='marca'?'🤝 SOLICITUD DE COLABORACIÓN':'⚡ SOLICITUD DE ORGANIZADOR')+'\n\n'+
+      '👤 '+nombre+'\n'+
+      '📧 '+email+'\n'+
+      '📱 '+tel+'\n'+
+      (tipo==='marca'?'🌐 '+extra:'🏘️ '+extra)+'\n\n'+
+      '💬 '+mensaje,
+      Object.keys(communities)[0]||''
+    ).catch(()=>{});
+    document.getElementById('modal-colaboracion').classList.remove('open');
+    toast('✅ Solicitud enviada. Te contactaremos pronto.');
+  }catch(e){
+    toast('Error al enviar: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='Enviar solicitud';}
+  }
+};
+
 function buildHome(){
   const el=document.getElementById('comm-list');el.innerHTML='';
-  if(!Object.keys(communities).length){el.innerHTML='<div class="alert a-info">No hay comunidades todavía.</div>';return;}
-  
-  // Group by category
-  const byCategory={};
-  Object.values(communities).forEach(c=>{
-    const cat=c.categoria||'General';
-    if(!byCategory[cat])byCategory[cat]=[];
-    byCategory[cat].push(c);
-  });
-
-  Object.entries(byCategory).forEach(([cat,comms])=>{
-    if(Object.keys(byCategory).length>1){
-      const catEl=document.createElement('div');
-      catEl.style.cssText='font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);padding:6px 0 8px;margin-top:4px;';
-      catEl.textContent=cat;
-      el.appendChild(catEl);
-    }
-    comms.forEach(c=>{
+  const activeCat=window._homeCatFilter||'todas';
+  let comms=Object.values(communities);
+  if(activeCat!=='todas')comms=comms.filter(c=>(c.categoria||'General')===activeCat);
+  if(!comms.length){
+    el.innerHTML='<div style="text-align:center;padding:30px 20px;color:var(--tx2);font-size:13px;">No hay comunidades en esta categoría todavía.</div>';
+    return;
+  }
+  comms.forEach(c=>{
       const subs=c.subs?Object.values(c.subs):[];
       const d=document.createElement('div');
       d.className='comm-item';
@@ -2059,7 +2158,6 @@ function buildHome(){
         '</div>';
       d.onclick=()=>openPinGate(c.id);
       el.appendChild(d);
-    });
   });
 }
 
@@ -6702,6 +6800,7 @@ window.toggleDirNueva=function(){
 window.enviarPremioFinal=async function(){
   if(!window._premioElegido){return;}
   const premio=window._premioElegido.texto;
+  const premioVisible=window._premioElegido.textoVisible||premio.replace(/#\d+\s*/,'');
   const sub=communities[currentCommId]?.subs?.[currentSubId];
   const cfg=sub?.config||{};
   const dropName=cfg.rifaName||sub?.name||'Drop';

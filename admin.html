@@ -564,8 +564,12 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
       <span id="modal-comm-title">Nueva comunidad</span>
       <button onclick="closeModal('modal-comm')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
     </div>
+    <label>Contraseña organizador</label>
+    <input id="mc-passorg" placeholder="Contraseña para el panel organizador" type="text"/>
     <label>Nombre *</label>
     <input id="mc-name" placeholder="Ej: Threefishh"/>
+    <label>Contraseña Admin Comunidad</label>
+    <input id="mc-adminpass" type="text" placeholder="Contraseña para el admin de esta comunidad" style="margin-bottom:10px;"/>
     <label>Categoría</label>
     <select id="mc-categoria" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;font-family:inherit;margin-bottom:4px;">
       <option value="Pesca">🎣 Pesca</option>
@@ -1072,8 +1076,58 @@ window.resolverSolicitud=async function(btn){
   const estado=btn.dataset.estado;
   if(!id||!estado)return;
   try{
+    // Leer datos de la solicitud
+    const solSnap=await getDoc(doc(db,'solicitudes',id));
+    if(!solSnap.exists())return;
+    const sol=solSnap.data();
+
     await updateDoc(doc(db,'solicitudes',id),{estado,fechaResolucion:new Date().toLocaleDateString('es-ES')});
-    toast(estado==='aprobada'?'✅ Solicitud aprobada':'❌ Solicitud rechazada');
+
+    // Buscar al usuario en Firestore por email para enviarle notificación
+    if(estado==='aprobada'&&sol.email){
+      try{
+        const usersSnap=await getDocs(query(collection(db,'users'),where('email','==',sol.email)));
+        usersSnap.forEach(async ud=>{
+          const uid=ud.id;
+          const esMarca=sol.tipo==='marca';
+          const titulo=esMarca?'🤝 ¡Colaboración aprobada!':'⚡ ¡Solicitud aprobada!';
+          const texto=esMarca
+            ?'Tu solicitud de colaboración ha sido aprobada. Nos pondremos en contacto contigo en breve para cerrar los detalles. Escríbenos por WhatsApp al 661701454'
+            :'¡Bienvenido como organizador! Ya puedes crear tu comunidad en Drops Oficial.\n\n'+
+             '💶 Tarifas por rifa:\n'+
+             '• Rifas 1-3: 25€/rifa\n'+
+             '• Rifas 4-10: 15€/rifa\n'+
+             '• Rifas 11+: 10€/rifa\n'+
+             '• Plan mensual ilimitado: 150€\n\n'+
+             '📲 Contáctanos por WhatsApp al 661701454 para configurar tu comunidad.';
+
+          await addDoc(collection(db,'users',uid,'notificaciones'),{
+            icon:esMarca?'🤝':'⚡',
+            text:titulo,
+            sub:texto,
+            tipo:'info',
+            leida:false,
+            ts:serverTimestamp()
+          });
+        });
+      }catch(e){console.warn('notif usuario:',e.message);}
+    } else if(estado==='rechazada'&&sol.email){
+      try{
+        const usersSnap=await getDocs(query(collection(db,'users'),where('email','==',sol.email)));
+        usersSnap.forEach(async ud=>{
+          await addDoc(collection(db,'users',ud.id,'notificaciones'),{
+            icon:'ℹ️',
+            text:'Solicitud revisada',
+            sub:'Hemos revisado tu solicitud y de momento no podemos continuar. Si tienes dudas escríbenos por WhatsApp al 661701454',
+            tipo:'info',
+            leida:false,
+            ts:serverTimestamp()
+          });
+        });
+      }catch(e){console.warn('notif rechazo:',e.message);}
+    }
+
+    toast(estado==='aprobada'?'✅ Aprobada — notificación enviada':'❌ Rechazada');
     loadSolicitudes();
   }catch(e){toast('Error: '+e.message);}
 };
@@ -1265,6 +1319,8 @@ window.editComm=function(commId){
   document.getElementById('mc-pass').value='';
   document.getElementById('mc-wa').value=c.waLink||'';
   if(document.getElementById('mc-categoria'))document.getElementById('mc-categoria').value=c.categoria||'General';
+  if(document.getElementById('mc-passorg'))document.getElementById('mc-passorg').value=c.adminPassOrg||'';
+  if(document.getElementById('mc-adminpass'))document.getElementById('mc-adminpass').value=c.adminPass||'';
   document.getElementById('modal-comm-title').textContent='Editar comunidad';
   document.getElementById('btn-save-comm').dataset.editId=commId;
   openModal('modal-comm');
@@ -1284,6 +1340,8 @@ window.saveComm=async function(){
       desc:document.getElementById('mc-desc').value.trim(),
       waLink:document.getElementById('mc-wa').value.trim(),
       categoria:document.getElementById('mc-categoria')?.value||'General',
+      adminPassOrg:document.getElementById('mc-passorg')?.value.trim()||'',
+      adminPass:document.getElementById('mc-adminpass')?.value.trim()||'',
     };
     const pass=document.getElementById('mc-pass').value;
     if(pass)data.adminPass=pass;

@@ -5900,7 +5900,7 @@ window.enviarPago=async function(){
     // 2. Subir foto
     let proofUrl=null;
     try{
-      const sr=window.ref(storage,`${currentCommId}/${currentSubId}/c/${Date.now()}.jpg`);
+      const sr=ref(storage,`${currentCommId}/${currentSubId}/c/${Date.now()}.jpg`);
       const sn=await uploadBytes(sr,chosenFile);
       proofUrl=await getDownloadURL(sn.ref);
     }catch(storageErr){
@@ -7608,7 +7608,7 @@ window.enviarPagoRifaModal=async function(commId,subId,rifaNombre,precio,ref){
     let proofUrl=null;
     try{
       const sr=ref&&ref.storage?ref:storage;
-      const storRef=window.ref(storage,`${commId}/${subId}/pago/${Date.now()}.jpg`);
+      const storRef=ref(storage,`${commId}/${subId}/pago/${Date.now()}.jpg`);
       const sn=await uploadBytes(storRef,window._pagoRifaFile);
       proofUrl=await getDownloadURL(sn.ref);
     }catch(e){console.warn('upload:',e.message);}

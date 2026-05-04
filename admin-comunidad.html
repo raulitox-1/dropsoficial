@@ -261,20 +261,28 @@ if(saved){try{const o=JSON.parse(saved);commId=o.c;subId=o.s;init();}catch(_){lo
 
 // ── LOGIN ─────────────────────────────────────────────────────
 window.login=async function(){
-  const pin=document.getElementById('lc').value.trim().toUpperCase();
+  const input=document.getElementById('lc').value.trim().toUpperCase();
   const pw=document.getElementById('lp').value.trim();
   const err=document.getElementById('le');
   err.textContent='';
-  if(!pin||!pw){err.textContent='Rellena todos los campos';return;}
+  if(!input||!pw){err.textContent='Rellena todos los campos';return;}
   try{
     const snap=await getDocs(collection(db,'communities'));
     let found=null;
-    snap.forEach(d=>{const dd=d.data();if(dd.pin===pin)found={id:d.id,...dd};});
-    if(!found){err.textContent='Comunidad no encontrada';return;}
+    snap.forEach(d=>{
+      const dd=d.data();
+      // Buscar por PIN o por nombre (insensible a mayúsculas)
+      if(dd.pin===input||dd.pin===input.toLowerCase()||
+         (dd.name&&dd.name.toUpperCase()===input)){
+        found={id:d.id,...dd};
+      }
+    });
+    if(!found){err.textContent='Comunidad no encontrada. Comprueba el PIN o nombre.';return;}
+    if(!found.adminPassOrg){err.textContent='Esta comunidad no tiene contraseña de organizador configurada. Contacta con el administrador.';return;}
     if(found.adminPassOrg!==pw){err.textContent='Contraseña incorrecta';return;}
     commId=found.id;
     const subs=Object.values(found.subs||{});
-    subId=subs.find(s=>s.rifaActiva!==false)?.id||subs[0]?.id||null;
+    subId=subs.find(s=>s.config?.rifaActiva!==false)?.id||subs[0]?.id||null;
     localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));
     init();
   }catch(e){err.textContent='Error: '+e.message;}

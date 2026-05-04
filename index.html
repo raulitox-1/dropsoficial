@@ -5905,6 +5905,15 @@ window.enviarPago=async function(){
       proofUrl=await getDownloadURL(sn.ref);
     }catch(storageErr){
       console.error('Storage error:',storageErr.code,storageErr.message);
+      // Fallback: guardar como base64 en Firestore
+      try{
+        proofUrl=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=e=>resolve(e.target.result);
+          reader.onerror=reject;
+          reader.readAsDataURL(chosenFile);
+        });
+      }catch(_){proofUrl=null;}
     }
 
     // 3. Actualizar participantes

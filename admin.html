@@ -559,17 +559,13 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
 
 <!-- MODAL COMUNIDAD -->
 <div class="modal-bg" id="modal-comm" onclick="if(event.target===this)closeModal('modal-comm')">
-  <div class="modal">
-    <div class="modal-title">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-title" style="position:sticky;top:0;background:var(--bg2);padding-bottom:10px;margin-bottom:4px;z-index:1;">
       <span id="modal-comm-title">Nueva comunidad</span>
       <button onclick="closeModal('modal-comm')" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
     </div>
-    <label>Contraseña organizador</label>
-    <input id="mc-passorg" placeholder="Contraseña para el panel organizador" type="text"/>
     <label>Nombre *</label>
     <input id="mc-name" placeholder="Ej: Threefishh"/>
-    <label>Contraseña Admin Comunidad</label>
-    <input id="mc-adminpass" type="text" placeholder="Contraseña para el admin de esta comunidad" style="margin-bottom:10px;"/>
     <label>Categoría</label>
     <select id="mc-categoria" style="width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rads);padding:10px;color:var(--tx);font-size:13px;outline:none;font-family:inherit;margin-bottom:4px;">
       <option value="Pesca">🎣 Pesca</option>
@@ -586,11 +582,13 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
     <input id="mc-desc" placeholder="Una descripción breve"/>
     <label>PIN de acceso *</label>
     <input id="mc-pin" placeholder="Ej: PESCA2024" style="text-transform:uppercase;"/>
-    <label>Contraseña admin *</label>
-    <input id="mc-pass" type="password" placeholder="Contraseña del admin de esta comunidad"/>
+    <label>Contraseña admin app *</label>
+    <input id="mc-pass" type="password" placeholder="Contraseña del admin en la app"/>
+    <label>Contraseña panel organizador</label>
+    <input id="mc-passorg" placeholder="Contraseña para admin-comunidad.html" type="text"/>
     <label>Link WhatsApp</label>
     <input id="mc-wa" placeholder="https://chat.whatsapp.com/..."/>
-    <div class="modal-actions">
+    <div class="modal-actions" style="position:sticky;bottom:0;background:var(--bg2);padding-top:10px;margin-top:8px;">
       <button class="btn btn-neu" onclick="closeModal('modal-comm')">Cancelar</button>
       <button class="btn btn-g" onclick="saveComm()" id="btn-save-comm">Guardar</button>
     </div>

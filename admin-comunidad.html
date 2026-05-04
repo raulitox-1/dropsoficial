@@ -123,6 +123,9 @@ label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-tr
     <div class="ni" onclick="go('rifas')" data-p="rifas"><span class="nic">🎯</span>Mis Rifas</div>
     <div class="ni" onclick="go('pagos')" data-p="pagos"><span class="nic">💳</span>Pagos<span class="nb" id="nb-pagos"></span></div>
     <div class="ni" onclick="go('ganador')" data-p="ganador"><span class="nic">🏆</span>Ganador</div>
+    <div class="ni" onclick="go('sorteo')" data-p="sorteo"><span class="nic">🎰</span>Sorteo</div>
+    <div class="ni" onclick="go('tablero')" data-p="tablero"><span class="nic">🔢</span>Tablero</div>
+    <div class="ni" onclick="go('stats')" data-p="stats"><span class="nic">📊</span>Estadísticas</div>
     <div class="ni" onclick="go('catalogo')" data-p="catalogo"><span class="nic">📦</span>Catálogo</div>
     <div class="ni" onclick="go('config')" data-p="config"><span class="nic">⚙️</span>Config</div>
     <div class="ni" onclick="go('notifs')" data-p="notifs"><span class="nic">🔔</span>Notificaciones<span class="nb" id="nb-notifs"></span></div>
@@ -220,8 +223,23 @@ label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-tr
         </div>
       </div>
 
-      <!-- NOTIFICACIONES -->
-      <div class="panel" id="p-notifs">
+      <!-- SORTEO -->
+      <div class="panel" id="p-sorteo">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">🎰 Sorteo</div>
+        <div id="sorteo-content"></div>
+      </div>
+
+      <!-- TABLERO NÚMEROS -->
+      <div class="panel" id="p-tablero">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">🔢 Tablero</div>
+        <div id="tablero-content"></div>
+      </div>
+
+      <!-- ESTADÍSTICAS / FACTURACIÓN -->
+      <div class="panel" id="p-stats">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">📊 Estadísticas y Pago</div>
+        <div id="stats-content"></div>
+      </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
           <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🔔 Notificaciones</div>
           <button class="btn btn-neu btn-sm" onclick="loadNotifs()">↻</button>
@@ -236,9 +254,9 @@ label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-tr
 <nav class="bnav">
   <button class="bi active" onclick="go('dashboard')" data-p="dashboard"><span class="bic">📊</span>Inicio</button>
   <button class="bi" onclick="go('pagos')" data-p="pagos"><span class="bic">💳</span>Pagos</button>
+  <button class="bi" onclick="go('sorteo')" data-p="sorteo"><span class="bic">🎰</span>Sorteo</button>
   <button class="bi" onclick="go('ganador')" data-p="ganador"><span class="bic">🏆</span>Ganador</button>
-  <button class="bi" onclick="go('config')" data-p="config"><span class="bic">⚙️</span>Config</button>
-  <button class="bi" onclick="go('notifs')" data-p="notifs"><span class="bic">🔔</span>Notifs</button>
+  <button class="bi" onclick="go('stats')" data-p="stats"><span class="bic">📈</span>Stats</button>
 </nav>
 
 <div id="toast"></div>
@@ -312,12 +330,15 @@ window.go=function(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni,.bi').forEach(b=>b.classList.toggle('active',b.dataset.p===name));
   document.getElementById('p-'+name)?.classList.add('active');
-  const t={dashboard:'Dashboard',rifas:'Rifas',pagos:'Pagos',ganador:'Ganador',catalogo:'Catálogo',config:'Config',notifs:'Notificaciones'};
+  const t={dashboard:'Dashboard',rifas:'Rifas',pagos:'Pagos',ganador:'Ganador',sorteo:'Sorteo',tablero:'Tablero',stats:'Estadísticas',catalogo:'Catálogo',config:'Config',notifs:'Notificaciones'};
   document.getElementById('tbt').textContent=t[name]||name;
   if(name==='dashboard')loadDashboard();
   if(name==='rifas')loadRifas();
   if(name==='pagos')renderPagos();
   if(name==='ganador')loadGanador();
+  if(name==='sorteo')loadSorteo();
+  if(name==='tablero')loadTablero();
+  if(name==='stats')loadStats();
   if(name==='catalogo')loadCatalogo();
   if(name==='config')loadConfig();
   if(name==='notifs')loadNotifs();
@@ -501,7 +522,261 @@ async function loadGanador(){
   `;
 }
 
-// ── CATÁLOGO ──────────────────────────────────────────────────
+// ── SORTEO ────────────────────────────────────────────────────
+async function loadSorteo(){
+  const el=document.getElementById('sorteo-content');
+  el.innerHTML='';
+  // Recargar datos
+  try{const s=await getDoc(doc(db,'communities',commId));commData={id:s.id,...s.data()};}catch(_){}
+  const sub=commData?.subs?.[subId];
+  const cfg=sub?.config||{};
+  const allParts=Object.values(parts);
+  const confirmed=allParts.filter(p=>p.status==='confirmed');
+  const total=cfg.total||100;
+  const pagosAbiertos=sub?.pagosAbiertos;
+
+  el.innerHTML=`
+    <div class="card">
+      <div class="ct2">📊 Estado</div>
+      <div style="font-size:13px;margin-bottom:8px;">${confirmed.length}/${total} números confirmados</div>
+      <div style="background:var(--bg3);border-radius:99px;height:8px;overflow:hidden;margin-bottom:12px;">
+        <div style="height:100%;background:var(--g);width:${Math.min(100,confirmed.length/total*100)}%;"></div>
+      </div>
+      ${confirmed.length>=total?'<div class="alert a-ok">✅ Drop completo</div>':'<div class="alert a-warn">⏳ Faltan '+(total-confirmed.length)+' números por confirmar</div>'}
+    </div>
+
+    ${!pagosAbiertos?`
+    <div class="card">
+      <div class="ct2">🚀 Abrir pago</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Notifica a todos los participantes que pueden pagar.</div>
+      <button class="btn btn-g btn-lg" style="width:100%;" onclick="abrirPagoComm()">🚀 Abrir pago a participantes</button>
+    </div>`:'<div class="alert a-ok" style="margin-bottom:12px;">✅ Pagos abiertos</div>'}
+
+    <div class="card">
+      <div class="ct2">📅 Programar cuenta atrás</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Programa cuándo se abre el drop automáticamente.</div>
+      <input type="datetime-local" id="cd-fecha" style="margin-bottom:8px;"/>
+      <button class="btn btn-g" style="width:100%;" onclick="programarCuentaAtras()">⏰ Programar</button>
+      ${sub?.activaAt?`<div style="font-size:12px;color:var(--g);margin-top:8px;">⏳ Programado: ${new Date(sub.activaAt).toLocaleString('es-ES')}</div>`:''}
+    </div>
+
+    <div class="card">
+      <div class="ct2">🎰 Realizar sorteo</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Sube la captura del cupón de la ONCE para hacer el sorteo.</div>
+      <div style="background:var(--bg3);border:2px dashed var(--bd);border-radius:var(--rads);padding:16px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('sorteo-file').click()">
+        <div style="font-size:24px;">📸</div>
+        <div style="font-size:12px;color:var(--tx2);" id="sorteo-file-txt">Subir foto del cupón ONCE</div>
+      </div>
+      <input type="file" id="sorteo-file" accept="image/*" style="display:none;" onchange="onSorteoFile(this)"/>
+      <img id="sorteo-preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;"/>
+      <input type="number" id="sorteo-numero" placeholder="Número ganador del cupón" style="margin-bottom:8px;"/>
+      <button class="btn btn-g btn-lg" style="width:100%;" id="btn-sorteo" onclick="realizarSorteo()" disabled>🎰 Realizar sorteo</button>
+    </div>
+
+    <div class="card" style="border-color:rgba(239,68,68,.3);">
+      <div class="ct2" style="color:var(--r);">⚠️ Cerrar drop</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Guarda el drop en el historial y lo reinicia.</div>
+      <button class="btn btn-ko" style="width:100%;padding:12px;" onclick="cerrarDropComm()">Cerrar drop y guardar historial</button>
+    </div>
+  `;
+}
+
+window.onSorteoFile=function(input){
+  const file=input.files[0];if(!file)return;
+  window._sorteoFile=file;
+  document.getElementById('sorteo-file-txt').textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=document.getElementById('sorteo-preview');
+    img.src=e.target.result;img.style.display='block';
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('btn-sorteo').disabled=false;
+};
+
+window.programarCuentaAtras=async function(){
+  const fecha=document.getElementById('cd-fecha').value;
+  if(!fecha){toast('Selecciona fecha y hora');return;}
+  try{
+    await updateDoc(doc(db,'communities',commId),{
+      [`subs.${subId}.activaAt`]:new Date(fecha).getTime(),
+      [`subs.${subId}.config.rifaActiva`]:false
+    });
+    toast('✅ Cuenta atrás programada');
+    loadSorteo();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.abrirPagoComm=async function(){
+  if(!confirm('¿Abrir el pago a todos los participantes?'))return;
+  try{
+    await updateDoc(doc(db,'communities',commId),{[`subs.${subId}.pagosAbiertos`]:true});
+    toast('✅ Pago abierto');
+    loadSorteo();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.realizarSorteo=async function(){
+  if(!window._sorteoFile){toast('Sube la foto del cupón');return;}
+  const numInput=document.getElementById('sorteo-numero').value.trim();
+  if(!numInput){toast('Introduce el número ganador');return;}
+  const numGanador=parseInt(numInput);
+  if(!confirm('¿Confirmas que el número ganador es el '+numGanador+'?'))return;
+
+  const btn=document.getElementById('btn-sorteo');
+  btn.disabled=true;btn.textContent='Procesando...';
+
+  try{
+    // Subir imagen
+    let drawUrl='';
+    try{
+      const {getStorage,ref:sRef,uploadBytes,getDownloadURL}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+      const storage=getStorage();
+      const sr=sRef(storage,`${commId}/${subId}/sorteo/${Date.now()}.jpg`);
+      const sn=await uploadBytes(sr,window._sorteoFile);
+      drawUrl=await getDownloadURL(sn.ref);
+    }catch(_){}
+
+    // Buscar ganador
+    const ganador=Object.values(parts).find(p=>p.num===numGanador&&p.status==='confirmed');
+    if(!ganador){toast('⚠️ Ese número no está confirmado');btn.disabled=false;btn.textContent='🎰 Realizar sorteo';return;}
+
+    const cfg=commData?.subs?.[subId]?.config||{};
+    const ganadorData={
+      name:ganador.name,phone:ganador.phone,num:numGanador,
+      drawUrl,premios:cfg.premios||'',
+      fecha:new Date().toLocaleDateString('es-ES'),
+      ts:Date.now()
+    };
+
+    await updateDoc(doc(db,'communities',commId),{
+      [`subs.${subId}.ultimoGanador`]:ganadorData,
+      [`subs.${subId}.config.rifaActiva`]:false,
+      [`subs.${subId}.pagosAbiertos`]:false
+    });
+
+    toast('🏆 Ganador: '+ganador.name+' — Nº'+numGanador);
+    go('ganador');
+  }catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='🎰 Realizar sorteo';
+};
+
+window.cerrarDropComm=async function(){
+  if(!confirm('¿Cerrar este drop y guardarlo en el historial?'))return;
+  try{
+    const cfg=commData?.subs?.[subId]?.config||{};
+    const ganador=commData?.subs?.[subId]?.ultimoGanador;
+    // Guardar en historial
+    await addDoc(collection(db,'communities',commId,'subs',subId,'historial'),{
+      rifaName:cfg.rifaName||'',
+      ganador:ganador?.name||'',
+      numGanador:ganador?.num||null,
+      fecha:new Date().toLocaleDateString('es-ES'),
+      ts:serverTimestamp()
+    });
+    // Reiniciar
+    await updateDoc(doc(db,'communities',commId),{
+      [`subs.${subId}.config.rifaActiva`]:false,
+      [`subs.${subId}.pagosAbiertos`]:false,
+      [`subs.${subId}.ultimoGanador`]:null,
+      [`subs.${subId}.ganadorEleccion`]:null
+    });
+    toast('✅ Drop cerrado y guardado');
+    go('dashboard');
+  }catch(e){toast('Error: '+e.message);}
+};
+
+// ── TABLERO ───────────────────────────────────────────────────
+function loadTablero(){
+  const el=document.getElementById('tablero-content');
+  const cfg=commData?.subs?.[subId]?.config||{};
+  const total=cfg.total||100;
+  el.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;';
+  for(let i=1;i<=total;i++){
+    const p=Object.values(parts).find(x=>x.num===i);
+    const div=document.createElement('div');
+    div.style.cssText='height:44px;border-radius:var(--rads);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;';
+    const color=!p?'background:var(--bg3);color:var(--tx3);border:1px solid var(--bd);'
+      :p.status==='confirmed'?'background:var(--gl);color:var(--g);border:1px solid rgba(22,168,107,.3);'
+      :p.status==='pending'?'background:rgba(245,158,11,.15);color:var(--y);border:1px solid rgba(245,158,11,.3);'
+      :'background:rgba(239,68,68,.1);color:var(--r);border:1px solid rgba(239,68,68,.2);';
+    div.style.cssText+=color;
+    div.textContent=i<10?'0'+i:i;
+    if(p)div.title=p.name+(p.status==='confirmed'?'\n✅ Confirmado':p.status==='pending'?'\n⏳ Pendiente':'\n❌ Sin pagar');
+    grid.appendChild(div);
+  }
+  el.appendChild(grid);
+  // Leyenda
+  const leyenda=document.createElement('div');
+  leyenda.style.cssText='display:flex;gap:12px;margin-top:14px;font-size:11px;flex-wrap:wrap;';
+  leyenda.innerHTML='<span style="color:var(--g);">■ Confirmado</span><span style="color:var(--y);">■ Pendiente</span><span style="color:var(--r);">■ Reservado</span><span style="color:var(--tx3);">■ Libre</span>';
+  el.appendChild(leyenda);
+}
+
+// ── ESTADÍSTICAS ──────────────────────────────────────────────
+async function loadStats(){
+  const el=document.getElementById('stats-content');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  const cfg=commData?.subs?.[subId]?.config||{};
+  const precio=cfg.price||12;
+  const allParts=Object.values(parts);
+  const confirmed=allParts.filter(p=>p.status==='confirmed').length;
+  const pending=allParts.filter(p=>p.status==='pending').length;
+  const recaudado=confirmed*precio;
+  const pendiente=pending*precio;
+
+  // Historial
+  let historial=[];
+  try{
+    const snap=await getDocs(collection(db,'communities',commId,'subs',subId,'historial'));
+    snap.forEach(d=>historial.push({id:d.id,...d.data()}));
+    historial.sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
+  }catch(_){}
+
+  // Calcular cuántas rifas lleva este mes
+  const mes=new Date().toISOString().slice(0,7);
+  const rifasMes=historial.filter(h=>(h.fecha||'').includes(mes.split('-')[1]+'/'+mes.split('-')[0])||
+    (h.ts?.seconds&&new Date(h.ts.seconds*1000).toISOString().slice(0,7)===mes)).length;
+  const precioPorRifa=rifasMes<3?25:rifasMes<10?15:10;
+
+  el.innerHTML=`
+    <div class="sg" style="grid-template-columns:repeat(2,1fr);">
+      <div class="sc2 green"><div class="sl2">Recaudado</div><div class="sv">${recaudado}€</div></div>
+      <div class="sc2 yellow"><div class="sl2">Pendiente</div><div class="sv">${pendiente}€</div></div>
+      <div class="sc2 blue"><div class="sl2">Confirmados</div><div class="sv">${confirmed}</div></div>
+      <div class="sc2 red"><div class="sl2">Pendientes</div><div class="sv">${pending}</div></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05);">
+      <div class="ct2">💶 Pago a Drops Oficial</div>
+      <div style="font-size:28px;font-weight:900;color:var(--a);margin-bottom:8px;">${precioPorRifa}€</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px;">Rifa nº${rifasMes+1} de este mes<br>
+        <span style="font-size:11px;opacity:.7;">1-3 rifas=25€ · 4-10=15€ · 11+=10€ · Mensual=150€</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;margin-bottom:8px;font-size:13px;">
+        <div style="margin-bottom:6px;">📱 Bizum: <strong>634 XX XX XX</strong> <button onclick="navigator.clipboard.writeText('634XXXXXXX').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:6px;">📋</button></div>
+        <div>🏦 IBAN: <strong style="font-size:12px;">ES65 1583 0001 1590 6984 8933</strong> <button onclick="navigator.clipboard.writeText('ES6515830001159069848933').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:6px;">📋</button></div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Concepto: tu nombre + comunidad</div>
+      </div>
+      <div style="font-size:11px;color:var(--bl);background:rgba(59,130,246,.08);border-radius:var(--rads);padding:8px;">
+        ℹ️ Para transferencia: pon tu nombre como concepto. El nombre del titular da igual.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct2">📋 Historial de drops</div>
+      ${historial.length?historial.slice(0,10).map(h=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">
+          <div><div style="font-weight:600;">${h.rifaName||'Drop'}</div>
+          <div style="font-size:11px;color:var(--tx3);">${h.fecha||''} · Ganador: ${h.ganador||'—'}</div></div>
+        </div>`).join(''):'<div style="color:var(--tx3);font-size:13px;">Sin historial aún</div>'}
+    </div>
+  `;
+}
+
+
 async function loadCatalogo(){
   const el=document.getElementById('cat-list');
   el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';

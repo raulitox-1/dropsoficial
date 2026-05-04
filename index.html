@@ -5863,12 +5863,10 @@ window.enviarPago=async function(){
   const ocrEl=document.getElementById('ocr-pago-result');
 
   try{
-    // 1. OCR — verificar referencia e importe
     const method=document.getElementById('pay-method').value;
     const subData=communities[currentCommId]?.subs?.[currentSubId];
     const cfgData=subData?.config||{};
     const total=partReservedNums.length*(cfgData.price||12);
-    // Usar el pagoRef del participante (guardado en reserva)
     let dropRef=window._currentDropRef||null;
     if(!dropRef){
       for(const n of partReservedNums){
@@ -5876,28 +5874,9 @@ window.enviarPago=async function(){
       }
     }
 
-    let estadoOCR='pending';
-    let autoConfirmado=false;
+    btn.textContent='📤 Subiendo foto...';
 
-    if(dropRef){
-      const ocr=await verificarComprobanteOCR(chosenFile,dropRef,total);
-      console.log('OCR participante:',ocr);
-      if(ocr.autoAprobado){
-        estadoOCR='confirmed';
-        autoConfirmado=true;
-        if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:var(--gl);border-radius:var(--rads);padding:8px;font-size:12px;color:var(--g);font-weight:700;margin-bottom:8px;">✅ Verificado automáticamente</div>';}
-      } else {
-        estadoOCR='pending';
-        const motivos=[];
-        if(!ocr.refEncontrada)motivos.push('código no encontrado');
-        if(!ocr.importeEncontrado)motivos.push('importe no coincide ('+total+'€)');
-        if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rads);padding:8px;font-size:11px;color:#92400e;margin-bottom:8px;">⚠️ '+motivos.join(', ')+' — pendiente de revisión manual</div>';}
-      }
-    }
-
-    btn.textContent='📤 Subiendo...';
-
-    // 2. Subir foto
+    // 1. SUBIR FOTO PRIMERO — siempre
     let proofUrl=null;
     try{
       const sr=ref(storage,`${currentCommId}/${currentSubId}/c/${Date.now()}.jpg`);
@@ -5905,28 +5884,54 @@ window.enviarPago=async function(){
       proofUrl=await getDownloadURL(sn.ref);
     }catch(storageErr){
       console.error('Storage error:',storageErr.code,storageErr.message);
-      // Fallback: guardar como base64 en Firestore
+      // Fallback base64
       try{
-        proofUrl=await new Promise((resolve,reject)=>{
+        proofUrl=await new Promise((res,rej)=>{
           const reader=new FileReader();
-          reader.onload=e=>resolve(e.target.result);
-          reader.onerror=reject;
+          reader.onload=e=>res(e.target.result);
+          reader.onerror=rej;
           reader.readAsDataURL(chosenFile);
         });
       }catch(_){proofUrl=null;}
     }
 
-    // 3. Actualizar participantes
+    // 2. Guardar participantes con estado 'pending' y la foto — SIEMPRE
     const batch=writeBatch(db);
     partReservedNums.forEach(n=>{
       const p=participants[n];
       if(p)batch.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{
-        status:estadoOCR,method,proofUrl,
-        ocrVerificado:autoConfirmado,
+        status:'pending',method,proofUrl,
+        ocrVerificado:false,
         dropRef:dropRef||''
       });
     });
     await batch.commit();
+
+    // 3. OCR en segundo plano — no bloquea
+    if(dropRef&&proofUrl){
+      btn.textContent='🔍 Verificando...';
+      verificarComprobanteOCR(chosenFile,dropRef,total).then(async ocr=>{
+        if(ocr.autoAprobado){
+          const b2=writeBatch(db);
+          partReservedNums.forEach(n=>{
+            const p=participants[n];
+            if(p)b2.update(doc(db,'communities',currentCommId,'subs',currentSubId,'participants',p.id),{
+              status:'confirmed',ocrVerificado:true
+            });
+          });
+          await b2.commit();
+          if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:var(--gl);border-radius:var(--rads);padding:8px;font-size:12px;color:var(--g);font-weight:700;">✅ Verificado automáticamente</div>';}
+        } else {
+          const motivos=[];
+          if(!ocr.refEncontrada)motivos.push('código no encontrado');
+          if(!ocr.importeEncontrado)motivos.push('importe no coincide');
+          if(ocrEl){ocrEl.style.display='block';ocrEl.innerHTML='<div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:var(--rads);padding:8px;font-size:11px;color:#92400e;">⚠️ '+motivos.join(', ')+' — pendiente de revisión manual</div>';}
+        }
+      }).catch(()=>{});
+    }
+
+    let estadoOCR='pending';
+    let autoConfirmado=false;
     const el4=document.getElementById('s4-nums');el4.innerHTML='';
     partReservedNums.forEach(n=>{const s=document.createElement('span');s.className='badge b-c';s.style.fontSize='13px';s.textContent='Nº '+(n<10?'0'+n:n);el4.appendChild(s);});
     // Notify via Telegram

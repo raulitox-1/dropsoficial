@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Drops Oficial · Panel Organizador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222f;
+  --bd:#2a2a3a;--tx:#f0f0f8;--tx2:#9090b0;--tx3:#555570;
+  --g:#16a86b;--gd:#0d7a4e;--gl:rgba(22,168,107,.12);
+  --r:#ef4444;--y:#f59e0b;--b:#3b82f6;--a:#f59e0b;--pu:#8b5cf6;
+  --rad:12px;--rads:8px;--f:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--f);overflow:hidden;}
+@media(max-width:768px){html,body{overflow:auto;}}
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--bg);}
+.lw{width:100%;max-width:380px;padding:0 24px;}
+.ll{font-family:'Syne',sans-serif;font-size:42px;font-weight:900;text-align:center;margin-bottom:4px;letter-spacing:-2px;}
+.ll span{color:var(--g);}
+.ls{text-align:center;color:var(--tx3);font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
+.ls2{text-align:center;color:var(--tx2);font-size:12px;margin-bottom:28px;}
+.lf label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
+.lf input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:11px 13px;color:var(--tx);font-family:var(--f);font-size:14px;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.lf input:focus{border-color:var(--g);}
+.lbtn{width:100%;margin-top:16px;padding:13px;background:var(--g);border:none;border-radius:var(--rads);color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;}
+.lbtn:hover{background:var(--gd);}
+.lerr{margin-top:10px;text-align:center;font-size:12px;color:var(--r);min-height:18px;}
+#app{display:none;height:100vh;flex-direction:row;}
+#app.visible{display:flex;}
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:20px 0;}
+@media(max-width:768px){.sidebar{display:none;}}
+.sl{font-family:'Syne',sans-serif;font-weight:900;font-size:15px;padding:0 20px 12px;border-bottom:1px solid var(--bd);letter-spacing:-.5px;}
+.sl span{color:var(--g);}
+.sc{font-size:11px;color:var(--tx2);padding:10px 20px 0;font-weight:700;}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--tx2);border-left:2px solid transparent;transition:all .15s;position:relative;}
+.ni:hover{color:var(--tx);background:var(--bg3);}
+.ni.active{color:var(--g);border-left-color:var(--g);background:rgba(22,168,107,.08);}
+.nic{font-size:16px;width:20px;text-align:center;}
+.sf{margin-top:auto;padding:16px 20px;border-top:1px solid var(--bd);}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.tb{padding:14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:10;}
+.tbt{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;}
+.tbr{display:flex;align-items:center;gap:10px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--g);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.ct{padding:20px 24px;flex:1;}
+.panel{display:none;}
+.panel.active{display:block;}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.sc2{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:15px 17px;position:relative;overflow:hidden;}
+.sc2::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.sc2.green::before{background:var(--g);}
+.sc2.red::before{background:var(--r);}
+.sc2.blue::before{background:var(--b);}
+.sc2.yellow::before{background:var(--y);}
+.sl2{font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;}
+.sv{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;letter-spacing:-1px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--rads);cursor:pointer;font-family:var(--f);font-weight:700;transition:all .15s;}
+.btn-g{background:var(--g);color:#fff;}
+.btn-g:hover{background:var(--gd);}
+.btn-r{background:var(--r);color:#fff;}
+.btn-neu{background:var(--bg3);color:var(--tx);border:1px solid var(--bd);}
+.btn-neu:hover{background:var(--bg4);}
+.btn-ko{background:rgba(239,68,68,.12);color:var(--r);border:1px solid rgba(239,68,68,.25);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-md{padding:9px 16px;font-size:13px;}
+.btn-lg{padding:12px 20px;font-size:14px;}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px 18px;margin-bottom:12px;}
+.ct2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:10px;}
+input,textarea,select{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:var(--f);font-size:13px;outline:none;margin-bottom:8px;}
+input:focus,textarea:focus{border-color:var(--g);}
+label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;margin-top:8px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;}
+.b-ok{background:var(--gl);color:var(--g);}
+.b-warn{background:rgba(245,158,11,.15);color:var(--y);}
+.b-err{background:rgba(239,68,68,.15);color:var(--r);}
+.b-neu{background:var(--bg4);color:var(--tx2);}
+.loading{display:flex;align-items:center;padding:30px;color:var(--tx3);font-size:13px;}
+.spinner{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.alert{border-radius:var(--rads);padding:10px 14px;font-size:12px;margin-bottom:10px;line-height:1.5;}
+.a-ok{background:var(--gl);color:var(--g);border:1px solid rgba(22,168,107,.2);}
+.a-warn{background:rgba(245,158,11,.1);color:var(--y);border:1px solid rgba(245,158,11,.2);}
+.a-err{background:rgba(239,68,68,.1);color:var(--r);border:1px solid rgba(239,68,68,.2);}
+.a-info{background:rgba(59,130,246,.1);color:var(--b);border:1px solid rgba(59,130,246,.2);}
+.nb{position:absolute;top:6px;right:10px;background:var(--r);color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:0 5px;min-width:15px;text-align:center;display:none;}
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);z-index:100;flex-direction:row;justify-content:space-around;padding:6px 0 env(safe-area-inset-bottom);}
+@media(max-width:768px){.bnav{display:flex;}.ct{padding-bottom:72px;}}
+.bi{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;font-size:9px;color:var(--tx3);background:none;border:none;font-family:var(--f);position:relative;}
+.bi.active{color:var(--g);}
+.bic{font-size:20px;}
+.gc{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1));border:1px solid rgba(139,92,246,.3);border-radius:var(--rad);padding:20px;margin-bottom:14px;}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 18px;font-size:13px;z-index:9999;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="lw">
+    <div class="ll">drops<span>.</span></div>
+    <div class="ls">Panel Organizador</div>
+    <div class="ls2">Accede con las credenciales que te dio el administrador</div>
+    <div class="lf">
+      <label>PIN de la comunidad</label>
+      <input type="text" id="lc" placeholder="Ej: THREEFISHH" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')login()"/>
+      <label>Contraseña de organizador</label>
+      <input type="password" id="lp" placeholder="••••••••••" onkeydown="if(event.key==='Enter')login()"/>
+    </div>
+    <button class="lbtn" onclick="login()">Acceder →</button>
+    <div class="lerr" id="le"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sl">drops<span>.</span></div>
+    <div class="sc" id="sb-name" style="margin-bottom:10px;"></div>
+    <div class="ni active" onclick="go('dashboard')" data-p="dashboard"><span class="nic">📊</span>Dashboard</div>
+    <div class="ni" onclick="go('rifas')" data-p="rifas"><span class="nic">🎯</span>Mis Rifas</div>
+    <div class="ni" onclick="go('pagos')" data-p="pagos"><span class="nic">💳</span>Pagos<span class="nb" id="nb-pagos"></span></div>
+    <div class="ni" onclick="go('ganador')" data-p="ganador"><span class="nic">🏆</span>Ganador</div>
+    <div class="ni" onclick="go('catalogo')" data-p="catalogo"><span class="nic">📦</span>Catálogo</div>
+    <div class="ni" onclick="go('config')" data-p="config"><span class="nic">⚙️</span>Config</div>
+    <div class="ni" onclick="go('notifs')" data-p="notifs"><span class="nic">🔔</span>Notificaciones<span class="nb" id="nb-notifs"></span></div>
+    <div class="sf"><button class="btn btn-neu btn-sm" onclick="logout()">← Salir</button></div>
+  </div>
+
+  <div class="main">
+    <div class="tb">
+      <div class="tbt" id="tbt">Dashboard</div>
+      <div class="tbr">
+        <div class="dot"></div>
+        <span style="font-size:11px;color:var(--tx3);" id="tb-comm"></span>
+        <button class="btn btn-neu btn-sm" onclick="logout()">Salir</button>
+      </div>
+    </div>
+    <div class="ct">
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="p-dashboard">
+        <div class="sg">
+          <div class="sc2 green"><div class="sl2">Reservados</div><div class="sv" id="d-res">—</div></div>
+          <div class="sc2 blue"><div class="sl2">Confirmados</div><div class="sv" id="d-conf">—</div></div>
+          <div class="sc2 yellow"><div class="sl2">Pendientes</div><div class="sv" id="d-pend">—</div></div>
+          <div class="sc2 red"><div class="sl2">Sin pagar</div><div class="sv" id="d-sinpag">—</div></div>
+        </div>
+        <div class="card"><div class="ct2">🎯 Drop activo</div><div id="d-rifa" style="font-size:13px;color:var(--tx2);">Cargando...</div></div>
+        <div class="card"><div class="ct2">🏆 Último ganador</div><div id="d-gan" style="font-size:13px;color:var(--tx2);">Sin ganador aún</div></div>
+        <div class="card">
+          <div class="ct2">💶 Pago a Drops Oficial</div>
+          <div id="d-pago" style="font-size:12px;color:var(--tx2);"></div>
+        </div>
+      </div>
+
+      <!-- RIFAS -->
+      <div class="panel" id="p-rifas">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">🎯 Mis Rifas / Secciones</div>
+        <div id="rifas-list"></div>
+      </div>
+
+      <!-- PAGOS -->
+      <div class="panel" id="p-pagos">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">💳 Pagos de participantes</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-g btn-sm pf" data-f="todos" onclick="setPagFiltro(this)">Todos</button>
+          <button class="btn btn-neu btn-sm pf" data-f="pending" onclick="setPagFiltro(this)">⏳ Pendientes</button>
+          <button class="btn btn-neu btn-sm pf" data-f="confirmed" onclick="setPagFiltro(this)">✅ Confirmados</button>
+          <button class="btn btn-neu btn-sm pf" data-f="reserved" onclick="setPagFiltro(this)">Sin pago</button>
+        </div>
+        <div id="pagos-list"></div>
+      </div>
+
+      <!-- GANADOR -->
+      <div class="panel" id="p-ganador">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">🏆 Datos del Ganador</div>
+        <div id="ganador-content"></div>
+      </div>
+
+      <!-- CATÁLOGO -->
+      <div class="panel" id="p-catalogo">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">📦 Catálogo</div>
+        <input type="text" id="cat-q" placeholder="Buscar..." oninput="renderCat(this.value)"/>
+        <div style="display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+          <button class="btn btn-g btn-sm cf" data-f="todos" onclick="setCF(this)">Todos</button>
+          <button class="btn btn-neu btn-sm cf" data-f="cana" onclick="setCF(this)">🎣</button>
+          <button class="btn btn-neu btn-sm cf" data-f="carrete" onclick="setCF(this)">🔄</button>
+          <button class="btn btn-neu btn-sm cf" data-f="señuelo" onclick="setCF(this)">🦑</button>
+          <button class="btn btn-neu btn-sm cf" data-f="hilo" onclick="setCF(this)">🧵</button>
+          <button class="btn btn-neu btn-sm cf" data-f="combo" onclick="setCF(this)">🎁</button>
+        </div>
+        <div id="cat-list"></div>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="panel" id="p-config">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">⚙️ Configuración</div>
+        <div id="cfg-subs" style="margin-bottom:14px;"></div>
+        <div id="cfg-form" style="display:none;">
+          <div class="card">
+            <div class="ct2">🎯 Drop</div>
+            <label>Nombre</label><input type="text" id="cfg-name"/>
+            <label>Premios (uno por línea)</label><textarea id="cfg-premios" style="height:90px;"></textarea>
+            <label>Precio/número (€)</label><input type="number" id="cfg-price"/>
+            <label>Total números</label><input type="number" id="cfg-total"/>
+            <label>Bizum</label><input type="text" id="cfg-bizum"/>
+            <label>IBAN transferencia</label><input type="text" id="cfg-transfer"/>
+            <label>PayPal</label><input type="text" id="cfg-paypal"/>
+            <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+              <label style="margin:0;text-transform:none;font-size:13px;">Drop activo</label>
+              <input type="checkbox" id="cfg-activa" style="width:18px;height:18px;"/>
+            </div>
+            <button class="btn btn-g btn-lg" style="width:100%;margin-top:6px;" onclick="guardarCfg()">💾 Guardar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <div class="panel" id="p-notifs">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🔔 Notificaciones</div>
+          <button class="btn btn-neu btn-sm" onclick="loadNotifs()">↻</button>
+        </div>
+        <div id="notifs-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<nav class="bnav">
+  <button class="bi active" onclick="go('dashboard')" data-p="dashboard"><span class="bic">📊</span>Inicio</button>
+  <button class="bi" onclick="go('pagos')" data-p="pagos"><span class="bic">💳</span>Pagos</button>
+  <button class="bi" onclick="go('ganador')" data-p="ganador"><span class="bic">🏆</span>Ganador</button>
+  <button class="bi" onclick="go('config')" data-p="config"><span class="bic">⚙️</span>Config</button>
+  <button class="bi" onclick="go('notifs')" data-p="notifs"><span class="bic">🔔</span>Notifs</button>
+</nav>
+
+<div id="toast"></div>
+
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import{getFirestore,collection,doc,getDoc,getDocs,updateDoc,addDoc,onSnapshot,serverTimestamp,query,where,writeBatch,setDoc}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const fb=initializeApp({apiKey:"AIzaSyBoh-OnF_G4_N8YwhWHOAsqIOS1B1tzkkA",authDomain:"drops-oficial.firebaseapp.com",projectId:"drops-oficial",storageBucket:"drops-oficial.firebasestorage.app",messagingSenderId:"725158698993",appId:"1:725158698993:web:d7e1ecbb73bfcefc676e50"});
+const db=getFirestore(fb);
+
+let commId=null,subId=null,commData=null,parts={},catDocs=[],pagFiltro='todos',catFiltro='todos';
+let _unsubParts=null;
+
+function toast(m,d=3000){const e=document.getElementById('toast');e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',d);}
+
+// ── AUTO-LOGIN ────────────────────────────────────────────────
+const saved=localStorage.getItem('dca');
+if(saved){try{const o=JSON.parse(saved);commId=o.c;subId=o.s;init();}catch(_){localStorage.removeItem('dca');}}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+window.login=async function(){
+  const pin=document.getElementById('lc').value.trim().toUpperCase();
+  const pw=document.getElementById('lp').value.trim();
+  const err=document.getElementById('le');
+  err.textContent='';
+  if(!pin||!pw){err.textContent='Rellena todos los campos';return;}
+  try{
+    const snap=await getDocs(collection(db,'communities'));
+    let found=null;
+    snap.forEach(d=>{const dd=d.data();if(dd.pin===pin)found={id:d.id,...dd};});
+    if(!found){err.textContent='Comunidad no encontrada';return;}
+    if(found.adminPassOrg!==pw){err.textContent='Contraseña incorrecta';return;}
+    commId=found.id;
+    const subs=Object.values(found.subs||{});
+    subId=subs.find(s=>s.rifaActiva!==false)?.id||subs[0]?.id||null;
+    localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));
+    init();
+  }catch(e){err.textContent='Error: '+e.message;}
+};
+
+window.logout=function(){localStorage.removeItem('dca');location.reload();};
+
+// ── INIT ──────────────────────────────────────────────────────
+async function init(){
+  try{
+    const snap=await getDoc(doc(db,'communities',commId));
+    if(!snap.exists()){toast('Comunidad no encontrada');return;}
+    commData={id:snap.id,...snap.data()};
+    const name=commData.name||commId;
+    document.getElementById('sb-name').textContent=name;
+    document.getElementById('tb-comm').textContent=name;
+    document.title='Drops · '+name;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').classList.add('visible');
+    escucharParts();
+    loadDashboard();
+  }catch(e){toast('Error: '+e.message);}
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+window.go=function(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni,.bi').forEach(b=>b.classList.toggle('active',b.dataset.p===name));
+  document.getElementById('p-'+name)?.classList.add('active');
+  const t={dashboard:'Dashboard',rifas:'Rifas',pagos:'Pagos',ganador:'Ganador',catalogo:'Catálogo',config:'Config',notifs:'Notificaciones'};
+  document.getElementById('tbt').textContent=t[name]||name;
+  if(name==='dashboard')loadDashboard();
+  if(name==='rifas')loadRifas();
+  if(name==='pagos')renderPagos();
+  if(name==='ganador')loadGanador();
+  if(name==='catalogo')loadCatalogo();
+  if(name==='config')loadConfig();
+  if(name==='notifs')loadNotifs();
+};
+
+// ── PARTICIPANTES RT ──────────────────────────────────────────
+function escucharParts(){
+  if(!subId)return;
+  if(_unsubParts)_unsubParts();
+  _unsubParts=onSnapshot(collection(db,'communities',commId,'subs',subId,'participants'),snap=>{
+    parts={};snap.forEach(d=>parts[d.data().num]={id:d.id,...d.data()});
+    actualizarStats();
+    const pend=Object.values(parts).filter(p=>p.status==='pending').length;
+    const nb=document.getElementById('nb-pagos');
+    if(nb){nb.textContent=pend;nb.style.display=pend>0?'inline':'none';}
+    if(document.getElementById('p-pagos')?.classList.contains('active'))renderPagos();
+    // Notif nativa
+    if(pend>0&&Notification.permission==='granted'&&!document.getElementById('p-pagos')?.classList.contains('active')){
+      new Notification('💳 Comprobante recibido',{body:pend+' pago'+(pend>1?'s':'')+' pendiente'+(pend>1?'s':'')+' de confirmar',icon:'/favicon.ico'});
+    }
+  });
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+
+function actualizarStats(){
+  const p=Object.values(parts);
+  document.getElementById('d-res').textContent=p.length;
+  document.getElementById('d-conf').textContent=p.filter(x=>x.status==='confirmed').length;
+  document.getElementById('d-pend').textContent=p.filter(x=>x.status==='pending').length;
+  document.getElementById('d-sinpag').textContent=p.filter(x=>x.status==='reserved').length;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function loadDashboard(){
+  actualizarStats();
+  const sub=commData?.subs?.[subId];const cfg=sub?.config||{};
+  const el=document.getElementById('d-rifa');
+  if(cfg.rifaName){
+    const n=Object.values(parts).length,m=cfg.total||100;
+    el.innerHTML=`<div style="font-weight:700;margin-bottom:6px;">${cfg.rifaName}</div>
+    <div style="font-size:12px;color:var(--tx2);">${n}/${m} números · ${cfg.price||12}€</div>
+    <div style="margin-top:8px;background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;">
+      <div style="height:100%;background:var(--g);width:${Math.min(100,n/m*100)}%;"></div></div>
+    <div style="font-size:11px;margin-top:5px;color:${cfg.rifaActiva?'var(--g)':'var(--tx3)'};">${cfg.rifaActiva?'● Activa':'● Pausada'}</div>`;
+  } else el.textContent='Sin drop configurado';
+
+  const gan=commData?.subs?.[subId]?.ultimoGanador;
+  const ge=document.getElementById('d-gan');
+  if(gan&&ge)ge.innerHTML=`<div style="font-weight:700;">${gan.name||'—'} — Nº${gan.num}</div><div style="font-size:12px;color:var(--tx2);">${gan.fecha||''}</div>`;
+
+  // Info pago a Drops Oficial
+  const pe=document.getElementById('d-pago');
+  if(pe)pe.innerHTML=`<div style="margin-bottom:6px;">📱 Bizum: <strong>634 XX XX XX</strong></div>
+    <div>🏦 IBAN: <strong>ES65 1583 0001 1590 6984 8933</strong></div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Tarifas: 1-3 rifas=25€ · 4-10=15€ · 11+=10€ · Mensual=150€</div>`;
+}
+
+// ── RIFAS ─────────────────────────────────────────────────────
+function loadRifas(){
+  const el=document.getElementById('rifas-list');el.innerHTML='';
+  const subs=Object.values(commData?.subs||{});
+  if(!subs.length){el.innerHTML='<div class="alert a-info">No hay secciones.</div>';return;}
+  subs.forEach(s=>{
+    const cfg=s.config||{};
+    const div=document.createElement('div');div.className='card';div.style.cursor='pointer';
+    div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-weight:700;">${s.emoji||'🎯'} ${s.name||s.id}</div>
+      <span class="badge ${cfg.rifaActiva?'b-ok':'b-neu'}">${cfg.rifaActiva?'Activa':'Pausada'}</span></div>
+      <div style="font-size:12px;color:var(--tx2);">${cfg.rifaName||'Sin nombre'} · ${cfg.price||12}€ · ${cfg.total||100} números</div>`;
+    div.onclick=()=>{subId=s.id;localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));escucharParts();toast('Sección: '+s.name);go('dashboard');};
+    el.appendChild(div);
+  });
+}
+
+// ── PAGOS ─────────────────────────────────────────────────────
+window.setPagFiltro=function(btn){
+  pagFiltro=btn.dataset.f;
+  document.querySelectorAll('.pf').forEach(b=>b.className='btn btn-sm pf '+(b===btn?'btn-g':'btn-neu'));
+  renderPagos();
+};
+
+function renderPagos(){
+  const el=document.getElementById('pagos-list');el.innerHTML='';
+  const all=Object.values(parts);
+  const grouped={};
+  all.forEach(p=>{
+    if(pagFiltro!=='todos'&&p.status!==pagFiltro)return;
+    const k=(p.name||'')+'_'+(p.phone||'');
+    if(!grouped[k])grouped[k]={name:p.name,phone:p.phone,nums:[],status:p.status,proofUrl:null,method:p.method,pagoRef:p.pagoRef,ids:[],ocr:false};
+    grouped[k].nums.push(p.num);grouped[k].ids.push(p.id);
+    if(p.status==='pending')grouped[k].status='pending';
+    if(p.proofUrl)grouped[k].proofUrl=p.proofUrl;
+    if(p.ocrVerificado)grouped[k].ocr=true;
+  });
+  const gs=Object.values(grouped).sort((a,b)=>a.status==='pending'?-1:1);
+  if(!gs.length){el.innerHTML='<div class="alert a-info">Sin pagos para mostrar.</div>';return;}
+  gs.forEach(g=>{
+    const div=document.createElement('div');div.className='card';
+    const sb=g.status==='pending'
+      ?`<span class="badge b-warn">⏳${g.ocr?'':' ⚠️'}</span>`
+      :g.status==='confirmed'?`<span class="badge b-ok">${g.ocr?'🤖':''}✅</span>`
+      :'<span class="badge b-err">Sin pago</span>';
+    div.innerHTML=`
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+        <div><div style="font-weight:700;font-size:14px;">${g.name||'—'}</div>
+        <div style="font-size:12px;color:var(--tx2);">${g.phone||'—'}</div>
+        <div style="font-size:12px;color:var(--tx2);">Nºs: ${g.nums.sort((a,b)=>a-b).join(', ')}</div>
+        ${g.pagoRef?`<div style="font-size:11px;color:var(--tx3);">Ref: ${g.pagoRef}</div>`:''}
+        ${g.method?`<div style="font-size:11px;color:var(--tx3);">${g.method}</div>`:''}
+        </div>${sb}
+      </div>
+      ${g.proofUrl?`<img src="${g.proofUrl}" style="width:100%;max-height:160px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;cursor:pointer;" onclick="window.open('${g.proofUrl}')"/>`:''}
+      ${g.status==='pending'?`<div style="display:flex;gap:8px;">
+        <button class="btn btn-g btn-sm" style="flex:1;" onclick="confirmarPago('${g.ids.join(',')}')">✅ Confirmar</button>
+        <button class="btn btn-ko btn-sm" style="flex:1;" onclick="rechazarPago('${g.ids.join(',')}')">❌ Rechazar</button></div>`:''}`;
+    el.appendChild(div);
+  });
+}
+
+window.confirmarPago=async function(idsStr){
+  try{
+    const b=writeBatch(db);
+    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',subId,'participants',id),{status:'confirmed'}));
+    await b.commit();toast('✅ Confirmado');
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.rechazarPago=async function(idsStr){
+  if(!confirm('¿Rechazar este pago?'))return;
+  try{
+    const b=writeBatch(db);
+    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',subId,'participants',id),{status:'reserved',proofUrl:null}));
+    await b.commit();toast('❌ Rechazado');
+  }catch(e){toast('Error: '+e.message);}
+};
+
+// ── GANADOR ───────────────────────────────────────────────────
+async function loadGanador(){
+  const el=document.getElementById('ganador-content');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{
+    const snap=await getDoc(doc(db,'communities',commId));
+    commData={id:snap.id,...snap.data()};
+  }catch(_){}
+  const sub=commData?.subs?.[subId];
+  const gan=sub?.ultimoGanador;
+  const elec=sub?.ganadorEleccion;
+  if(!gan){el.innerHTML='<div class="alert a-info">Aún no se ha realizado ningún sorteo.</div>';return;}
+  el.innerHTML=`
+    <div class="gc">
+      <div style="text-align:center;font-size:36px;margin-bottom:6px;">🏆</div>
+      <div style="text-align:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:900;">${gan.name||'—'}</div>
+      <div style="text-align:center;font-size:13px;color:var(--tx2);margin-top:4px;">Número ${gan.num} · ${gan.fecha||''}</div>
+    </div>
+    ${elec?`
+    <div class="card">
+      <div class="ct2">📦 Datos de envío</div>
+      <div style="display:grid;gap:8px;">
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Premio elegido</div>
+          <div style="font-weight:700;font-size:14px;">${(elec.premio||'—').replace(/#\d+\s*/g,'')}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Dirección de envío</div>
+          <div style="font-weight:700;">${elec.direccion||'—'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Teléfono</div>
+          <div style="font-weight:700;">${elec.telefono||'—'}</div>
+          ${elec.telefono?`<a href="https://wa.me/34${elec.telefono.replace(/\D/g,'')}" target="_blank" class="btn btn-g btn-sm" style="margin-top:8px;text-decoration:none;display:inline-flex;">💬 WhatsApp</a>`:''}
+        </div>
+        ${elec.comentarios?`<div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Comentarios</div>
+          <div>${elec.comentarios}</div></div>`:''}
+        <div style="font-size:11px;color:var(--tx3);">Recibido el ${elec.fecha||'—'}</div>
+      </div>
+    </div>`
+    :'<div class="alert a-warn">⏳ El ganador aún no ha enviado su dirección y elección de premio.</div>'}
+    ${gan.premios?`<div class="card"><div class="ct2">🎁 Premios del drop</div>
+      ${gan.premios.split('\n').filter(p=>p.trim()).map(p=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px;">• ${p.trim().replace(/#\d+\s*/g,'')}</div>`).join('')}</div>`:''}
+  `;
+}
+
+// ── CATÁLOGO ──────────────────────────────────────────────────
+async function loadCatalogo(){
+  const el=document.getElementById('cat-list');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{
+    const snap=await getDocs(collection(db,'communities',commId,'catalogo'));
+    catDocs=[];snap.forEach(d=>catDocs.push({id:d.id,...d.data()}));
+    catDocs.sort((a,b)=>parseInt(a.ref||999)-parseInt(b.ref||999));
+    renderCat();
+  }catch(e){el.innerHTML='<div class="alert a-err">Error: '+e.message+'</div>';}
+}
+
+window.setCF=function(btn){
+  catFiltro=btn.dataset.f;
+  document.querySelectorAll('.cf').forEach(b=>b.className='btn btn-sm cf '+(b===btn?'btn-g':'btn-neu'));
+  renderCat();
+};
+
+window.renderCat=function(q=''){
+  const el=document.getElementById('cat-list');el.innerHTML='';
+  const ql=(q||document.getElementById('cat-q')?.value||'').toLowerCase().replace('#','');
+  const f=catDocs.filter(p=>{
+    const fOk=catFiltro==='todos'||(catFiltro==='combo'&&p.esCombo)||(p.categoria===catFiltro||p.subcategoria===catFiltro);
+    const qOk=!ql||(p.ref&&p.ref.includes(ql))||(p.nombre&&p.nombre.toLowerCase().includes(ql))||(p.marca&&p.marca.toLowerCase().includes(ql));
+    return fOk&&qOk;
+  });
+  if(!f.length){el.innerHTML='<div class="alert a-info">Sin resultados.</div>';return;}
+  f.forEach(p=>{
+    const div=document.createElement('div');div.className='card';div.style.marginBottom='8px';
+    const precio=p.precioTotalAdmin||p.precioMin||p.precio;
+    div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+          <span style="background:var(--g);color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:800;">#${p.ref||'?'}</span>
+          ${p.esCombo?'<span style="background:rgba(139,92,246,.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:10px;">COMBO</span>':''}
+          <span style="font-size:13px;font-weight:700;">${p.nombre||''}</span>
+        </div>
+        ${p.marca?`<div style="font-size:11px;color:var(--tx3);">${p.marca}</div>`:''}
+        ${precio?`<div style="font-size:12px;color:var(--g);font-weight:700;">${precio}€${p.esCombo?' 🎁':''}</div>`:''}
+        ${p.esCombo&&p.productosCombo?`<div style="font-size:11px;color:var(--tx3);margin-top:2px;">${p.productosCombo.map(x=>x.replace(/#\d+\s*/,'')).join(' + ')}</div>`:''}
+      </div>
+      ${p.link?`<a href="${p.link}" target="_blank" class="btn btn-neu btn-sm" style="text-decoration:none;flex-shrink:0;">🔗</a>`:''}
+    </div>`;
+    el.appendChild(div);
+  });
+};
+
+// ── CONFIG ────────────────────────────────────────────────────
+function loadConfig(){
+  const subs=Object.values(commData?.subs||{});
+  const el=document.getElementById('cfg-subs');el.innerHTML='';
+  subs.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='btn btn-sm '+(s.id===subId?'btn-g':'btn-neu');
+    b.style.marginRight='6px';b.style.marginBottom='8px';
+    b.textContent=(s.emoji||'')+' '+(s.name||s.id);
+    b.onclick=()=>{subId=s.id;localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));escucharParts();loadConfig();};
+    el.appendChild(b);
+  });
+  const cfg=commData?.subs?.[subId]?.config||{};
+  document.getElementById('cfg-name').value=cfg.rifaName||'';
+  document.getElementById('cfg-premios').value=cfg.premios||'';
+  document.getElementById('cfg-price').value=cfg.price||12;
+  document.getElementById('cfg-total').value=cfg.total||100;
+  document.getElementById('cfg-bizum').value=cfg.bizum||'';
+  document.getElementById('cfg-transfer').value=cfg.transfer||'';
+  document.getElementById('cfg-paypal').value=cfg.paypal||'';
+  document.getElementById('cfg-activa').checked=cfg.rifaActiva!==false;
+  document.getElementById('cfg-form').style.display='block';
+}
+
+window.guardarCfg=async function(){
+  const existing=commData?.subs?.[subId]?.config||{};
+  const cfg={...existing,
+    rifaName:document.getElementById('cfg-name').value.trim(),
+    premios:document.getElementById('cfg-premios').value.trim(),
+    price:parseInt(document.getElementById('cfg-price').value)||12,
+    total:parseInt(document.getElementById('cfg-total').value)||100,
+    bizum:document.getElementById('cfg-bizum').value.trim(),
+    transfer:document.getElementById('cfg-transfer').value.trim(),
+    paypal:document.getElementById('cfg-paypal').value.trim(),
+    rifaActiva:document.getElementById('cfg-activa').checked
+  };
+  try{
+    await updateDoc(doc(db,'communities',commId),{[`subs.${subId}.config`]:cfg});
+    if(commData?.subs?.[subId])commData.subs[subId].config=cfg;
+    toast('✅ Guardado');
+  }catch(e){toast('Error: '+e.message);}
+};
+
+// ── NOTIFICACIONES ────────────────────────────────────────────
+async function loadNotifs(){
+  const el=document.getElementById('notifs-list');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{
+    // Notifs del superadmin para esta comunidad
+    const snap=await getDocs(collection(db,'superadmin','notificaciones'));
+    const notifs=[];
+    snap.forEach(d=>notifs.push({id:d.id,...d.data()}));
+    const mias=notifs.filter(n=>!n.commId||n.commId===commId).sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
+    el.innerHTML='';
+    if(!mias.length){el.innerHTML='<div class="alert a-info">Sin notificaciones.</div>';return;}
+    mias.slice(0,30).forEach(n=>{
+      const div=document.createElement('div');div.className='card';div.style.marginBottom='8px';
+      div.innerHTML=`<div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:22px;">${n.icon||'🔔'}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;">${n.text||''}</div>
+          ${n.sub?`<div style="font-size:12px;color:var(--tx2);margin-top:3px;white-space:pre-wrap;">${n.sub}</div>`:''}
+          <div style="font-size:10px;color:var(--tx3);margin-top:4px;">${n.ts?.toDate?.()?.toLocaleString('es-ES')||''}</div>
+        </div>
+        ${!n.leida?'<span class="badge b-warn">Nueva</span>':''}
+      </div>`;
+      el.appendChild(div);
+    });
+    // Marcar como leídas
+    const b=writeBatch(db);
+    mias.filter(n=>!n.leida).forEach(n=>b.update(doc(db,'superadmin','notificaciones',n.id),{leida:true}));
+    b.commit().catch(()=>{});
+    document.getElementById('nb-notifs').style.display='none';
+  }catch(e){el.innerHTML='<div class="alert a-err">Error: '+e.message+'</div>';}
+}
+</script>
+</body>
+</html>

@@ -676,8 +676,8 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
       <option value="premium">👑 Premium — 300€/mes · + Embajadores + 1 rifa gratis/mes</option>
     </select>
     <div id="mp-plan-info" style="margin-top:8px;display:none;border-radius:var(--rads);padding:12px;font-size:12px;line-height:1.6;"></div>
-    <label id="mp-drops-label">Rifas realizadas este mes</label>
-    <input id="mp-drops" type="number" min="0" value="0" placeholder="Nº de rifas completadas este mes" oninput="updatePlanPreview()"/>
+    <label id="mp-drops-label" style="display:none;">Rifas realizadas este mes</label>
+    <input id="mp-drops" type="number" min="0" value="0" placeholder="Nº de rifas completadas este mes" oninput="updatePlanPreview()" style="display:none;"/>
     <div id="mp-plan-desc" style="font-size:11px;color:var(--tx3);margin-top:4px;"></div>
     <label>Nota interna (opcional)</label>
     <input id="mp-nota" placeholder="Ej: Acordado descuento primer mes"/>
@@ -2327,21 +2327,20 @@ window.updatePlanPreview = function(){
 window.guardarPlan = async function(){
   const commId = document.getElementById('mp-comm').value;
   const planKey = document.getElementById('mp-plan').value;
-  const drops = parseInt(document.getElementById('mp-drops').value)||0;
   const nota = document.getElementById('mp-nota').value.trim();
   const rifaMaterial = document.getElementById('mp-rifa-material')?.value.trim()||'';
   if(!commId){ toast('Selecciona una comunidad'); return; }
   const c = allComms.find(x=>x.id===commId);
   const plan = PLANES[planKey];
+  if(!plan){ toast('Plan no válido'); return; }
   const btn = document.getElementById('btn-guardar-plan');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
     const mes=mesActual();
     const data = {
       commId, commName:c?.name||commId, commEmoji:c?.emoji||'🎯',
-      plan:planKey, drops, nota, mes,
+      plan:planKey, nota, mes,
       estado: factData[commId]?.estado||'pendiente',
-      // Extras del plan
       catalogo: plan.catalogo||false,
       catalogoActivoHasta: plan.catalogoMeses ? (() => {
         const d=new Date(); d.setMonth(d.getMonth()+plan.catalogoMeses); return d.toISOString().slice(0,7);

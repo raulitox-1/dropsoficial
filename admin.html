@@ -2232,6 +2232,19 @@ function poblarSelectComms(){
   const sel = document.getElementById('mp-comm');
   if(!sel) return;
   sel.innerHTML='<option value="">Selecciona comunidad...</option>';
+  if(!allComms.length){
+    // Cargar comunidades si no están cargadas
+    getDocs(collection(db,'communities')).then(snap=>{
+      snap.forEach(d=>{ if(!allComms.find(x=>x.id===d.id))allComms.push({id:d.id,...d.data()}); });
+      sel.innerHTML='<option value="">Selecciona comunidad...</option>';
+      allComms.forEach(c=>{
+        const o=document.createElement('option');
+        o.value=c.id; o.textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
+        sel.appendChild(o);
+      });
+    }).catch(e=>toast('Error cargando comunidades: '+e.message));
+    return;
+  }
   allComms.forEach(c=>{
     const o=document.createElement('option');
     o.value=c.id; o.textContent=`${c.emoji||'🎯'} ${c.name||c.id}`;
@@ -2241,11 +2254,13 @@ function poblarSelectComms(){
 
 window.openModalAsignarPlan = function(){
   poblarSelectComms();
+  document.getElementById('mp-plan').value='pay_per_drop';
   document.getElementById('mp-drops').value=0;
   document.getElementById('mp-nota').value='';
-  document.getElementById('mp-preview').style.display='none';
-  document.getElementById('modal-plan-title').textContent='Asignar / editar plan';
+  if(document.getElementById('mp-rifa-material'))document.getElementById('mp-rifa-material').value='';
+  document.getElementById('modal-plan-title').textContent='Asignar plan';
   document.getElementById('btn-guardar-plan').dataset.editId='';
+  updatePlanPreview();
   openModal('modal-plan');
 };
 

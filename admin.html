@@ -498,6 +498,15 @@ tbody td{padding:11px 16px;font-size:13px;vertical-align:middle;}
           <div id="fact-table"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
         </div>
 
+        <!-- COMPROBANTES SUSCRIPCIONES PENDIENTES -->
+        <div class="table-wrap" style="margin-bottom:20px;border:2px solid #8b5cf6;">
+          <div class="table-head" style="background:rgba(139,92,246,.08);">
+            <div class="table-title">💳 Comprobantes de suscripción pendientes</div>
+            <button class="btn btn-neu btn-sm" onclick="loadComprobantesSuscripcion()">↻ Refrescar</button>
+          </div>
+          <div id="fact-comprobantes-susc"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
         <!-- COMPROBANTES PENDIENTES DE CONFIRMAR -->
         <div class="table-wrap" style="margin-bottom:20px;border:2px solid var(--y);">
           <div class="table-head" style="background:rgba(245,158,11,.08);">
@@ -1173,7 +1182,7 @@ window.goPanel=function(name){
     },500);
   }
   else if(name==='estadisticas')loadStats();
-  else if(name==='facturacion')loadFacturacion();
+  else if(name==='facturacion'){loadFacturacion();loadComprobantesSuscripcion();}
 };
 
 // ─── INIT ─────────────────────────────────────────────────
@@ -1984,16 +1993,14 @@ let _pagoTarget = null;
 let _avisoTarget = null;
 
 function calcImporte(planKey, rifas){
-  // El plan se autoregula por volumen — el precio aplica a TODAS las rifas del mes
-  // No hace falta planKey para el cálculo, pero se respeta si es Pro fijo
-  const p = PLANES[planKey];
-  if(!p) return 0;
-  if(p.fijo) return p.mensual;
-  const n = rifas||0;
-  if(n === 0) return 0;
-  if(n <= 3)  return n * 25;  // Básico
-  if(n <= 10) return n * 15;  // Estándar
-  return n * 10;              // Avanzado
+  const plan=PLANES[planKey];
+  if(!plan)return 0;
+  if(plan.fijo)return plan.precio||0;
+  const n=rifas||0;
+  if(n===0)return 0;
+  if(n<=3)return n*25;
+  if(n<=10)return n*15;
+  return n*10;
 }
 
 function planAutodetect(rifas){
@@ -2008,6 +2015,91 @@ function mesActual(){
   const n=new Date();
   return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
 }
+
+
+// ── COMPROBANTES SUSCRIPCIÓN ──────────────────────────────────
+window.loadComprobantesSuscripcion=async function(){
+  const el=document.getElementById('fact-comprobantes-susc');
+  if(!el)return;
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{
+    const snap=await getDocs(query(
+      collection(db,'superadmin','facturacion','pagos_suscripcion'),
+      where('estado','==','pendiente')
+    ));
+    if(snap.empty){el.innerHTML='<div style="padding:16px;color:var(--tx3);font-size:13px;">Sin comprobantes pendientes ✓</div>';return;}
+    el.innerHTML='';
+    snap.forEach(d=>{
+      const data=d.data();
+      const PLANES_NOMBRES={pay_per_drop:'🎯 Pay per Drop',basico:'⭐ Básico',pro:'🚀 Pro',premium:'👑 Premium'};
+      const div=document.createElement('div');
+      div.className='table-row';
+      div.style.cssText='flex-direction:column;align-items:flex-start;gap:10px;padding:14px 16px;';
+      div.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:700;">${data.commName||data.commId}</div>
+            <div style="font-size:12px;color:var(--tx2);">${PLANES_NOMBRES[data.planKey]||data.planKey} — <strong>${data.precio}€</strong> — ${data.mes||''}</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-g btn-sm" onclick="confirmarSuscripcion('${d.id}','${data.commId}','${data.planKey}','${data.precio}')">✅ Confirmar</button>
+            <button class="btn btn-ko btn-sm" onclick="rechazarSuscripcion('${d.id}','${data.commId}')">❌ Rechazar</button>
+          </div>
+        </div>
+        ${data.proofUrl?`<img src="${data.proofUrl}" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--rads);cursor:pointer;" onclick="window.open('${data.proofUrl}')"/>`:'<div style="font-size:11px;color:var(--tx3);">Sin imagen</div>'}
+      `;
+      el.appendChild(div);
+    });
+  }catch(e){el.innerHTML='<div style="padding:14px;color:var(--r);font-size:13px;">Error: '+e.message+'</div>';}
+};
+
+window.confirmarSuscripcion=async function(docId,commId,planKey,precio){
+  if(!confirm('¿Confirmar pago de suscripción?'))return;
+  try{
+    await updateDoc(doc(db,'superadmin','facturacion','pagos_suscripcion',docId),{
+      estado:'confirmado',confirmedAt:serverTimestamp()
+    });
+    // Actualizar estado en facturación de la comunidad
+    await updateDoc(doc(db,'superadmin','facturacion','comunidades',commId),{
+      estado:'pagado',ultimoPago:serverTimestamp(),ultimoPagoImporte:Number(precio)
+    });
+    // Notificar al admin de la comunidad
+    const commSnap=await getDoc(doc(db,'communities',commId));
+    const adminUser=commSnap.data()?.adminUser;
+    if(adminUser){
+      const PLANES_NOMBRES={pay_per_drop:'🎯 Pay per Drop',basico:'⭐ Básico',pro:'🚀 Pro',premium:'👑 Premium'};
+      await addDoc(collection(db,'users',adminUser,'notificaciones'),{
+        icon:'✅',
+        text:'Pago de suscripción confirmado',
+        sub:PLANES_NOMBRES[planKey]+' — '+precio+'€ — Gracias por tu confianza en Drops Oficial 🙌',
+        tipo:'info',leida:false,ts:serverTimestamp()
+      });
+    }
+    toast('✅ Suscripción confirmada');
+    loadComprobantesSuscripcion();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.rechazarSuscripcion=async function(docId,commId){
+  if(!confirm('¿Rechazar este comprobante?'))return;
+  try{
+    await updateDoc(doc(db,'superadmin','facturacion','pagos_suscripcion',docId),{
+      estado:'rechazado'
+    });
+    const commSnap=await getDoc(doc(db,'communities',commId));
+    const adminUser=commSnap.data()?.adminUser;
+    if(adminUser){
+      await addDoc(collection(db,'users',adminUser,'notificaciones'),{
+        icon:'❌',
+        text:'Comprobante de suscripción rechazado',
+        sub:'El comprobante enviado no ha podido verificarse. Por favor envía uno nuevo o contacta al 661701454.',
+        tipo:'sticky',leida:false,ts:serverTimestamp()
+      });
+    }
+    toast('Rechazado');
+    loadComprobantesSuscripcion();
+  }catch(e){toast('Error: '+e.message);}
+};
 
 window.loadFacturacion = async function(){
   document.getElementById('fact-table').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
@@ -2250,9 +2342,39 @@ window.guardarPlan = async function(){
       updatedAt: serverTimestamp()
     };
     await setDoc(doc(db,'superadmin','facturacion','comunidades',commId), data, {merge:true});
-    // También actualizar el plan en la comunidad para que index.html pueda leerlo
     await updateDoc(doc(db,'communities',commId),{plan:planKey, planActualizadoEn:serverTimestamp()});
     factData[commId] = {...(factData[commId]||{}), ...data};
+
+    // Notificar al admin de la comunidad con todos los detalles
+    const adminUser = c?.adminUser;
+    if(adminUser){
+      const importe=calcImporte(planKey,drops);
+      const planDesc=plan.fijo
+        ?`${plan.emoji} Plan ${plan.nombre} — ${plan.precio}€/mes`
+        :`${plan.emoji} Plan ${plan.nombre} — ${drops} rifas × ${drops<=3?25:drops<=10?15:10}€ = ${importe}€`;
+      await addDoc(collection(db,'users',adminUser,'notificaciones'),{
+        icon:'📋',
+        text:`Plan asignado: ${plan.emoji} ${plan.nombre}`,
+        sub:`${planDesc}\n\n💶 Importe: ${importe}€\n📱 Bizum: 634 XX XX XX\n🏦 IBAN: ES65 1583 0001 1590 6984 8933\n\nConcepto: "${c?.name||commId} — ${plan.nombre}"\n\nSube el comprobante en la app para confirmar el pago.`,
+        tipo:'sticky',
+        leida:false,
+        link:'pago-suscripcion',
+        dedupKey:'plan-'+commId+'-'+mes,
+        ts:serverTimestamp()
+      });
+    }
+
+    // Notificación en super admin también
+    await addDoc(collection(db,'superadmin','notificaciones'),{
+      icon:'📋',
+      text:'Plan asignado: '+plan.emoji+' '+plan.nombre,
+      sub:(c?.name||commId)+' — '+calcImporte(planKey,drops)+'€',
+      tipo:'info',
+      commId,
+      leida:false,
+      ts:serverTimestamp()
+    });
+
     closeModal('modal-plan');
     renderFacturacion();
     calcResumenFacturacion();

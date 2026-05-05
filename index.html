@@ -7371,6 +7371,7 @@ async function checkComunidadBloqueada(commId){
 // Comprueba si esta rifa (subId) ya tiene el pago confirmado
 async function checkRifaPagada(commId, subId){
   try{
+    // Primero mirar en pagos_rifa
     const snap = await getDoc(doc(db,'superadmin','facturacion','pagos_rifa',commId+'_'+subId));
     if(snap.exists()){
       const d = snap.data();
@@ -7378,8 +7379,20 @@ async function checkRifaPagada(commId, subId){
       if(d.estado === 'pendiente') return { pagada:false, enviado:true };
       if(d.estado === 'rechazado') return { pagada:false, enviado:false, rechazado:true };
     }
+    // Si no hay registro en pagos_rifa, mirar en comunidades (estado facturación)
+    const factSnap = await getDoc(doc(db,'superadmin','facturacion','comunidades',commId));
+    if(factSnap.exists()){
+      const fd = factSnap.data();
+      const mes = new Date().toISOString().slice(0,7);
+      // Si el mes actual ya está pagado (plan pro o estado pagado)
+      if(fd.plan==='pro') return { pagada:true };
+      if(fd.estado==='pagado'&&fd.mes===mes) return { pagada:true };
+      // Si hay drops pendientes de pago este mes y no es el primer drop
+      if(fd.estado==='pendiente'&&fd.mes===mes&&fd.drops>0) return { pagada:false, enviado:false };
+    }
   }catch(_){}
-  return { pagada:false, enviado:false };
+  // Sin registro — primera rifa, dejar pasar
+  return { pagada:true };
 }
 
 // Escuchar confirmación de pago en tiempo real para desbloquear sorteo automáticamente
@@ -12413,7 +12426,7 @@ const firebaseConfig={
 };
 const fbApp=initializeApp(firebaseConfig);
 const db=getFirestore(fbApp);
-const storage=getStorage(fbApp,'gs://drops-oficial.firebasestorage.app');
+const storageMerc=getStorage(fbApp,'gs://drops-oficial.firebasestorage.app');
 
 // ── STATE ────────────────────────────────────────────────────────
 let currentUser=null;

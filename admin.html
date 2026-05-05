@@ -2355,35 +2355,24 @@ window.guardarPlan = async function(){
     await updateDoc(doc(db,'communities',commId),{plan:planKey, planActualizadoEn:serverTimestamp()});
     factData[commId] = {...(factData[commId]||{}), ...data};
 
-    // Notificar al admin de la comunidad con todos los detalles
-    const adminUser = c?.adminUser;
-    if(adminUser){
-      const importe=calcImporte(planKey,drops);
-      const planDesc=plan.fijo
-        ?`${plan.emoji} Plan ${plan.nombre} — ${plan.precio}€/mes`
-        :`${plan.emoji} Plan ${plan.nombre} — ${drops} rifas × ${drops<=3?25:drops<=10?15:10}€ = ${importe}€`;
-      await addDoc(collection(db,'users',adminUser,'notificaciones'),{
-        icon:'📋',
-        text:`Plan asignado: ${plan.emoji} ${plan.nombre}`,
-        sub:`${planDesc}\n\n💶 Importe: ${importe}€\n📱 Bizum: 634 XX XX XX\n🏦 IBAN: ES65 1583 0001 1590 6984 8933\n\nConcepto: "${c?.name||commId} — ${plan.nombre}"\n\nSube el comprobante en la app para confirmar el pago.`,
-        tipo:'sticky',
-        leida:false,
-        link:'pago-suscripcion',
-        dedupKey:'plan-'+commId+'-'+mes,
-        ts:serverTimestamp()
+    // Notificar — en try/catch separado para que no bloquee
+    try{
+      const adminUser=c?.adminUser;
+      if(adminUser&&typeof adminUser==='string'&&adminUser.trim().length>0){
+        const importe=calcImporte(planKey,drops);
+        await addDoc(collection(db,'users',adminUser.trim(),'notificaciones'),{
+          icon:'📋',
+          text:'Plan asignado: '+plan.emoji+' '+plan.nombre,
+          sub:(plan.fijo?plan.emoji+' '+plan.nombre+' — '+plan.precio+'€/mes':plan.emoji+' '+plan.nombre+' — '+drops+' rifas')+'\n\n💶 Bizum: 634 XX XX XX\n🏦 IBAN: ES65 1583 0001 1590 6984 8933\nConcepto: '+(c?.name||commId),
+          tipo:'sticky',leida:false,ts:serverTimestamp()
+        });
+      }
+      await addDoc(collection(db,'superadmin','notificaciones'),{
+        icon:'📋',text:'Plan asignado: '+plan.emoji+' '+plan.nombre,
+        sub:(c?.name||commId)+' — '+calcImporte(planKey,drops)+'€',
+        tipo:'info',commId,leida:false,ts:serverTimestamp()
       });
-    }
-
-    // Notificación en super admin también
-    await addDoc(collection(db,'superadmin','notificaciones'),{
-      icon:'📋',
-      text:'Plan asignado: '+plan.emoji+' '+plan.nombre,
-      sub:(c?.name||commId)+' — '+calcImporte(planKey,drops)+'€',
-      tipo:'info',
-      commId,
-      leida:false,
-      ts:serverTimestamp()
-    });
+    }catch(ne){console.warn('notif:',ne.message);}
 
     closeModal('modal-plan');
     renderFacturacion();

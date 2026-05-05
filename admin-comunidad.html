@@ -261,6 +261,15 @@ label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-tr
 
 <div id="toast"></div>
 
+<!-- Modal imagen comprobante -->
+<div id="modal-img" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.9);align-items:center;justify-content:center;padding:16px;" onclick="document.getElementById('modal-img').style.display='none'">
+  <div style="max-width:500px;width:100%;position:relative;">
+    <button onclick="document.getElementById('modal-img').style.display='none'" style="position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;">✕</button>
+    <img id="modal-img-src" style="width:100%;border-radius:var(--rads);max-height:80vh;object-fit:contain;"/>
+    <div id="modal-img-name" style="color:#fff;text-align:center;margin-top:10px;font-size:13px;"></div>
+  </div>
+</div>
+
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import{getFirestore,collection,doc,getDoc,getDocs,updateDoc,addDoc,onSnapshot,serverTimestamp,query,where,writeBatch,setDoc}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -414,6 +423,15 @@ function loadRifas(){
 }
 
 // ── PAGOS ─────────────────────────────────────────────────────
+
+window.showImgModal=function(url,name){
+  const m=document.getElementById('modal-img');
+  if(!m)return;
+  document.getElementById('modal-img-src').src=url;
+  document.getElementById('modal-img-name').textContent=name||'';
+  m.style.display='flex';
+};
+
 window.setPagFiltro=function(btn){
   pagFiltro=btn.dataset.f;
   document.querySelectorAll('.pf').forEach(b=>b.className='btn btn-sm pf '+(b===btn?'btn-g':'btn-neu'));
@@ -450,7 +468,13 @@ function renderPagos(){
         ${g.method?`<div style="font-size:11px;color:var(--tx3);">${g.method}</div>`:''}
         </div>${sb}
       </div>
-      ${g.proofUrl?`<img src="${g.proofUrl}" style="width:100%;max-height:160px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;cursor:pointer;" onclick="window.open('${g.proofUrl}')"/>`:''}
+      ${g.proofUrl
+        ?`<div style="margin-bottom:8px;">
+            <img src="${g.proofUrl}" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--rads);cursor:pointer;border:1px solid var(--bd);" onclick="showImgModal('${g.proofUrl}','${(g.name||'').replace(/'/g,'')}')" />
+            <button class="btn btn-neu btn-sm" style="width:100%;margin-top:4px;" onclick="showImgModal('${g.proofUrl}','${(g.name||'').replace(/'/g,'')}')">🖼 Ver a pantalla completa</button>
+          </div>`
+        :`<div style="font-size:11px;color:var(--tx3);padding:8px;background:var(--bg3);border-radius:var(--rads);margin-bottom:8px;">📎 Sin comprobante</div>`
+      }
       ${g.status==='pending'?`<div style="display:flex;gap:8px;">
         <button class="btn btn-g btn-sm" style="flex:1;" onclick="confirmarPago('${g.ids.join(',')}')">✅ Confirmar</button>
         <button class="btn btn-ko btn-sm" style="flex:1;" onclick="rechazarPago('${g.ids.join(',')}')">❌ Rechazar</button></div>`:''}`;

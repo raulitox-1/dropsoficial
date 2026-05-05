@@ -3,319 +3,300 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Drops Oficial · Panel Organizador</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
+<title>Drops · Panel Organizador</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
+  --g:#16a86b;--gd:#0d7a4e;--gl:rgba(22,168,107,.12);
+  --r:#ef4444;--y:#f59e0b;--b:#3b82f6;--pu:#8b5cf6;
   --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222f;
   --bd:#2a2a3a;--tx:#f0f0f8;--tx2:#9090b0;--tx3:#555570;
-  --g:#16a86b;--gd:#0d7a4e;--gl:rgba(22,168,107,.12);
-  --r:#ef4444;--y:#f59e0b;--b:#3b82f6;--a:#f59e0b;--pu:#8b5cf6;
-  --rad:12px;--rads:8px;--f:'JetBrains Mono',monospace;
+  --rad:12px;--rads:8px;--f:'Inter',-apple-system,sans-serif;
 }
-html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--f);overflow:hidden;}
-@media(max-width:768px){html,body{overflow:auto;}}
-#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--bg);}
-.lw{width:100%;max-width:380px;padding:0 24px;}
-.ll{font-family:'Syne',sans-serif;font-size:42px;font-weight:900;text-align:center;margin-bottom:4px;letter-spacing:-2px;}
-.ll span{color:var(--g);}
-.ls{text-align:center;color:var(--tx3);font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
-.ls2{text-align:center;color:var(--tx2);font-size:12px;margin-bottom:28px;}
-.lf label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
-.lf input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:11px 13px;color:var(--tx);font-family:var(--f);font-size:14px;outline:none;margin-bottom:10px;transition:border-color .2s;}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--f);-webkit-font-smoothing:antialiased;}
+/* LOGIN */
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100;}
+.login-box{width:100%;max-width:360px;}
+.login-logo{font-family:'Syne',sans-serif;font-size:36px;font-weight:900;text-align:center;margin-bottom:4px;letter-spacing:-1px;}
+.login-logo span{color:var(--g);}
+.login-sub{text-align:center;color:var(--tx3);font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;}
+.lf label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.lf input{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:11px 13px;color:var(--tx);font-family:var(--f);font-size:14px;outline:none;margin-bottom:10px;}
 .lf input:focus{border-color:var(--g);}
-.lbtn{width:100%;margin-top:16px;padding:13px;background:var(--g);border:none;border-radius:var(--rads);color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;}
+.lbtn{width:100%;padding:13px;background:var(--g);border:none;border-radius:var(--rads);color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;}
 .lbtn:hover{background:var(--gd);}
-.lerr{margin-top:10px;text-align:center;font-size:12px;color:var(--r);min-height:18px;}
-#app{display:none;height:100vh;flex-direction:row;}
-#app.visible{display:flex;}
-.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:20px 0;}
-@media(max-width:768px){.sidebar{display:none;}}
-.sl{font-family:'Syne',sans-serif;font-weight:900;font-size:15px;padding:0 20px 12px;border-bottom:1px solid var(--bd);letter-spacing:-.5px;}
-.sl span{color:var(--g);}
-.sc{font-size:11px;color:var(--tx2);padding:10px 20px 0;font-weight:700;}
-.ni{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--tx2);border-left:2px solid transparent;transition:all .15s;position:relative;}
-.ni:hover{color:var(--tx);background:var(--bg3);}
-.ni.active{color:var(--g);border-left-color:var(--g);background:rgba(22,168,107,.08);}
-.nic{font-size:16px;width:20px;text-align:center;}
-.sf{margin-top:auto;padding:16px 20px;border-top:1px solid var(--bd);}
-.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
-.tb{padding:14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:10;}
-.tbt{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;}
-.tbr{display:flex;align-items:center;gap:10px;}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--g);animation:pulse 2s infinite;}
+.lerr{color:var(--r);font-size:12px;text-align:center;margin-top:8px;min-height:18px;}
+/* APP */
+#app{display:none;height:100vh;overflow:hidden;}
+#app.show{display:flex;flex-direction:column;}
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--bd);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.topbar-back{background:none;border:none;color:var(--tx2);font-size:22px;cursor:pointer;padding:0;line-height:1;display:none;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;flex:1;}
+.topbar-comm{font-size:11px;color:var(--tx3);}
+.topbar-dot{width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-.ct{padding:20px 24px;flex:1;}
-.panel{display:none;}
-.panel.active{display:block;}
-.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
-.sc2{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:15px 17px;position:relative;overflow:hidden;}
-.sc2::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-.sc2.green::before{background:var(--g);}
-.sc2.red::before{background:var(--r);}
-.sc2.blue::before{background:var(--b);}
-.sc2.yellow::before{background:var(--y);}
-.sl2{font-size:10px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;}
-.sv{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;letter-spacing:-1px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--rads);cursor:pointer;font-family:var(--f);font-weight:700;transition:all .15s;}
-.btn-g{background:var(--g);color:#fff;}
-.btn-g:hover{background:var(--gd);}
-.btn-r{background:var(--r);color:#fff;}
-.btn-neu{background:var(--bg3);color:var(--tx);border:1px solid var(--bd);}
-.btn-neu:hover{background:var(--bg4);}
-.btn-ko{background:rgba(239,68,68,.12);color:var(--r);border:1px solid rgba(239,68,68,.25);}
-.btn-sm{padding:6px 12px;font-size:12px;}
-.btn-md{padding:9px 16px;font-size:13px;}
-.btn-lg{padding:12px 20px;font-size:14px;}
-.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px 18px;margin-bottom:12px;}
-.ct2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:10px;}
-input,textarea,select{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:var(--f);font-size:13px;outline:none;margin-bottom:8px;}
-input:focus,textarea:focus{border-color:var(--g);}
-label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;margin-top:8px;}
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding-bottom:70px;}
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom);}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;cursor:pointer;font-size:9px;color:var(--tx3);background:none;border:none;font-family:var(--f);position:relative;transition:color .15s;}
+.bni.active{color:var(--g);}
+.bni-ico{font-size:21px;line-height:1;}
+.bni-badge{position:absolute;top:4px;right:calc(50% - 16px);background:var(--r);color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:0 4px;min-width:15px;text-align:center;display:none;}
+/* SCREENS */
+.screen{display:none;padding:16px;}
+.screen.active{display:block;}
+/* SECCIÓN HEADER */
+.sec-header{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px 16px;margin-bottom:10px;}
+.card-title{font-weight:700;font-size:14px;margin-bottom:8px;}
+/* STATS GRID */
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.sc.g::before{background:var(--g);}
+.sc.b::before{background:var(--b);}
+.sc.y::before{background:var(--y);}
+.sc.r::before{background:var(--r);}
+.sc-label{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.sc-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:900;}
+/* BADGES */
 .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;}
 .b-ok{background:var(--gl);color:var(--g);}
 .b-warn{background:rgba(245,158,11,.15);color:var(--y);}
 .b-err{background:rgba(239,68,68,.15);color:var(--r);}
 .b-neu{background:var(--bg4);color:var(--tx2);}
-.loading{display:flex;align-items:center;padding:30px;color:var(--tx3);font-size:13px;}
-.spinner{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* BTNS */
+.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--rads);cursor:pointer;font-family:var(--f);font-weight:700;font-size:13px;transition:all .15s;padding:8px 14px;}
+.btn-g{background:var(--g);color:#fff;}
+.btn-g:hover{background:var(--gd);}
+.btn-r{background:var(--r);color:#fff;}
+.btn-neu{background:var(--bg3);color:var(--tx);border:1px solid var(--bd);}
+.btn-ko{background:rgba(239,68,68,.12);color:var(--r);border:1px solid rgba(239,68,68,.25);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-lg{padding:12px 20px;font-size:14px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+/* INPUTS */
+input,textarea,select{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 12px;color:var(--tx);font-family:var(--f);font-size:13px;outline:none;margin-bottom:8px;}
+input:focus,textarea:focus{border-color:var(--g);}
+label{display:block;font-size:11px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;margin-top:8px;}
+label:first-child{margin-top:0;}
+/* ALERT */
 .alert{border-radius:var(--rads);padding:10px 14px;font-size:12px;margin-bottom:10px;line-height:1.5;}
 .a-ok{background:var(--gl);color:var(--g);border:1px solid rgba(22,168,107,.2);}
 .a-warn{background:rgba(245,158,11,.1);color:var(--y);border:1px solid rgba(245,158,11,.2);}
 .a-err{background:rgba(239,68,68,.1);color:var(--r);border:1px solid rgba(239,68,68,.2);}
 .a-info{background:rgba(59,130,246,.1);color:var(--b);border:1px solid rgba(59,130,246,.2);}
-.nb{position:absolute;top:6px;right:10px;background:var(--r);color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:0 5px;min-width:15px;text-align:center;display:none;}
-.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);z-index:100;flex-direction:row;justify-content:space-around;padding:6px 0 env(safe-area-inset-bottom);}
-@media(max-width:768px){.bnav{display:flex;}.ct{padding-bottom:72px;}}
-.bi{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;font-size:9px;color:var(--tx3);background:none;border:none;font-family:var(--f);position:relative;}
-.bi.active{color:var(--g);}
-.bic{font-size:20px;}
-.gc{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1));border:1px solid rgba(139,92,246,.3);border-radius:var(--rad);padding:20px;margin-bottom:14px;}
+/* SECTION TABS */
+.sub-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
+.sub-tab{flex-shrink:0;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;background:var(--bg3);color:var(--tx2);border:1px solid var(--bd);white-space:nowrap;position:relative;}
+.sub-tab.active{background:var(--g);color:#fff;border-color:var(--g);}
+.sub-tab .tab-badge{position:absolute;top:-4px;right:-4px;background:var(--r);color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:0 4px;min-width:14px;text-align:center;display:none;}
+/* PROOF IMG */
+.proof-img{width:100%;max-height:180px;object-fit:cover;border-radius:var(--rads);cursor:pointer;border:1px solid var(--bd);margin-bottom:6px;}
+/* GANADOR */
+.ganador-card{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.1));border:1px solid rgba(139,92,246,.3);border-radius:var(--rad);padding:18px;margin-bottom:12px;text-align:center;}
+/* LOADING */
+.loading{display:flex;align-items:center;padding:24px;color:var(--tx3);font-size:13px;}
+.spinner{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* TOAST */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rads);padding:10px 18px;font-size:13px;z-index:9999;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:14px;}
+/* PROG BAR */
+.prog-bar{background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;margin:6px 0 4px;}
+.prog-fill{height:100%;background:var(--g);transition:width .5s;}
 </style>
 </head>
 <body>
 
-<div id="login-screen">
-  <div class="lw">
-    <div class="ll">drops<span>.</span></div>
-    <div class="ls">Panel Organizador</div>
-    <div class="ls2">Accede con las credenciales que te dio el administrador</div>
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-logo">drops<span>.</span></div>
+    <div class="login-sub">Panel Organizador</div>
     <div class="lf">
       <label>PIN de la comunidad</label>
-      <input type="text" id="lc" placeholder="Ej: THREEFISHH" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')login()"/>
-      <label>Contraseña de organizador</label>
-      <input type="password" id="lp" placeholder="••••••••••" onkeydown="if(event.key==='Enter')login()"/>
+      <input id="l-pin" type="text" placeholder="Ej: 1234" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <label>Contraseña</label>
+      <input id="l-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-    <button class="lbtn" onclick="login()">Acceder →</button>
-    <div class="lerr" id="le"></div>
+    <button class="lbtn" onclick="doLogin()">Entrar →</button>
+    <div class="lerr" id="l-err"></div>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app">
-  <div class="sidebar">
-    <div class="sl">drops<span>.</span></div>
-    <div class="sc" id="sb-name" style="margin-bottom:10px;"></div>
-    <div class="ni active" onclick="go('dashboard')" data-p="dashboard"><span class="nic">📊</span>Dashboard</div>
-    <div class="ni" onclick="go('rifas')" data-p="rifas"><span class="nic">🎯</span>Mis Rifas</div>
-    <div class="ni" onclick="go('pagos')" data-p="pagos"><span class="nic">💳</span>Pagos<span class="nb" id="nb-pagos"></span></div>
-    <div class="ni" onclick="go('ganador')" data-p="ganador"><span class="nic">🏆</span>Ganador</div>
-    <div class="ni" onclick="go('sorteo')" data-p="sorteo"><span class="nic">🎰</span>Sorteo</div>
-    <div class="ni" onclick="go('tablero')" data-p="tablero"><span class="nic">🔢</span>Tablero</div>
-    <div class="ni" onclick="go('stats')" data-p="stats"><span class="nic">📊</span>Estadísticas</div>
-    <div class="ni" onclick="go('catalogo')" data-p="catalogo"><span class="nic">📦</span>Catálogo</div>
-    <div class="ni" onclick="go('config')" data-p="config"><span class="nic">⚙️</span>Config</div>
-    <div class="ni" onclick="go('notifs')" data-p="notifs"><span class="nic">🔔</span>Notificaciones<span class="nb" id="nb-notifs"></span></div>
-    <div class="sf"><button class="btn btn-neu btn-sm" onclick="logout()">← Salir</button></div>
+  <div class="topbar">
+    <button class="topbar-back" id="topbar-back" onclick="goBack()">←</button>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-dot"></div>
+    <div class="topbar-comm" id="topbar-comm"></div>
+    <button class="btn btn-neu btn-sm" onclick="doLogout()">Salir</button>
   </div>
 
   <div class="main">
-    <div class="tb">
-      <div class="tbt" id="tbt">Dashboard</div>
-      <div class="tbr">
-        <div class="dot"></div>
-        <span style="font-size:11px;color:var(--tx3);" id="tb-comm"></span>
-        <button class="btn btn-neu btn-sm" onclick="logout()">Salir</button>
+    <!-- DASHBOARD -->
+    <div class="screen active" id="s-dashboard">
+      <div class="sec-header">📊 Dashboard</div>
+      <div class="sg" id="dash-stats">
+        <div class="sc g"><div class="sc-label">Participantes</div><div class="sc-val" id="d-total">—</div></div>
+        <div class="sc b"><div class="sc-label">Confirmados</div><div class="sc-val" id="d-conf">—</div></div>
+        <div class="sc y"><div class="sc-label">Pendientes</div><div class="sc-val" id="d-pend">—</div></div>
+        <div class="sc r"><div class="sc-label">Sin pagar</div><div class="sc-val" id="d-sinpag">—</div></div>
       </div>
+      <div class="card" id="dash-drop-info"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      <div class="card" id="dash-ganador-info"></div>
+      <div class="card" id="dash-plan-info"></div>
     </div>
-    <div class="ct">
 
-      <!-- DASHBOARD -->
-      <div class="panel active" id="p-dashboard">
-        <div class="sg">
-          <div class="sc2 green"><div class="sl2">Reservados</div><div class="sv" id="d-res">—</div></div>
-          <div class="sc2 blue"><div class="sl2">Confirmados</div><div class="sv" id="d-conf">—</div></div>
-          <div class="sc2 yellow"><div class="sl2">Pendientes</div><div class="sv" id="d-pend">—</div></div>
-          <div class="sc2 red"><div class="sl2">Sin pagar</div><div class="sv" id="d-sinpag">—</div></div>
-        </div>
-        <div class="card"><div class="ct2">🎯 Drop activo</div><div id="d-rifa" style="font-size:13px;color:var(--tx2);">Cargando...</div></div>
-        <div class="card"><div class="ct2">🏆 Último ganador</div><div id="d-gan" style="font-size:13px;color:var(--tx2);">Sin ganador aún</div></div>
-        <div class="card">
-          <div class="ct2">💶 Pago a Drops Oficial</div>
-          <div id="d-pago" style="font-size:12px;color:var(--tx2);"></div>
-        </div>
-      </div>
+    <!-- SECCIONES -->
+    <div class="screen" id="s-secciones">
+      <div class="sec-header">🎯 Mis Secciones</div>
+      <div id="secciones-list"></div>
+    </div>
 
-      <!-- RIFAS -->
-      <div class="panel" id="p-rifas">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">🎯 Mis Rifas / Secciones</div>
-        <div id="rifas-list"></div>
+    <!-- PAGOS -->
+    <div class="screen" id="s-pagos">
+      <div class="sec-header">💳 Pagos</div>
+      <div class="sub-tabs" id="pagos-tabs"></div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-g btn-sm pf active" data-f="todos" onclick="setPagFiltro(this)">Todos</button>
+        <button class="btn btn-neu btn-sm pf" data-f="pending" onclick="setPagFiltro(this)">⏳ Pendientes</button>
+        <button class="btn btn-neu btn-sm pf" data-f="confirmed" onclick="setPagFiltro(this)">✅ Confirmados</button>
+        <button class="btn btn-neu btn-sm pf" data-f="reserved" onclick="setPagFiltro(this)">Sin pago</button>
       </div>
+      <div id="pagos-list"></div>
+    </div>
 
-      <!-- PAGOS -->
-      <div class="panel" id="p-pagos">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">💳 Pagos de participantes</div>
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-          <button class="btn btn-g btn-sm pf" data-f="todos" onclick="setPagFiltro(this)">Todos</button>
-          <button class="btn btn-neu btn-sm pf" data-f="pending" onclick="setPagFiltro(this)">⏳ Pendientes</button>
-          <button class="btn btn-neu btn-sm pf" data-f="confirmed" onclick="setPagFiltro(this)">✅ Confirmados</button>
-          <button class="btn btn-neu btn-sm pf" data-f="reserved" onclick="setPagFiltro(this)">Sin pago</button>
-        </div>
-        <div id="pagos-list"></div>
-      </div>
+    <!-- GESTIÓN -->
+    <div class="screen" id="s-gestion">
+      <div class="sec-header">⚙️ Gestión del Drop</div>
+      <div class="sub-tabs" id="gestion-tabs"></div>
+      <div id="gestion-content"></div>
+    </div>
 
-      <!-- GANADOR -->
-      <div class="panel" id="p-ganador">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;">🏆 Datos del Ganador</div>
-        <div id="ganador-content"></div>
-      </div>
+    <!-- GANADOR -->
+    <div class="screen" id="s-ganador">
+      <div class="sec-header">🏆 Ganador</div>
+      <div class="sub-tabs" id="ganador-tabs"></div>
+      <div id="ganador-content"></div>
+    </div>
 
-      <!-- CATÁLOGO -->
-      <div class="panel" id="p-catalogo">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">📦 Catálogo</div>
-        <input type="text" id="cat-q" placeholder="Buscar..." oninput="renderCat(this.value)"/>
-        <div style="display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
-          <button class="btn btn-g btn-sm cf" data-f="todos" onclick="setCF(this)">Todos</button>
-          <button class="btn btn-neu btn-sm cf" data-f="cana" onclick="setCF(this)">🎣</button>
-          <button class="btn btn-neu btn-sm cf" data-f="carrete" onclick="setCF(this)">🔄</button>
-          <button class="btn btn-neu btn-sm cf" data-f="señuelo" onclick="setCF(this)">🦑</button>
-          <button class="btn btn-neu btn-sm cf" data-f="hilo" onclick="setCF(this)">🧵</button>
-          <button class="btn btn-neu btn-sm cf" data-f="combo" onclick="setCF(this)">🎁</button>
-        </div>
-        <div id="cat-list"></div>
-      </div>
+    <!-- STATS -->
+    <div class="screen" id="s-stats">
+      <div class="sec-header">📊 Estadísticas</div>
+      <div id="stats-content"></div>
+    </div>
 
-      <!-- CONFIG -->
-      <div class="panel" id="p-config">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">⚙️ Configuración</div>
-        <div id="cfg-subs" style="margin-bottom:14px;"></div>
-        <div id="cfg-form" style="display:none;">
-          <div class="card">
-            <div class="ct2">🎯 Drop</div>
-            <label>Nombre</label><input type="text" id="cfg-name"/>
-            <label>Premios (uno por línea)</label><textarea id="cfg-premios" style="height:90px;"></textarea>
-            <label>Precio/número (€)</label><input type="number" id="cfg-price"/>
-            <label>Total números</label><input type="number" id="cfg-total"/>
-            <label>Bizum</label><input type="text" id="cfg-bizum"/>
-            <label>IBAN transferencia</label><input type="text" id="cfg-transfer"/>
-            <label>PayPal</label><input type="text" id="cfg-paypal"/>
-            <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
-              <label style="margin:0;text-transform:none;font-size:13px;">Drop activo</label>
-              <input type="checkbox" id="cfg-activa" style="width:18px;height:18px;"/>
-            </div>
-            <button class="btn btn-g btn-lg" style="width:100%;margin-top:6px;" onclick="guardarCfg()">💾 Guardar</button>
-          </div>
-        </div>
+    <!-- CATÁLOGO -->
+    <div class="screen" id="s-catalogo">
+      <div class="sec-header">📦 Catálogo</div>
+      <input type="text" id="cat-q" placeholder="Buscar..." oninput="renderCat()"/>
+      <div style="display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;">
+        <button class="btn btn-g btn-sm cf active" data-f="todos" onclick="setCF(this)">Todos</button>
+        <button class="btn btn-neu btn-sm cf" data-f="cana" onclick="setCF(this)">🎣 Cañas</button>
+        <button class="btn btn-neu btn-sm cf" data-f="carrete" onclick="setCF(this)">🔄 Carretes</button>
+        <button class="btn btn-neu btn-sm cf" data-f="señuelo" onclick="setCF(this)">🦑 Señuelos</button>
+        <button class="btn btn-neu btn-sm cf" data-f="combo" onclick="setCF(this)">🎁 Combos</button>
       </div>
+      <div id="cat-list"></div>
+    </div>
 
-      <!-- SORTEO -->
-      <div class="panel" id="p-sorteo">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">🎰 Sorteo</div>
-        <div id="sorteo-content"></div>
+    <!-- NOTIFICACIONES -->
+    <div class="screen" id="s-notifs">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="sec-header" style="margin:0;">🔔 Notificaciones</div>
+        <button class="btn btn-neu btn-sm" onclick="loadNotifs()">↻</button>
       </div>
-
-      <!-- TABLERO NÚMEROS -->
-      <div class="panel" id="p-tablero">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">🔢 Tablero</div>
-        <div id="tablero-content"></div>
-      </div>
-
-      <!-- ESTADÍSTICAS / FACTURACIÓN -->
-      <div class="panel" id="p-stats">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px;">📊 Estadísticas y Pago</div>
-        <div id="stats-content"></div>
-      </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;">🔔 Notificaciones</div>
-          <button class="btn btn-neu btn-sm" onclick="loadNotifs()">↻</button>
-        </div>
-        <div id="notifs-list"></div>
-      </div>
-
+      <div id="notifs-list"></div>
     </div>
   </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <button class="bni active" data-s="dashboard" onclick="goScreen('dashboard')"><span class="bni-ico">📊</span>Inicio</button>
+    <button class="bni" data-s="secciones" onclick="goScreen('secciones')"><span class="bni-ico">🎯</span>Secciones</button>
+    <button class="bni" data-s="pagos" onclick="goScreen('pagos')"><span class="bni-ico">💳</span>Pagos<span class="bni-badge" id="badge-pagos"></span></button>
+    <button class="bni" data-s="gestion" onclick="goScreen('gestion')"><span class="bni-ico">⚙️</span>Gestión</button>
+    <button class="bni" data-s="notifs" onclick="goScreen('notifs')"><span class="bni-ico">🔔</span>Notifs<span class="bni-badge" id="badge-notifs"></span></button>
+  </nav>
 </div>
 
-<nav class="bnav">
-  <button class="bi active" onclick="go('dashboard')" data-p="dashboard"><span class="bic">📊</span>Inicio</button>
-  <button class="bi" onclick="go('pagos')" data-p="pagos"><span class="bic">💳</span>Pagos</button>
-  <button class="bi" onclick="go('sorteo')" data-p="sorteo"><span class="bic">🎰</span>Sorteo</button>
-  <button class="bi" onclick="go('ganador')" data-p="ganador"><span class="bic">🏆</span>Ganador</button>
-  <button class="bi" onclick="go('stats')" data-p="stats"><span class="bic">📈</span>Stats</button>
-</nav>
+<!-- MODAL IMAGEN -->
+<div class="modal-bg" id="modal-img" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-title">Comprobante</div>
+    <img id="modal-img-src" style="width:100%;border-radius:var(--rads);max-height:65vh;object-fit:contain;"/>
+    <button class="btn btn-neu" style="width:100%;margin-top:12px;" onclick="document.getElementById('modal-img').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
 
 <div id="toast"></div>
 
-<!-- Modal imagen comprobante -->
-<div id="modal-img" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.9);align-items:center;justify-content:center;padding:16px;" onclick="document.getElementById('modal-img').style.display='none'">
-  <div style="max-width:500px;width:100%;position:relative;">
-    <button onclick="document.getElementById('modal-img').style.display='none'" style="position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;">✕</button>
-    <img id="modal-img-src" style="width:100%;border-radius:var(--rads);max-height:80vh;object-fit:contain;"/>
-    <div id="modal-img-name" style="color:#fff;text-align:center;margin-top:10px;font-size:13px;"></div>
-  </div>
-</div>
-
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import{getFirestore,collection,doc,getDoc,getDocs,updateDoc,addDoc,onSnapshot,serverTimestamp,query,where,writeBatch,setDoc}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import{getFirestore,collection,doc,getDoc,getDocs,updateDoc,addDoc,onSnapshot,serverTimestamp,query,where,writeBatch,setDoc,deleteField}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import{getStorage,ref,uploadBytes,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-const fb=initializeApp({apiKey:"AIzaSyBoh-OnF_G4_N8YwhWHOAsqIOS1B1tzkkA",authDomain:"drops-oficial.firebaseapp.com",projectId:"drops-oficial",storageBucket:"drops-oficial.firebasestorage.app",messagingSenderId:"725158698993",appId:"1:725158698993:web:d7e1ecbb73bfcefc676e50"});
-const db=getFirestore(fb);
+const fbApp=initializeApp({apiKey:"AIzaSyBoh-OnF_G4_N8YwhWHOAsqIOS1B1tzkkA",authDomain:"drops-oficial.firebaseapp.com",projectId:"drops-oficial",storageBucket:"drops-oficial.firebasestorage.app",messagingSenderId:"725158698993",appId:"1:725158698993:web:d7e1ecbb73bfcefc676e50"});
+const db=getFirestore(fbApp);
+const storage=getStorage(fbApp,'gs://drops-oficial.firebasestorage.app');
 
-let commId=null,subId=null,commData=null,parts={},catDocs=[],pagFiltro='todos',catFiltro='todos';
-let _unsubParts=null;
+// ── ESTADO ────────────────────────────────────────────────────
+let commId=null,commData=null;
+let activeSub=null; // subId activo
+let allParts={}; // subId -> {num -> participant}
+let catDocs=[];
+let pagFiltro='todos';
+let catFiltro='todos';
+let _unsubMap={}; // subId -> unsub function
+let _unsubNotifs=null;
+let _unsubSuperNotifs=null;
 
+// ── UTILS ─────────────────────────────────────────────────────
 function toast(m,d=3000){const e=document.getElementById('toast');e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',d);}
-
-// ── AUTO-LOGIN ────────────────────────────────────────────────
-const saved=localStorage.getItem('dca');
-if(saved){try{const o=JSON.parse(saved);commId=o.c;subId=o.s;init();}catch(_){localStorage.removeItem('dca');}}
+function getSubs(){return Object.values(commData?.subs||{});}
+function getSubIds(){return Object.keys(commData?.subs||{});}
+function partsOf(sid){return Object.values(allParts[sid]||{});}
 
 // ── LOGIN ─────────────────────────────────────────────────────
-window.login=async function(){
-  const input=document.getElementById('lc').value.trim().toUpperCase();
-  const pw=document.getElementById('lp').value.trim();
-  const err=document.getElementById('le');
+const saved=localStorage.getItem('dca2');
+if(saved){try{const o=JSON.parse(saved);commId=o.c;activeSub=o.s;init();}catch(_){localStorage.removeItem('dca2');}}
+
+window.doLogin=async function(){
+  const pin=document.getElementById('l-pin').value.trim().toUpperCase();
+  const pw=document.getElementById('l-pw').value.trim();
+  const err=document.getElementById('l-err');
   err.textContent='';
-  if(!input||!pw){err.textContent='Rellena todos los campos';return;}
+  if(!pin||!pw){err.textContent='Rellena todos los campos';return;}
   try{
     const snap=await getDocs(collection(db,'communities'));
     let found=null;
     snap.forEach(d=>{
       const dd=d.data();
-      // Buscar por PIN o por nombre (insensible a mayúsculas)
-      if(dd.pin===input||dd.pin===input.toLowerCase()||
-         (dd.name&&dd.name.toUpperCase()===input)){
-        found={id:d.id,...dd};
-      }
+      if(dd.pin===pin||dd.name?.toUpperCase()===pin)found={id:d.id,...dd};
     });
-    if(!found){err.textContent='Comunidad no encontrada. Comprueba el PIN o nombre.';return;}
-    if(!found.adminPassOrg){err.textContent='Esta comunidad no tiene contraseña de organizador configurada. Contacta con el administrador.';return;}
+    if(!found){err.textContent='Comunidad no encontrada';return;}
+    if(!found.adminPassOrg){err.textContent='Sin contraseña de organizador. Contacta con el administrador.';return;}
     if(found.adminPassOrg!==pw){err.textContent='Contraseña incorrecta';return;}
     commId=found.id;
     const subs=Object.values(found.subs||{});
-    subId=subs.find(s=>s.config?.rifaActiva!==false)?.id||subs[0]?.id||null;
-    localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));
+    activeSub=subs[0]?.id||null;
+    localStorage.setItem('dca2',JSON.stringify({c:commId,s:activeSub}));
     init();
   }catch(e){err.textContent='Error: '+e.message;}
 };
 
-window.logout=function(){localStorage.removeItem('dca');location.reload();};
+window.doLogout=function(){localStorage.removeItem('dca2');location.reload();};
 
 // ── INIT ──────────────────────────────────────────────────────
 async function init(){
@@ -323,126 +304,223 @@ async function init(){
     const snap=await getDoc(doc(db,'communities',commId));
     if(!snap.exists()){toast('Comunidad no encontrada');return;}
     commData={id:snap.id,...snap.data()};
-    const name=commData.name||commId;
-    document.getElementById('sb-name').textContent=name;
-    document.getElementById('tb-comm').textContent=name;
-    document.title='Drops · '+name;
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').classList.add('visible');
-    escucharParts();
+    if(!activeSub){const subs=getSubs();activeSub=subs[0]?.id||null;}
+    document.getElementById('topbar-comm').textContent=commData.name||commId;
+    document.title='Drops · '+(commData.name||commId);
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').classList.add('show');
+    // Escuchar participantes de todas las secciones
+    getSubIds().forEach(sid=>escucharParts(sid));
+    // Escuchar notificaciones
+    escucharNotifs();
+    // Pedir permiso push
+    if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
     loadDashboard();
-  }catch(e){toast('Error: '+e.message);}
+  }catch(e){document.getElementById('l-err').textContent='Error: '+e.message;document.getElementById('login').style.display='flex';}
 }
 
-// ── NAV ───────────────────────────────────────────────────────
-window.go=function(name){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.ni,.bi').forEach(b=>b.classList.toggle('active',b.dataset.p===name));
-  document.getElementById('p-'+name)?.classList.add('active');
-  const t={dashboard:'Dashboard',rifas:'Rifas',pagos:'Pagos',ganador:'Ganador',sorteo:'Sorteo',tablero:'Tablero',stats:'Estadísticas',catalogo:'Catálogo',config:'Config',notifs:'Notificaciones'};
-  document.getElementById('tbt').textContent=t[name]||name;
+// ── NAVEGACIÓN ────────────────────────────────────────────────
+const SCREEN_TITLES={dashboard:'Dashboard',secciones:'Secciones',pagos:'Pagos',gestion:'Gestión del Drop',ganador:'Ganador',stats:'Estadísticas',catalogo:'Catálogo',notifs:'Notificaciones'};
+
+window.goScreen=function(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.bni').forEach(b=>b.classList.toggle('active',b.dataset.s===name));
+  document.getElementById('s-'+name)?.classList.add('active');
+  document.getElementById('topbar-title').textContent=SCREEN_TITLES[name]||name;
+  document.getElementById('topbar-back').style.display='none';
   if(name==='dashboard')loadDashboard();
-  if(name==='rifas')loadRifas();
-  if(name==='pagos')renderPagos();
-  if(name==='ganador')loadGanador();
-  if(name==='sorteo')loadSorteo();
-  if(name==='tablero')loadTablero();
+  if(name==='secciones')loadSecciones();
+  if(name==='pagos')loadPagosTabs();
+  if(name==='gestion')loadGestionTabs();
+  if(name==='ganador')loadGanadorTabs();
   if(name==='stats')loadStats();
   if(name==='catalogo')loadCatalogo();
-  if(name==='config')loadConfig();
-  if(name==='notifs')loadNotifs();
+  if(name==='notifs'){loadNotifs();marcarNotifsLeidas();}
+};
+
+window.goBack=function(){
+  document.getElementById('topbar-back').style.display='none';
 };
 
 // ── PARTICIPANTES RT ──────────────────────────────────────────
-function escucharParts(){
-  if(!subId)return;
-  if(_unsubParts)_unsubParts();
-  _unsubParts=onSnapshot(collection(db,'communities',commId,'subs',subId,'participants'),snap=>{
-    parts={};snap.forEach(d=>parts[d.data().num]={id:d.id,...d.data()});
-    actualizarStats();
-    const pend=Object.values(parts).filter(p=>p.status==='pending').length;
-    const nb=document.getElementById('nb-pagos');
-    if(nb){nb.textContent=pend;nb.style.display=pend>0?'inline':'none';}
-    if(document.getElementById('p-pagos')?.classList.contains('active'))renderPagos();
-    // Notif nativa
-    if(pend>0&&Notification.permission==='granted'&&!document.getElementById('p-pagos')?.classList.contains('active')){
-      new Notification('💳 Comprobante recibido',{body:pend+' pago'+(pend>1?'s':'')+' pendiente'+(pend>1?'s':'')+' de confirmar',icon:'/favicon.ico'});
+function escucharParts(sid){
+  if(_unsubMap[sid])_unsubMap[sid]();
+  if(!allParts[sid])allParts[sid]={};
+  let _primera=true;
+  _unsubMap[sid]=onSnapshot(collection(db,'communities',commId,'subs',sid,'participants'),snap=>{
+    const prevPend=Object.values(allParts[sid]||{}).filter(p=>p.status==='pending').length;
+    allParts[sid]={};
+    snap.forEach(d=>allParts[sid][d.data().num]={id:d.id,...d.data()});
+    actualizarBadgePagos();
+    if(!_primera){
+      const newPend=Object.values(allParts[sid]).filter(p=>p.status==='pending').length;
+      if(newPend>prevPend&&Notification.permission==='granted'){
+        const nuevos=snap.docChanges().filter(c=>c.type==='modified'&&c.doc.data().status==='pending'&&c.doc.data().proofUrl);
+        if(nuevos.length){
+          const sub=commData?.subs?.[sid];
+          const p=nuevos[0].doc.data();
+          const n=new Notification('💳 Comprobante recibido — '+(sub?.name||sid),{
+            body:(p.name||'Participante')+' — Nºs: '+Object.values(allParts[sid]).filter(x=>x.name===p.name&&x.status==='pending').map(x=>x.num).sort((a,b)=>a-b).join(', '),
+            icon:'/favicon.ico',requireInteraction:true
+          });
+          n.onclick=()=>{window.focus();goScreen('pagos');};
+        }
+      }
     }
+    _primera=false;
+    if(document.getElementById('s-pagos')?.classList.contains('active')&&activeSub===sid)renderPagos();
+    if(document.getElementById('s-dashboard')?.classList.contains('active'))actualizarStatsDash();
   });
-  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 }
 
-function actualizarStats(){
-  const p=Object.values(parts);
-  document.getElementById('d-res').textContent=p.length;
-  document.getElementById('d-conf').textContent=p.filter(x=>x.status==='confirmed').length;
-  document.getElementById('d-pend').textContent=p.filter(x=>x.status==='pending').length;
-  document.getElementById('d-sinpag').textContent=p.filter(x=>x.status==='reserved').length;
+function actualizarBadgePagos(){
+  let total=0;
+  getSubIds().forEach(sid=>{total+=Object.values(allParts[sid]||{}).filter(p=>p.status==='pending').length;});
+  const b=document.getElementById('badge-pagos');
+  if(b){b.textContent=total;b.style.display=total>0?'inline':'none';}
+}
+
+// ── NOTIFICACIONES RT ─────────────────────────────────────────
+function escucharNotifs(){
+  if(_unsubSuperNotifs)_unsubSuperNotifs();
+  let _primera=true;
+  _unsubSuperNotifs=onSnapshot(collection(db,'superadmin','notificaciones'),snap=>{
+    let noLeidas=snap.docs.filter(d=>d.data().commId===commId&&!d.data().leida).length;
+    const b=document.getElementById('badge-notifs');
+    if(b){b.textContent=noLeidas;b.style.display=noLeidas>0?'inline':'none';}
+    if(!_primera){
+      snap.docChanges().forEach(change=>{
+        if(change.type==='added'){
+          const data=change.doc.data();
+          if(data.commId===commId&&!data.leida&&Notification.permission==='granted'){
+            new Notification(data.text||'Nueva notificación',{body:data.sub||'',icon:'/favicon.ico'});
+          }
+        }
+      });
+    }
+    _primera=false;
+  });
+}
+
+function marcarNotifsLeidas(){
+  getDocs(collection(db,'superadmin','notificaciones')).then(snap=>{
+    const b=writeBatch(db);
+    snap.forEach(d=>{if(d.data().commId===commId&&!d.data().leida)b.update(d.ref,{leida:true});});
+    b.commit().catch(()=>{});
+    const badge=document.getElementById('badge-notifs');
+    if(badge)badge.style.display='none';
+  }).catch(()=>{});
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 function loadDashboard(){
-  actualizarStats();
-  const sub=commData?.subs?.[subId];const cfg=sub?.config||{};
-  const el=document.getElementById('d-rifa');
-  if(cfg.rifaName){
-    const n=Object.values(parts).length,m=cfg.total||100;
-    el.innerHTML=`<div style="font-weight:700;margin-bottom:6px;">${cfg.rifaName}</div>
-    <div style="font-size:12px;color:var(--tx2);">${n}/${m} números · ${cfg.price||12}€</div>
-    <div style="margin-top:8px;background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;">
-      <div style="height:100%;background:var(--g);width:${Math.min(100,n/m*100)}%;"></div></div>
-    <div style="font-size:11px;margin-top:5px;color:${cfg.rifaActiva?'var(--g)':'var(--tx3)'};">${cfg.rifaActiva?'● Activa':'● Pausada'}</div>`;
-  } else el.textContent='Sin drop configurado';
-
-  const gan=commData?.subs?.[subId]?.ultimoGanador;
-  const ge=document.getElementById('d-gan');
-  if(gan&&ge)ge.innerHTML=`<div style="font-weight:700;">${gan.name||'—'} — Nº${gan.num}</div><div style="font-size:12px;color:var(--tx2);">${gan.fecha||''}</div>`;
-
-  // Info pago a Drops Oficial
-  const pe=document.getElementById('d-pago');
-  if(pe)pe.innerHTML=`<div style="margin-bottom:6px;">📱 Bizum: <strong>634 XX XX XX</strong></div>
-    <div>🏦 IBAN: <strong>ES65 1583 0001 1590 6984 8933</strong></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Tarifas: 1-3 rifas=25€ · 4-10=15€ · 11+=10€ · Mensual=150€</div>`;
+  actualizarStatsDash();
+  // Info drop activo
+  const sub=commData?.subs?.[activeSub];
+  const cfg=sub?.config||{};
+  const total=Object.values(allParts[activeSub]||{}).length;
+  const max=cfg.total||100;
+  document.getElementById('dash-drop-info').innerHTML=cfg.rifaName?`
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px;">${cfg.rifaName} <span class="badge ${cfg.rifaActiva?'b-ok':'b-neu'}">${cfg.rifaActiva?'Activo':'Pausado'}</span></div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;">${total}/${max} números · ${cfg.price||12}€/número</div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,total/max*100)}%"></div></div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:4px;">${max-total} números libres</div>
+  `:'<div style="font-size:13px;color:var(--tx3);">Sin drop configurado</div>';
+  // Ganador
+  const gan=commData?.subs?.[activeSub]?.ultimoGanador;
+  const ganEl=document.getElementById('dash-ganador-info');
+  if(ganEl){
+    if(gan)ganEl.innerHTML=`<div style="font-weight:700;">🏆 Último ganador: ${gan.name||'—'}</div><div style="font-size:12px;color:var(--tx2);">Nº${gan.num} · ${gan.fecha||''}</div>`;
+    else ganEl.innerHTML='';
+    ganEl.style.display=gan?'block':'none';
+  }
+  // Plan
+  const planKey=commData?.plan||'pay_per_drop';
+  const PNAMES={pay_per_drop:'🎯 Pay per Drop',basico:'⭐ Básico',pro:'🚀 Pro',premium:'👑 Premium'};
+  document.getElementById('dash-plan-info').innerHTML=`<div style="font-size:12px;color:var(--tx3);">Plan: <strong>${PNAMES[planKey]||planKey}</strong></div>`;
 }
 
-// ── RIFAS ─────────────────────────────────────────────────────
-function loadRifas(){
-  const el=document.getElementById('rifas-list');el.innerHTML='';
-  const subs=Object.values(commData?.subs||{});
-  if(!subs.length){el.innerHTML='<div class="alert a-info">No hay secciones.</div>';return;}
+function actualizarStatsDash(){
+  let total=0,conf=0,pend=0,sinpag=0;
+  getSubIds().forEach(sid=>{
+    const p=Object.values(allParts[sid]||{});
+    total+=p.length;conf+=p.filter(x=>x.status==='confirmed').length;
+    pend+=p.filter(x=>x.status==='pending').length;
+    sinpag+=p.filter(x=>x.status==='reserved').length;
+  });
+  document.getElementById('d-total').textContent=total;
+  document.getElementById('d-conf').textContent=conf;
+  document.getElementById('d-pend').textContent=pend;
+  document.getElementById('d-sinpag').textContent=sinpag;
+}
+
+// ── SECCIONES ─────────────────────────────────────────────────
+function loadSecciones(){
+  const el=document.getElementById('secciones-list');el.innerHTML='';
+  const subs=getSubs();
+  if(!subs.length){el.innerHTML='<div class="alert a-info">Sin secciones configuradas.</div>';return;}
   subs.forEach(s=>{
     const cfg=s.config||{};
+    const parts=Object.values(allParts[s.id]||{});
+    const pend=parts.filter(p=>p.status==='pending').length;
     const div=document.createElement('div');div.className='card';div.style.cursor='pointer';
-    div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="font-weight:700;">${s.emoji||'🎯'} ${s.name||s.id}</div>
-      <span class="badge ${cfg.rifaActiva?'b-ok':'b-neu'}">${cfg.rifaActiva?'Activa':'Pausada'}</span></div>
-      <div style="font-size:12px;color:var(--tx2);">${cfg.rifaName||'Sin nombre'} · ${cfg.price||12}€ · ${cfg.total||100} números</div>`;
-    div.onclick=()=>{subId=s.id;localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));escucharParts();toast('Sección: '+s.name);go('dashboard');};
+    div.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:14px;">${s.emoji||'🎯'} ${s.name||s.id}</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${pend>0?`<span class="badge b-warn">⏳ ${pend}</span>`:''}
+          <span class="badge ${cfg.rifaActiva?'b-ok':'b-neu'}">${cfg.rifaActiva?'Activo':'Pausado'}</span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);">${cfg.rifaName||'Sin nombre'} · ${parts.length}/${cfg.total||100} números</div>`;
+    div.onclick=()=>{
+      activeSub=s.id;
+      localStorage.setItem('dca2',JSON.stringify({c:commId,s:activeSub}));
+      toast('Sección activa: '+(s.name||s.id));
+      goScreen('gestion');
+    };
     el.appendChild(div);
   });
 }
 
-// ── PAGOS ─────────────────────────────────────────────────────
+// ── TABS HELPER ───────────────────────────────────────────────
+function buildSubTabs(containerId,onSelect){
+  const el=document.getElementById(containerId);if(!el)return;
+  el.innerHTML='';
+  getSubs().forEach(s=>{
+    const parts=Object.values(allParts[s.id]||{});
+    const pend=parts.filter(p=>p.status==='pending').length;
+    const btn=document.createElement('button');
+    btn.className='sub-tab'+(s.id===activeSub?' active':'');
+    btn.innerHTML=`${s.emoji||'🎯'} ${s.name||s.id}${pend>0?`<span class="tab-badge" style="display:inline;">${pend}</span>`:''}`;
+    btn.onclick=()=>{
+      activeSub=s.id;
+      localStorage.setItem('dca2',JSON.stringify({c:commId,s:activeSub}));
+      document.querySelectorAll('#'+containerId+' .sub-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      onSelect(s.id);
+    };
+    el.appendChild(btn);
+  });
+}
 
-window.showImgModal=function(url,name){
-  const m=document.getElementById('modal-img');
-  if(!m)return;
-  document.getElementById('modal-img-src').src=url;
-  document.getElementById('modal-img-name').textContent=name||'';
-  m.style.display='flex';
-};
+// ── PAGOS ─────────────────────────────────────────────────────
+function loadPagosTabs(){
+  buildSubTabs('pagos-tabs',()=>renderPagos());
+  renderPagos();
+}
 
 window.setPagFiltro=function(btn){
   pagFiltro=btn.dataset.f;
-  document.querySelectorAll('.pf').forEach(b=>b.className='btn btn-sm pf '+(b===btn?'btn-g':'btn-neu'));
+  document.querySelectorAll('.pf').forEach(b=>{b.className='btn btn-sm pf';b.classList.add(b===btn?'btn-g':'btn-neu');});
   renderPagos();
 };
 
 function renderPagos(){
   const el=document.getElementById('pagos-list');el.innerHTML='';
-  const all=Object.values(parts);
+  const parts=Object.values(allParts[activeSub]||{});
   const grouped={};
-  all.forEach(p=>{
+  parts.forEach(p=>{
     if(pagFiltro!=='todos'&&p.status!==pagFiltro)return;
     const k=(p.name||'')+'_'+(p.phone||'');
     if(!grouped[k])grouped[k]={name:p.name,phone:p.phone,nums:[],status:p.status,proofUrl:null,method:p.method,pagoRef:p.pagoRef,ids:[],ocr:false};
@@ -456,23 +534,23 @@ function renderPagos(){
   gs.forEach(g=>{
     const div=document.createElement('div');div.className='card';
     const sb=g.status==='pending'
-      ?`<span class="badge b-warn">⏳${g.ocr?'':' ⚠️'}</span>`
-      :g.status==='confirmed'?`<span class="badge b-ok">${g.ocr?'🤖':''}✅</span>`
+      ?`<span class="badge b-warn">⏳${g.ocr?' 🤖':' ⚠️'}</span>`
+      :g.status==='confirmed'?`<span class="badge b-ok">${g.ocr?'🤖 ':''}✅</span>`
       :'<span class="badge b-err">Sin pago</span>';
     div.innerHTML=`
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
-        <div><div style="font-weight:700;font-size:14px;">${g.name||'—'}</div>
-        <div style="font-size:12px;color:var(--tx2);">${g.phone||'—'}</div>
-        <div style="font-size:12px;color:var(--tx2);">Nºs: ${g.nums.sort((a,b)=>a-b).join(', ')}</div>
-        ${g.pagoRef?`<div style="font-size:11px;color:var(--tx3);">Ref: ${g.pagoRef}</div>`:''}
-        ${g.method?`<div style="font-size:11px;color:var(--tx3);">${g.method}</div>`:''}
-        </div>${sb}
+        <div>
+          <div style="font-weight:700;font-size:14px;">${g.name||'—'}</div>
+          <div style="font-size:12px;color:var(--tx2);">${g.phone||'—'}</div>
+          <div style="font-size:12px;color:var(--tx2);">Nºs: ${g.nums.sort((a,b)=>a-b).join(', ')}</div>
+          ${g.pagoRef?`<div style="font-size:11px;color:var(--tx3);">Ref: ${g.pagoRef}</div>`:''}
+          ${g.method?`<div style="font-size:11px;color:var(--tx3);">${g.method}</div>`:''}
+        </div>
+        ${sb}
       </div>
       ${g.proofUrl
-        ?`<div style="margin-bottom:8px;">
-            <img src="${g.proofUrl}" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--rads);cursor:pointer;border:1px solid var(--bd);" onclick="showImgModal('${g.proofUrl}','${(g.name||'').replace(/'/g,'')}')" />
-            <button class="btn btn-neu btn-sm" style="width:100%;margin-top:4px;" onclick="showImgModal('${g.proofUrl}','${(g.name||'').replace(/'/g,'')}')">🖼 Ver a pantalla completa</button>
-          </div>`
+        ?`<img class="proof-img" src="${g.proofUrl}" onclick="verImagen('${g.proofUrl}')"/>
+           <button class="btn btn-neu btn-sm" style="width:100%;margin-bottom:8px;" onclick="verImagen('${g.proofUrl}')">🖼 Ver comprobante</button>`
         :`<div style="font-size:11px;color:var(--tx3);padding:8px;background:var(--bg3);border-radius:var(--rads);margin-bottom:8px;">📎 Sin comprobante</div>`
       }
       ${g.status==='pending'?`<div style="display:flex;gap:8px;">
@@ -482,10 +560,15 @@ function renderPagos(){
   });
 }
 
+window.verImagen=function(url){
+  document.getElementById('modal-img-src').src=url;
+  document.getElementById('modal-img').classList.add('open');
+};
+
 window.confirmarPago=async function(idsStr){
   try{
     const b=writeBatch(db);
-    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',subId,'participants',id),{status:'confirmed'}));
+    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',activeSub,'participants',id),{status:'confirmed'}));
     await b.commit();toast('✅ Confirmado');
   }catch(e){toast('Error: '+e.message);}
 };
@@ -494,193 +577,191 @@ window.rechazarPago=async function(idsStr){
   if(!confirm('¿Rechazar este pago?'))return;
   try{
     const b=writeBatch(db);
-    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',subId,'participants',id),{status:'reserved',proofUrl:null}));
+    idsStr.split(',').forEach(id=>b.update(doc(db,'communities',commId,'subs',activeSub,'participants',id),{status:'reserved',proofUrl:null}));
     await b.commit();toast('❌ Rechazado');
   }catch(e){toast('Error: '+e.message);}
 };
 
-// ── GANADOR ───────────────────────────────────────────────────
-async function loadGanador(){
-  const el=document.getElementById('ganador-content');
+// ── GESTIÓN ───────────────────────────────────────────────────
+function loadGestionTabs(){
+  buildSubTabs('gestion-tabs',()=>renderGestion());
+  renderGestion();
+}
+
+async function renderGestion(){
+  const el=document.getElementById('gestion-content');
   el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
-  try{
-    const snap=await getDoc(doc(db,'communities',commId));
-    commData={id:snap.id,...snap.data()};
-  }catch(_){}
-  const sub=commData?.subs?.[subId];
-  const gan=sub?.ultimoGanador;
-  const elec=sub?.ganadorEleccion;
-  if(!gan){el.innerHTML='<div class="alert a-info">Aún no se ha realizado ningún sorteo.</div>';return;}
-  el.innerHTML=`
-    <div class="gc">
-      <div style="text-align:center;font-size:36px;margin-bottom:6px;">🏆</div>
-      <div style="text-align:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:900;">${gan.name||'—'}</div>
-      <div style="text-align:center;font-size:13px;color:var(--tx2);margin-top:4px;">Número ${gan.num} · ${gan.fecha||''}</div>
-    </div>
-    ${elec?`
-    <div class="card">
-      <div class="ct2">📦 Datos de envío</div>
-      <div style="display:grid;gap:8px;">
-        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
-          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Premio elegido</div>
-          <div style="font-weight:700;font-size:14px;">${(elec.premio||'—').replace(/#\d+\s*/g,'')}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
-          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Dirección de envío</div>
-          <div style="font-weight:700;">${elec.direccion||'—'}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
-          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Teléfono</div>
-          <div style="font-weight:700;">${elec.telefono||'—'}</div>
-          ${elec.telefono?`<a href="https://wa.me/34${elec.telefono.replace(/\D/g,'')}" target="_blank" class="btn btn-g btn-sm" style="margin-top:8px;text-decoration:none;display:inline-flex;">💬 WhatsApp</a>`:''}
-        </div>
-        ${elec.comentarios?`<div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
-          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Comentarios</div>
-          <div>${elec.comentarios}</div></div>`:''}
-        <div style="font-size:11px;color:var(--tx3);">Recibido el ${elec.fecha||'—'}</div>
-      </div>
-    </div>`
-    :'<div class="alert a-warn">⏳ El ganador aún no ha enviado su dirección y elección de premio.</div>'}
-    ${gan.premios?`<div class="card"><div class="ct2">🎁 Premios del drop</div>
-      ${gan.premios.split('\n').filter(p=>p.trim()).map(p=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px;">• ${p.trim().replace(/#\d+\s*/g,'')}</div>`).join('')}</div>`:''}
-  `;
-}
-
-// ── SORTEO ────────────────────────────────────────────────────
-async function loadSorteo(){
-  const el=document.getElementById('sorteo-content');
-  el.innerHTML='';
-  // Recargar datos
+  // Recargar datos frescos
   try{const s=await getDoc(doc(db,'communities',commId));commData={id:s.id,...s.data()};}catch(_){}
-  const sub=commData?.subs?.[subId];
+  const sub=commData?.subs?.[activeSub];
   const cfg=sub?.config||{};
-  const allParts=Object.values(parts);
-  const confirmed=allParts.filter(p=>p.status==='confirmed');
+  const parts=Object.values(allParts[activeSub]||{});
+  const confirmed=parts.filter(p=>p.status==='confirmed').length;
   const total=cfg.total||100;
-  const pagosAbiertos=sub?.pagosAbiertos;
 
   el.innerHTML=`
+    <!-- ESTADO -->
     <div class="card">
-      <div class="ct2">📊 Estado</div>
-      <div style="font-size:13px;margin-bottom:8px;">${confirmed.length}/${total} números confirmados</div>
-      <div style="background:var(--bg3);border-radius:99px;height:8px;overflow:hidden;margin-bottom:12px;">
-        <div style="height:100%;background:var(--g);width:${Math.min(100,confirmed.length/total*100)}%;"></div>
+      <div class="card-title">📊 Estado del drop</div>
+      <div style="font-size:13px;margin-bottom:6px;">${confirmed}/${total} números confirmados</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,confirmed/total*100)}%"></div></div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:4px;">${total-confirmed} libres · ${parts.filter(p=>p.status==='pending').length} pendientes de confirmar</div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div class="card">
+      <div class="card-title">⚙️ Configurar drop</div>
+      <label>Nombre del drop</label>
+      <input id="g-name" value="${cfg.rifaName||''}"/>
+      <label>Premios (uno por línea)</label>
+      <textarea id="g-premios" style="height:80px;">${cfg.premios||''}</textarea>
+      <label>Precio por número (€)</label>
+      <input id="g-price" type="number" value="${cfg.price||12}"/>
+      <label>Total números</label>
+      <input id="g-total" type="number" value="${cfg.total||100}"/>
+      <label>Bizum</label>
+      <input id="g-bizum" value="${cfg.bizum||''}"/>
+      <label>IBAN transferencia</label>
+      <input id="g-transfer" value="${cfg.transfer||''}"/>
+      <label>PayPal</label>
+      <input id="g-paypal" value="${cfg.paypal||''}"/>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+        <input type="checkbox" id="g-activa" style="width:18px;height:18px;" ${cfg.rifaActiva!==false?'checked':''}/>
+        <label style="margin:0;font-size:13px;text-transform:none;">Drop activo</label>
       </div>
-      ${confirmed.length>=total?'<div class="alert a-ok">✅ Drop completo</div>':'<div class="alert a-warn">⏳ Faltan '+(total-confirmed.length)+' números por confirmar</div>'}
+      <button class="btn btn-g" style="width:100%;padding:12px;" onclick="guardarCfgGestion()">💾 Guardar configuración</button>
     </div>
 
-    ${!pagosAbiertos?`
+    <!-- CUENTA ATRÁS -->
     <div class="card">
-      <div class="ct2">🚀 Abrir pago</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Notifica a todos los participantes que pueden pagar.</div>
-      <button class="btn btn-g btn-lg" style="width:100%;" onclick="abrirPagoComm()">🚀 Abrir pago a participantes</button>
-    </div>`:'<div class="alert a-ok" style="margin-bottom:12px;">✅ Pagos abiertos</div>'}
-
-    <div class="card">
-      <div class="ct2">📅 Programar cuenta atrás</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Programa cuándo se abre el drop automáticamente.</div>
-      <input type="datetime-local" id="cd-fecha" style="margin-bottom:8px;"/>
-      <button class="btn btn-g" style="width:100%;" onclick="programarCuentaAtras()">⏰ Programar</button>
-      ${sub?.activaAt?`<div style="font-size:12px;color:var(--g);margin-top:8px;">⏳ Programado: ${new Date(sub.activaAt).toLocaleString('es-ES')}</div>`:''}
+      <div class="card-title">⏰ Cuenta atrás</div>
+      ${sub?.activaAt?`<div class="alert a-ok" style="margin-bottom:10px;">⏳ Programado: ${new Date(sub.activaAt).toLocaleString('es-ES')}</div>`:''}
+      <input type="datetime-local" id="g-fecha"/>
+      <button class="btn btn-g" style="width:100%;padding:11px;" onclick="programarCuentaAtras()">📅 Programar apertura</button>
+      ${sub?.activaAt?`<button class="btn btn-ko btn-sm" style="width:100%;margin-top:6px;" onclick="cancelarCuentaAtras()">✕ Cancelar cuenta atrás</button>`:''}
     </div>
 
+    <!-- ABRIR PAGO -->
     <div class="card">
-      <div class="ct2">🎰 Realizar sorteo</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Sube la captura del cupón de la ONCE para hacer el sorteo.</div>
-      <div style="background:var(--bg3);border:2px dashed var(--bd);border-radius:var(--rads);padding:16px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('sorteo-file').click()">
-        <div style="font-size:24px;">📸</div>
-        <div style="font-size:12px;color:var(--tx2);" id="sorteo-file-txt">Subir foto del cupón ONCE</div>
+      <div class="card-title">💳 Pago a participantes</div>
+      ${sub?.pagosAbiertos
+        ?'<div class="alert a-ok">✅ Pagos abiertos — los participantes ya pueden pagar</div>'
+        :`<button class="btn btn-g" style="width:100%;padding:11px;" onclick="abrirPagoParticipantes()">🚀 Abrir pago a participantes</button>`
+      }
+    </div>
+
+    <!-- SORTEO -->
+    <div class="card">
+      <div class="card-title">🎰 Sorteo</div>
+      <div style="background:var(--bg3);border:2px dashed var(--bd);border-radius:var(--rads);padding:14px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('g-sorteo-file').click()">
+        <div style="font-size:22px;">📸</div>
+        <div style="font-size:12px;color:var(--tx2);" id="g-sorteo-txt">Subir foto del cupón ONCE</div>
       </div>
-      <input type="file" id="sorteo-file" accept="image/*" style="display:none;" onchange="onSorteoFile(this)"/>
-      <img id="sorteo-preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;"/>
-      <input type="number" id="sorteo-numero" placeholder="Número ganador del cupón" style="margin-bottom:8px;"/>
-      <button class="btn btn-g btn-lg" style="width:100%;" id="btn-sorteo" onclick="realizarSorteo()" disabled>🎰 Realizar sorteo</button>
+      <input type="file" id="g-sorteo-file" accept="image/*" style="display:none;" onchange="onSorteoFile(this)"/>
+      <img id="g-sorteo-preview" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;"/>
+      <input type="number" id="g-sorteo-num" placeholder="Número ganador del cupón" style="margin-bottom:8px;"/>
+      <button class="btn btn-g" style="width:100%;padding:12px;" id="btn-sorteo" onclick="realizarSorteo()" ${document.getElementById('g-sorteo-file')?.files?.length?'':'disabled'}>🎰 Realizar sorteo</button>
     </div>
 
+    <!-- CERRAR DROP -->
     <div class="card" style="border-color:rgba(239,68,68,.3);">
-      <div class="ct2" style="color:var(--r);">⚠️ Cerrar drop</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Guarda el drop en el historial y lo reinicia.</div>
-      <button class="btn btn-ko" style="width:100%;padding:12px;" onclick="cerrarDropComm()">Cerrar drop y guardar historial</button>
+      <div class="card-title" style="color:var(--r);">⚠️ Cerrar drop</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Guarda en el historial y reinicia la sección para el siguiente drop.</div>
+      <button class="btn btn-ko" style="width:100%;padding:11px;" onclick="cerrarDropComm()">Cerrar drop y guardar historial</button>
     </div>
   `;
+  // Restaurar archivo de sorteo si existe
+  if(window._sorteoFile){
+    document.getElementById('g-sorteo-txt').textContent=window._sorteoFile.name;
+    document.getElementById('btn-sorteo').disabled=false;
+    const reader=new FileReader();
+    reader.onload=e=>{const img=document.getElementById('g-sorteo-preview');img.src=e.target.result;img.style.display='block';};
+    reader.readAsDataURL(window._sorteoFile);
+  }
 }
+
+window.guardarCfgGestion=async function(){
+  const existing=commData?.subs?.[activeSub]?.config||{};
+  const cfg={...existing,
+    rifaName:document.getElementById('g-name').value.trim(),
+    premios:document.getElementById('g-premios').value.trim(),
+    price:parseInt(document.getElementById('g-price').value)||12,
+    total:parseInt(document.getElementById('g-total').value)||100,
+    bizum:document.getElementById('g-bizum').value.trim(),
+    transfer:document.getElementById('g-transfer').value.trim(),
+    paypal:document.getElementById('g-paypal').value.trim(),
+    rifaActiva:document.getElementById('g-activa').checked
+  };
+  try{
+    await updateDoc(doc(db,'communities',commId),{[`subs.${activeSub}.config`]:cfg});
+    if(commData?.subs?.[activeSub])commData.subs[activeSub].config=cfg;
+    toast('✅ Configuración guardada');
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.programarCuentaAtras=async function(){
+  const fecha=document.getElementById('g-fecha').value;
+  if(!fecha){toast('Selecciona fecha y hora');return;}
+  try{
+    await updateDoc(doc(db,'communities',commId),{
+      [`subs.${activeSub}.activaAt`]:new Date(fecha).getTime(),
+      [`subs.${activeSub}.config.rifaActiva`]:false
+    });
+    toast('✅ Cuenta atrás programada');
+    renderGestion();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.cancelarCuentaAtras=async function(){
+  try{
+    await updateDoc(doc(db,'communities',commId),{[`subs.${activeSub}.activaAt`]:deleteField()});
+    toast('Cuenta atrás cancelada');renderGestion();
+  }catch(e){toast('Error: '+e.message);}
+};
+
+window.abrirPagoParticipantes=async function(){
+  if(!confirm('¿Abrir el pago a todos los participantes?'))return;
+  try{
+    await updateDoc(doc(db,'communities',commId),{[`subs.${activeSub}.pagosAbiertos`]:true});
+    toast('✅ Pago abierto');renderGestion();
+  }catch(e){toast('Error: '+e.message);}
+};
 
 window.onSorteoFile=function(input){
   const file=input.files[0];if(!file)return;
   window._sorteoFile=file;
-  document.getElementById('sorteo-file-txt').textContent=file.name;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const img=document.getElementById('sorteo-preview');
-    img.src=e.target.result;img.style.display='block';
-  };
-  reader.readAsDataURL(file);
+  document.getElementById('g-sorteo-txt').textContent=file.name;
   document.getElementById('btn-sorteo').disabled=false;
-};
-
-window.programarCuentaAtras=async function(){
-  const fecha=document.getElementById('cd-fecha').value;
-  if(!fecha){toast('Selecciona fecha y hora');return;}
-  try{
-    await updateDoc(doc(db,'communities',commId),{
-      [`subs.${subId}.activaAt`]:new Date(fecha).getTime(),
-      [`subs.${subId}.config.rifaActiva`]:false
-    });
-    toast('✅ Cuenta atrás programada');
-    loadSorteo();
-  }catch(e){toast('Error: '+e.message);}
-};
-
-window.abrirPagoComm=async function(){
-  if(!confirm('¿Abrir el pago a todos los participantes?'))return;
-  try{
-    await updateDoc(doc(db,'communities',commId),{[`subs.${subId}.pagosAbiertos`]:true});
-    toast('✅ Pago abierto');
-    loadSorteo();
-  }catch(e){toast('Error: '+e.message);}
+  const r=new FileReader();r.onload=e=>{const img=document.getElementById('g-sorteo-preview');img.src=e.target.result;img.style.display='block';};r.readAsDataURL(file);
 };
 
 window.realizarSorteo=async function(){
   if(!window._sorteoFile){toast('Sube la foto del cupón');return;}
-  const numInput=document.getElementById('sorteo-numero').value.trim();
-  if(!numInput){toast('Introduce el número ganador');return;}
-  const numGanador=parseInt(numInput);
-  if(!confirm('¿Confirmas que el número ganador es el '+numGanador+'?'))return;
-
-  const btn=document.getElementById('btn-sorteo');
-  btn.disabled=true;btn.textContent='Procesando...';
-
+  const numStr=document.getElementById('g-sorteo-num').value.trim();
+  if(!numStr){toast('Introduce el número ganador');return;}
+  const numGanador=parseInt(numStr);
+  if(!confirm('¿El número ganador es el '+numGanador+'?'))return;
+  const btn=document.getElementById('btn-sorteo');btn.disabled=true;btn.textContent='Procesando...';
   try{
-    // Subir imagen
     let drawUrl='';
-    try{
-      const {getStorage,ref:sRef,uploadBytes,getDownloadURL}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
-      const storage=getStorage();
-      const sr=sRef(storage,`${commId}/${subId}/sorteo/${Date.now()}.jpg`);
-      const sn=await uploadBytes(sr,window._sorteoFile);
-      drawUrl=await getDownloadURL(sn.ref);
-    }catch(_){}
-
-    // Buscar ganador
-    const ganador=Object.values(parts).find(p=>p.num===numGanador&&p.status==='confirmed');
+    try{const sr=ref(storage,`${commId}/${activeSub}/sorteo/${Date.now()}.jpg`);const sn=await uploadBytes(sr,window._sorteoFile);drawUrl=await getDownloadURL(sn.ref);}catch(_){}
+    const ganador=Object.values(allParts[activeSub]||{}).find(p=>p.num===numGanador&&p.status==='confirmed');
     if(!ganador){toast('⚠️ Ese número no está confirmado');btn.disabled=false;btn.textContent='🎰 Realizar sorteo';return;}
-
-    const cfg=commData?.subs?.[subId]?.config||{};
-    const ganadorData={
-      name:ganador.name,phone:ganador.phone,num:numGanador,
-      drawUrl,premios:cfg.premios||'',
-      fecha:new Date().toLocaleDateString('es-ES'),
-      ts:Date.now()
-    };
-
+    const cfg=commData?.subs?.[activeSub]?.config||{};
+    const ganadorData={name:ganador.name,phone:ganador.phone,num:numGanador,drawUrl,premios:cfg.premios||'',fecha:new Date().toLocaleDateString('es-ES'),ts:Date.now()};
     await updateDoc(doc(db,'communities',commId),{
-      [`subs.${subId}.ultimoGanador`]:ganadorData,
-      [`subs.${subId}.config.rifaActiva`]:false,
-      [`subs.${subId}.pagosAbiertos`]:false
+      [`subs.${activeSub}.ultimoGanador`]:ganadorData,
+      [`subs.${activeSub}.config.rifaActiva`]:false,
+      [`subs.${activeSub}.pagosAbiertos`]:false
     });
-
+    // Notificar al ganador
+    const ganUid=ganador.uid;
+    if(ganUid){
+      try{await addDoc(collection(db,'users',ganUid,'notificaciones'),{icon:'🏆',text:'¡Eres el ganador!',sub:'Has ganado el drop '+cfg.rifaName+'. Entra en la app para elegir tu premio y enviar tu dirección.',tipo:'info',leida:false,ts:serverTimestamp()});}catch(_){}
+    }
+    window._sorteoFile=null;
     toast('🏆 Ganador: '+ganador.name+' — Nº'+numGanador);
-    go('ganador');
+    goScreen('ganador');
   }catch(e){toast('Error: '+e.message);}
   btn.disabled=false;btn.textContent='🎰 Realizar sorteo';
 };
@@ -688,119 +769,226 @@ window.realizarSorteo=async function(){
 window.cerrarDropComm=async function(){
   if(!confirm('¿Cerrar este drop y guardarlo en el historial?'))return;
   try{
-    const cfg=commData?.subs?.[subId]?.config||{};
-    const ganador=commData?.subs?.[subId]?.ultimoGanador;
-    // Guardar en historial
-    await addDoc(collection(db,'communities',commId,'subs',subId,'historial'),{
-      rifaName:cfg.rifaName||'',
-      ganador:ganador?.name||'',
-      numGanador:ganador?.num||null,
-      fecha:new Date().toLocaleDateString('es-ES'),
-      ts:serverTimestamp()
+    const cfg=commData?.subs?.[activeSub]?.config||{};
+    const gan=commData?.subs?.[activeSub]?.ultimoGanador;
+    await addDoc(collection(db,'communities',commId,'subs',activeSub,'historial'),{
+      rifaName:cfg.rifaName||'',ganador:gan?.name||'',numGanador:gan?.num||null,
+      fecha:new Date().toLocaleDateString('es-ES'),ts:serverTimestamp()
     });
-    // Reiniciar
+    const b=writeBatch(db);
+    Object.values(allParts[activeSub]||{}).forEach(p=>b.delete(doc(db,'communities',commId,'subs',activeSub,'participants',p.id)));
+    await b.commit();
     await updateDoc(doc(db,'communities',commId),{
-      [`subs.${subId}.config.rifaActiva`]:false,
-      [`subs.${subId}.pagosAbiertos`]:false,
-      [`subs.${subId}.ultimoGanador`]:null,
-      [`subs.${subId}.ganadorEleccion`]:null
+      [`subs.${activeSub}.config.rifaActiva`]:false,
+      [`subs.${activeSub}.pagosAbiertos`]:false,
+      [`subs.${activeSub}.ultimoGanador`]:null,
+      [`subs.${activeSub}.ganadorEleccion`]:null
     });
-    toast('✅ Drop cerrado y guardado');
-    go('dashboard');
+    toast('✅ Drop cerrado');goScreen('dashboard');
   }catch(e){toast('Error: '+e.message);}
 };
 
-// ── TABLERO ───────────────────────────────────────────────────
-function loadTablero(){
-  const el=document.getElementById('tablero-content');
-  const cfg=commData?.subs?.[subId]?.config||{};
-  const total=cfg.total||100;
-  el.innerHTML='';
-  const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;';
-  for(let i=1;i<=total;i++){
-    const p=Object.values(parts).find(x=>x.num===i);
-    const div=document.createElement('div');
-    div.style.cssText='height:44px;border-radius:var(--rads);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;';
-    const color=!p?'background:var(--bg3);color:var(--tx3);border:1px solid var(--bd);'
-      :p.status==='confirmed'?'background:var(--gl);color:var(--g);border:1px solid rgba(22,168,107,.3);'
-      :p.status==='pending'?'background:rgba(245,158,11,.15);color:var(--y);border:1px solid rgba(245,158,11,.3);'
-      :'background:rgba(239,68,68,.1);color:var(--r);border:1px solid rgba(239,68,68,.2);';
-    div.style.cssText+=color;
-    div.textContent=i<10?'0'+i:i;
-    if(p)div.title=p.name+(p.status==='confirmed'?'\n✅ Confirmado':p.status==='pending'?'\n⏳ Pendiente':'\n❌ Sin pagar');
-    grid.appendChild(div);
-  }
-  el.appendChild(grid);
-  // Leyenda
-  const leyenda=document.createElement('div');
-  leyenda.style.cssText='display:flex;gap:12px;margin-top:14px;font-size:11px;flex-wrap:wrap;';
-  leyenda.innerHTML='<span style="color:var(--g);">■ Confirmado</span><span style="color:var(--y);">■ Pendiente</span><span style="color:var(--r);">■ Reservado</span><span style="color:var(--tx3);">■ Libre</span>';
-  el.appendChild(leyenda);
+// ── GANADOR ───────────────────────────────────────────────────
+function loadGanadorTabs(){
+  buildSubTabs('ganador-tabs',()=>renderGanador());
+  renderGanador();
 }
 
-// ── ESTADÍSTICAS ──────────────────────────────────────────────
-async function loadStats(){
-  const el=document.getElementById('stats-content');
+async function renderGanador(){
+  const el=document.getElementById('ganador-content');
   el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
-  const cfg=commData?.subs?.[subId]?.config||{};
-  const precio=cfg.price||12;
-  const allParts=Object.values(parts);
-  const confirmed=allParts.filter(p=>p.status==='confirmed').length;
-  const pending=allParts.filter(p=>p.status==='pending').length;
-  const recaudado=confirmed*precio;
-  const pendiente=pending*precio;
-
-  // Historial
-  let historial=[];
-  try{
-    const snap=await getDocs(collection(db,'communities',commId,'subs',subId,'historial'));
-    snap.forEach(d=>historial.push({id:d.id,...d.data()}));
-    historial.sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
-  }catch(_){}
-
-  // Calcular cuántas rifas lleva este mes
-  const mes=new Date().toISOString().slice(0,7);
-  const rifasMes=historial.filter(h=>(h.fecha||'').includes(mes.split('-')[1]+'/'+mes.split('-')[0])||
-    (h.ts?.seconds&&new Date(h.ts.seconds*1000).toISOString().slice(0,7)===mes)).length;
-  const precioPorRifa=rifasMes<3?25:rifasMes<10?15:10;
-
+  try{const s=await getDoc(doc(db,'communities',commId));commData={id:s.id,...s.data()};}catch(_){}
+  const sub=commData?.subs?.[activeSub];
+  const gan=sub?.ultimoGanador;
+  const elec=sub?.ganadorEleccion;
+  if(!gan){el.innerHTML='<div class="alert a-info">Sin sorteo realizado aún en esta sección.</div>';return;}
   el.innerHTML=`
-    <div class="sg" style="grid-template-columns:repeat(2,1fr);">
-      <div class="sc2 green"><div class="sl2">Recaudado</div><div class="sv">${recaudado}€</div></div>
-      <div class="sc2 yellow"><div class="sl2">Pendiente</div><div class="sv">${pendiente}€</div></div>
-      <div class="sc2 blue"><div class="sl2">Confirmados</div><div class="sv">${confirmed}</div></div>
-      <div class="sc2 red"><div class="sl2">Pendientes</div><div class="sv">${pending}</div></div>
+    <div class="ganador-card">
+      <div style="font-size:32px;margin-bottom:6px;">🏆</div>
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;">${gan.name||'—'}</div>
+      <div style="font-size:13px;color:var(--tx2);margin-top:4px;">Número ${gan.num} · ${gan.fecha||''}</div>
     </div>
-
-    <div class="card" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05);">
-      <div class="ct2">💶 Pago a Drops Oficial</div>
-      <div style="font-size:28px;font-weight:900;color:var(--a);margin-bottom:8px;">${precioPorRifa}€</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px;">Rifa nº${rifasMes+1} de este mes<br>
-        <span style="font-size:11px;opacity:.7;">1-3 rifas=25€ · 4-10=15€ · 11+=10€ · Mensual=150€</span>
-      </div>
-      <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;margin-bottom:8px;font-size:13px;">
-        <div style="margin-bottom:6px;">📱 Bizum: <strong>634 XX XX XX</strong> <button onclick="navigator.clipboard.writeText('634XXXXXXX').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:6px;">📋</button></div>
-        <div>🏦 IBAN: <strong style="font-size:12px;">ES65 1583 0001 1590 6984 8933</strong> <button onclick="navigator.clipboard.writeText('ES6515830001159069848933').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:6px;">📋</button></div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Concepto: tu nombre + comunidad</div>
-      </div>
-      <div style="font-size:11px;color:var(--bl);background:rgba(59,130,246,.08);border-radius:var(--rads);padding:8px;">
-        ℹ️ Para transferencia: pon tu nombre como concepto. El nombre del titular da igual.
-      </div>
-    </div>
-
+    ${elec?`
     <div class="card">
-      <div class="ct2">📋 Historial de drops</div>
-      ${historial.length?historial.slice(0,10).map(h=>`
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">
-          <div><div style="font-weight:600;">${h.rifaName||'Drop'}</div>
-          <div style="font-size:11px;color:var(--tx3);">${h.fecha||''} · Ganador: ${h.ganador||'—'}</div></div>
-        </div>`).join(''):'<div style="color:var(--tx3);font-size:13px;">Sin historial aún</div>'}
-    </div>
+      <div class="card-title">📦 Datos de envío</div>
+      <div style="display:grid;gap:8px;">
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px;">Premio elegido</div>
+          <div style="font-weight:700;">${(elec.premio||'—').replace(/#\d+\s*/g,'')}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px;">Dirección de envío</div>
+          <div style="font-weight:700;">${elec.direccion||'—'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;">
+          <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px;">Teléfono</div>
+          <div style="font-weight:700;">${elec.telefono||'—'}</div>
+          ${elec.telefono?`<a href="https://wa.me/34${elec.telefono.replace(/\D/g,'')}" target="_blank" class="btn btn-g btn-sm" style="margin-top:8px;display:inline-flex;text-decoration:none;">💬 WhatsApp</a>`:''}
+        </div>
+        ${elec.comentarios?`<div style="background:var(--bg3);border-radius:var(--rads);padding:10px 12px;"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px;">Comentarios</div><div>${elec.comentarios}</div></div>`:''}
+        <div style="font-size:11px;color:var(--tx3);">Recibido el ${elec.fecha||'—'}</div>
+      </div>
+    </div>`
+    :'<div class="alert a-warn">⏳ El ganador aún no ha enviado su dirección y elección de premio.</div>'}
+    ${gan.premios?`<div class="card"><div class="card-title">🎁 Premios</div>${gan.premios.split('\n').filter(p=>p.trim()).map(p=>`<div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px;">• ${p.trim().replace(/#\d+\s*/g,'')}</div>`).join('')}</div>`:''}
   `;
 }
 
+// ── STATS ─────────────────────────────────────────────────────
+async function loadStats(){
+  const el=document.getElementById('stats-content');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  try{const s=await getDoc(doc(db,'communities',commId));commData={id:s.id,...s.data()};}catch(_){}
+  const planKey=commData?.plan||'pay_per_drop';
+  const PLANES={
+    pay_per_drop:{emoji:'🎯',nombre:'Pay per Drop',fijo:false},
+    basico:{emoji:'⭐',nombre:'Básico',precio:150,fijo:true},
+    pro:{emoji:'🚀',nombre:'Pro',precio:200,fijo:true,rifaGratis:true},
+    premium:{emoji:'👑',nombre:'Premium',precio:300,fijo:true,rifaGratis:true,embajadores:true},
+  };
+  const planObj=PLANES[planKey]||PLANES.pay_per_drop;
+  // Stats globales
+  let totalParts=0,totalConf=0,totalRec=0;
+  getSubs().forEach(sid=>{
+    const cfg=commData?.subs?.[sid]?.config||{};
+    const p=Object.values(allParts[sid]||{});
+    const precio=cfg.price||12;
+    totalParts+=p.length;
+    const conf=p.filter(x=>x.status==='confirmed').length;
+    totalConf+=conf;totalRec+=conf*precio;
+  });
+  // Historial
+  let historial=[];
+  try{
+    for(const sid of getSubIds()){
+      const snap=await getDocs(collection(db,'communities',commId,'subs',sid,'historial'));
+      snap.forEach(d=>historial.push({id:d.id,...d.data()}));
+    }
+    historial.sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
+  }catch(_){}
+  const mes=new Date().toISOString().slice(0,7);
+  const rifasMes=historial.filter(h=>h.ts?.seconds&&new Date(h.ts.seconds*1000).toISOString().slice(0,7)===mes).length;
+  // Estado pago suscripción
+  let estadoPago='sin_pago';
+  try{
+    const fs=await getDoc(doc(db,'superadmin','facturacion','pagos_suscripcion',commId+'_'+mes));
+    if(fs.exists())estadoPago=fs.data().estado||'pendiente';
+  }catch(_){}
 
+  el.innerHTML=`
+    <div class="sg">
+      <div class="sc g"><div class="sc-label">Total partic.</div><div class="sc-val">${totalParts}</div></div>
+      <div class="sc b"><div class="sc-label">Confirmados</div><div class="sc-val">${totalConf}</div></div>
+      <div class="sc y"><div class="sc-label">Recaudado</div><div class="sc-val">${totalRec}€</div></div>
+      <div class="sc r"><div class="sc-label">Drops este mes</div><div class="sc-val">${rifasMes}</div></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(59,130,246,.3);">
+      <div class="card-title">📋 Tu plan</div>
+      <div style="font-size:20px;font-weight:900;margin-bottom:4px;">${planObj.emoji} ${planObj.nombre}</div>
+      ${planObj.fijo
+        ?`<div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">${planObj.precio}€/mes · Rifas ilimitadas</div>`
+        :`<div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">Pago por rifa: 1-3=25€ · 4-10=15€ · 11+=10€</div>`
+      }
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        <span class="badge b-ok">✓ Catálogo</span>
+        ${planObj.rifaGratis?'<span class="badge b-ok">✓ 1 rifa gratis/mes</span>':''}
+        ${planObj.embajadores?'<span style="background:rgba(139,92,246,.15);color:#a78bfa;border-radius:99px;font-size:10px;font-weight:700;padding:2px 8px;">✓ Embajadores</span>':''}
+      </div>
+      ${planObj.fijo?`
+        ${estadoPago==='confirmado'
+          ?'<div class="alert a-ok">✅ Suscripción pagada este mes</div>'
+          :estadoPago==='pendiente'
+            ?'<div class="alert a-warn">⏳ Comprobante enviado — pendiente de confirmación</div>'
+            :`<button class="btn btn-g" style="width:100%;padding:11px;" onclick="abrirPagoSuscripcion('${planKey}','${planObj.precio}')">💶 Pagar suscripción — ${planObj.precio}€/mes</button>`
+        }`:''}
+    </div>
+
+    ${!planObj.fijo?`
+    <div class="card" style="border-color:rgba(245,158,11,.3);">
+      <div class="card-title">💶 Siguiente pago a Drops Oficial</div>
+      <div style="font-size:26px;font-weight:900;color:var(--y);margin-bottom:6px;">${rifasMes<3?25:rifasMes<10?15:10}€</div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;">Próxima rifa nº${rifasMes+1} de este mes</div>
+      <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;font-size:13px;">
+        <div style="margin-bottom:5px;">📱 Bizum: <strong>634 XX XX XX</strong>
+          <button onclick="navigator.clipboard.writeText('634XXXXXXX').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:5px;">📋</button></div>
+        <div>🏦 IBAN: <strong style="font-size:11px;">ES65 1583 0001 1590 6984 8933</strong>
+          <button onclick="navigator.clipboard.writeText('ES6515830001159069848933').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:5px;">📋</button></div>
+      </div>
+    </div>`:''}
+
+    <div class="card">
+      <div class="card-title">📋 Historial de drops</div>
+      ${historial.length
+        ?historial.slice(0,10).map(h=>`
+          <div style="padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;">
+            <div style="font-weight:600;">${h.rifaName||'Drop'}</div>
+            <div style="font-size:11px;color:var(--tx3);">${h.fecha||''} · Ganador: ${h.ganador||'—'}</div>
+          </div>`).join('')
+        :'<div style="color:var(--tx3);font-size:13px;">Sin historial aún</div>'}
+    </div>`;
+}
+
+// Pago suscripción
+window.abrirPagoSuscripcion=function(planKey,precio){
+  let m=document.getElementById('modal-pago-susc');
+  if(!m){m=document.createElement('div');m.id='modal-pago-susc';m.className='modal-bg';m.onclick=function(e){if(e.target===this)this.classList.remove('open');};document.body.appendChild(m);}
+  m.innerHTML=`<div class="modal">
+    <div class="modal-title">💳 Pago de suscripción</div>
+    <div style="font-size:26px;font-weight:900;color:var(--y);margin-bottom:8px;">${precio}€/mes</div>
+    <div style="background:var(--bg3);border-radius:var(--rads);padding:12px;margin-bottom:10px;font-size:13px;">
+      <div style="margin-bottom:5px;">📱 Bizum: <strong>634 XX XX XX</strong>
+        <button onclick="navigator.clipboard.writeText('634XXXXXXX').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:5px;">📋</button></div>
+      <div>🏦 IBAN: <strong style="font-size:11px;">ES65 1583 0001 1590 6984 8933</strong>
+        <button onclick="navigator.clipboard.writeText('ES6515830001159069848933').then(()=>toast('✓'))" class="btn btn-neu btn-sm" style="margin-left:5px;">📋</button></div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Concepto: ${commData?.name||commId} — ${new Date().toLocaleDateString('es-ES',{month:'long',year:'numeric'})}</div>
+    </div>
+    <div style="background:var(--bg3);border:2px dashed var(--bd);border-radius:var(--rads);padding:14px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="document.getElementById('susc-file').click()">
+      <div style="font-size:22px;">📸</div>
+      <div style="font-size:12px;color:var(--tx2);" id="susc-file-txt">Subir comprobante</div>
+    </div>
+    <input type="file" id="susc-file" accept="image/*" style="display:none;" onchange="onSuscFile(this)"/>
+    <img id="susc-prev" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:var(--rads);margin-bottom:8px;"/>
+    <button id="btn-susc" class="btn btn-g" style="width:100%;padding:12px;" onclick="enviarSusc('${planKey}','${precio}')" disabled>📤 Enviar comprobante</button>
+    <button class="btn btn-neu" style="width:100%;margin-top:8px;" onclick="document.getElementById('modal-pago-susc').classList.remove('open')">Cancelar</button>
+  </div>`;
+  m.classList.add('open');
+};
+
+window.onSuscFile=function(input){
+  const file=input.files[0];if(!file)return;
+  window._suscFile=file;
+  document.getElementById('susc-file-txt').textContent=file.name;
+  const r=new FileReader();r.onload=e=>{const img=document.getElementById('susc-prev');img.src=e.target.result;img.style.display='block';};r.readAsDataURL(file);
+  document.getElementById('btn-susc').disabled=false;
+};
+
+window.enviarSusc=async function(planKey,precio){
+  if(!window._suscFile){toast('Sube el comprobante');return;}
+  const btn=document.getElementById('btn-susc');btn.disabled=true;btn.textContent='Enviando...';
+  try{
+    let proofUrl=null;
+    try{const sr=ref(storage,`${commId}/suscripcion/${Date.now()}.jpg`);const sn=await uploadBytes(sr,window._suscFile);proofUrl=await getDownloadURL(sn.ref);}
+    catch(_){proofUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(window._suscFile);});}
+    const mes=new Date().toISOString().slice(0,7);
+    await setDoc(doc(db,'superadmin','facturacion','pagos_suscripcion',commId+'_'+mes),{
+      commId,commName:commData?.name||commId,planKey,precio:Number(precio),
+      estado:'pendiente',proofUrl:proofUrl||'',mes,ts:serverTimestamp()
+    });
+    await addDoc(collection(db,'superadmin','notificaciones'),{
+      icon:'💳',text:'Comprobante suscripción recibido',
+      sub:(commData?.name||commId)+' — '+precio+'€ — '+planKey,
+      tipo:'accion',commId,leida:false,ts:serverTimestamp()
+    });
+    document.getElementById('modal-pago-susc').classList.remove('open');
+    toast('✅ Enviado. Te confirmaremos pronto.');
+    window._suscFile=null;
+    loadStats();
+  }catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;btn.textContent='📤 Enviar comprobante';
+};
+
+// ── CATÁLOGO ──────────────────────────────────────────────────
 async function loadCatalogo(){
   const el=document.getElementById('cat-list');
   el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
@@ -814,16 +1002,17 @@ async function loadCatalogo(){
 
 window.setCF=function(btn){
   catFiltro=btn.dataset.f;
-  document.querySelectorAll('.cf').forEach(b=>b.className='btn btn-sm cf '+(b===btn?'btn-g':'btn-neu'));
+  document.querySelectorAll('.cf').forEach(b=>{b.className='btn btn-sm cf';b.classList.add(b===btn?'btn-g':'btn-neu');});
   renderCat();
 };
 
-window.renderCat=function(q=''){
-  const el=document.getElementById('cat-list');el.innerHTML='';
-  const ql=(q||document.getElementById('cat-q')?.value||'').toLowerCase().replace('#','');
+window.renderCat=function(){
+  const el=document.getElementById('cat-list');if(!el)return;
+  el.innerHTML='';
+  const q=(document.getElementById('cat-q')?.value||'').toLowerCase().replace('#','');
   const f=catDocs.filter(p=>{
     const fOk=catFiltro==='todos'||(catFiltro==='combo'&&p.esCombo)||(p.categoria===catFiltro||p.subcategoria===catFiltro);
-    const qOk=!ql||(p.ref&&p.ref.includes(ql))||(p.nombre&&p.nombre.toLowerCase().includes(ql))||(p.marca&&p.marca.toLowerCase().includes(ql));
+    const qOk=!q||(p.ref&&p.ref.includes(q))||(p.nombre&&p.nombre.toLowerCase().includes(q))||(p.marca&&p.marca.toLowerCase().includes(q));
     return fOk&&qOk;
   });
   if(!f.length){el.innerHTML='<div class="alert a-info">Sin resultados.</div>';return;}
@@ -831,7 +1020,7 @@ window.renderCat=function(q=''){
     const div=document.createElement('div');div.className='card';div.style.marginBottom='8px';
     const precio=p.precioTotalAdmin||p.precioMin||p.precio;
     div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-      <div style="flex:1;min-width:0;">
+      <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
           <span style="background:var(--g);color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:800;">#${p.ref||'?'}</span>
           ${p.esCombo?'<span style="background:rgba(139,92,246,.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:10px;">COMBO</span>':''}
@@ -839,7 +1028,6 @@ window.renderCat=function(q=''){
         </div>
         ${p.marca?`<div style="font-size:11px;color:var(--tx3);">${p.marca}</div>`:''}
         ${precio?`<div style="font-size:12px;color:var(--g);font-weight:700;">${precio}€${p.esCombo?' 🎁':''}</div>`:''}
-        ${p.esCombo&&p.productosCombo?`<div style="font-size:11px;color:var(--tx3);margin-top:2px;">${p.productosCombo.map(x=>x.replace(/#\d+\s*/,'')).join(' + ')}</div>`:''}
       </div>
       ${p.link?`<a href="${p.link}" target="_blank" class="btn btn-neu btn-sm" style="text-decoration:none;flex-shrink:0;">🔗</a>`:''}
     </div>`;
@@ -847,62 +1035,18 @@ window.renderCat=function(q=''){
   });
 };
 
-// ── CONFIG ────────────────────────────────────────────────────
-function loadConfig(){
-  const subs=Object.values(commData?.subs||{});
-  const el=document.getElementById('cfg-subs');el.innerHTML='';
-  subs.forEach(s=>{
-    const b=document.createElement('button');
-    b.className='btn btn-sm '+(s.id===subId?'btn-g':'btn-neu');
-    b.style.marginRight='6px';b.style.marginBottom='8px';
-    b.textContent=(s.emoji||'')+' '+(s.name||s.id);
-    b.onclick=()=>{subId=s.id;localStorage.setItem('dca',JSON.stringify({c:commId,s:subId}));escucharParts();loadConfig();};
-    el.appendChild(b);
-  });
-  const cfg=commData?.subs?.[subId]?.config||{};
-  document.getElementById('cfg-name').value=cfg.rifaName||'';
-  document.getElementById('cfg-premios').value=cfg.premios||'';
-  document.getElementById('cfg-price').value=cfg.price||12;
-  document.getElementById('cfg-total').value=cfg.total||100;
-  document.getElementById('cfg-bizum').value=cfg.bizum||'';
-  document.getElementById('cfg-transfer').value=cfg.transfer||'';
-  document.getElementById('cfg-paypal').value=cfg.paypal||'';
-  document.getElementById('cfg-activa').checked=cfg.rifaActiva!==false;
-  document.getElementById('cfg-form').style.display='block';
-}
-
-window.guardarCfg=async function(){
-  const existing=commData?.subs?.[subId]?.config||{};
-  const cfg={...existing,
-    rifaName:document.getElementById('cfg-name').value.trim(),
-    premios:document.getElementById('cfg-premios').value.trim(),
-    price:parseInt(document.getElementById('cfg-price').value)||12,
-    total:parseInt(document.getElementById('cfg-total').value)||100,
-    bizum:document.getElementById('cfg-bizum').value.trim(),
-    transfer:document.getElementById('cfg-transfer').value.trim(),
-    paypal:document.getElementById('cfg-paypal').value.trim(),
-    rifaActiva:document.getElementById('cfg-activa').checked
-  };
-  try{
-    await updateDoc(doc(db,'communities',commId),{[`subs.${subId}.config`]:cfg});
-    if(commData?.subs?.[subId])commData.subs[subId].config=cfg;
-    toast('✅ Guardado');
-  }catch(e){toast('Error: '+e.message);}
-};
-
 // ── NOTIFICACIONES ────────────────────────────────────────────
 async function loadNotifs(){
   const el=document.getElementById('notifs-list');
   el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
   try{
-    // Notifs del superadmin para esta comunidad
     const snap=await getDocs(collection(db,'superadmin','notificaciones'));
-    const notifs=[];
-    snap.forEach(d=>notifs.push({id:d.id,...d.data()}));
-    const mias=notifs.filter(n=>!n.commId||n.commId===commId).sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
+    const notifs=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(n=>!n.commId||n.commId===commId)
+      .sort((a,b)=>(b.ts?.seconds||0)-(a.ts?.seconds||0));
     el.innerHTML='';
-    if(!mias.length){el.innerHTML='<div class="alert a-info">Sin notificaciones.</div>';return;}
-    mias.slice(0,30).forEach(n=>{
+    if(!notifs.length){el.innerHTML='<div class="alert a-info">Sin notificaciones.</div>';return;}
+    notifs.slice(0,30).forEach(n=>{
       const div=document.createElement('div');div.className='card';div.style.marginBottom='8px';
       div.innerHTML=`<div style="display:flex;gap:10px;align-items:flex-start;">
         <span style="font-size:22px;">${n.icon||'🔔'}</span>
@@ -915,11 +1059,10 @@ async function loadNotifs(){
       </div>`;
       el.appendChild(div);
     });
-    // Marcar como leídas
+    // Marcar leídas
     const b=writeBatch(db);
-    mias.filter(n=>!n.leida).forEach(n=>b.update(doc(db,'superadmin','notificaciones',n.id),{leida:true}));
+    notifs.filter(n=>!n.leida&&n.commId===commId).forEach(n=>b.update(doc(db,'superadmin','notificaciones',n.id),{leida:true}));
     b.commit().catch(()=>{});
-    document.getElementById('nb-notifs').style.display='none';
   }catch(e){el.innerHTML='<div class="alert a-err">Error: '+e.message+'</div>';}
 }
 </script>

@@ -7456,6 +7456,15 @@ async function mostrarCodigoPago(){
   }
 }
 
+
+// Definición de planes (cliente) — sincronizada con admin.html
+const PLANES_CLIENT={
+  pay_per_drop:{fijo:false,rifaGratis:false,embajadores:false,catalogo:true},
+  basico:{fijo:true,precio:150,rifaGratis:false,embajadores:false,catalogo:true},
+  pro:{fijo:true,precio:200,rifaGratis:true,embajadores:false,catalogo:true},
+  premium:{fijo:true,precio:300,rifaGratis:true,embajadores:true,catalogo:true},
+};
+
 // ── OCR AUTO-VERIFICACIÓN DE COMPROBANTES ───────────────────
 const OCR_API_KEY='K86980234588957';
 
@@ -7685,32 +7694,69 @@ window.enviarPagoRifaModal=async function(commId,subId,rifaNombre,precio,ref){
 };
 
 window.checkSorteoGate = async function(){
-  if(!isCommAdmin) return; // solo afecta al admin
+  if(!isCommAdmin) return;
   const gateEl = document.getElementById('sorteo-pago-gate');
   const deudaEl = document.getElementById('sorteo-deuda-gate');
   const contenidoEl = document.getElementById('sorteo-contenido');
   if(!gateEl || !deudaEl || !contenidoEl) return;
 
-  // Solo bloquear si la comunidad tiene deuda confirmada (bloqueada explícitamente por el superadmin)
-  // NO bloquear por pago pendiente de la rifa actual — eso solo aplica a activar la siguiente rifa
+  // 1. Comunidad bloqueada explícitamente por superadmin
   const bloqueada = await checkComunidadBloqueada(currentCommId);
   if(bloqueada){
-    deudaEl.style.display = 'block';
-    gateEl.style.display = 'none';
-    contenidoEl.style.display = 'none';
+    deudaEl.style.display='block';
+    gateEl.style.display='none';
+    contenidoEl.style.display='none';
     return;
   }
 
-  // Check si esta rifa concreta ya está pagada
-  const { pagada, enviado } = await checkRifaPagada(currentCommId, currentSubId);
+  // 2. Verificar plan de la comunidad
+  const commDataLocal = communities[currentCommId];
+  const plan = commDataLocal?.plan || 'pay_per_drop';
+  const planObj = PLANES_CLIENT[plan] || PLANES_CLIENT['pay_per_drop'];
 
-  // Siempre mostrar el sorteo — el pago se exige solo para la SIGUIENTE rifa
-  gateEl.style.display = 'none';
-  deudaEl.style.display = 'none';
-  contenidoEl.style.display = 'block';
+  // 3. Si es Pay per Drop → bloquear sorteo hasta que paguen la rifa actual
+  if(plan==='pay_per_drop'||!planObj?.fijo){
+    const {pagada, enviado} = await checkRifaPagada(currentCommId, currentSubId);
+    if(!pagada){
+      // BLOQUEAR — mostrar pantalla de pago
+      gateEl.style.display='block';
+      contenidoEl.style.display='none';
+      deudaEl.style.display='none';
+      const {nRifa, precio} = await calcPrecioRifaActual(currentCommId);
+      const sub2=communities[currentCommId]?.subs?.[currentSubId];
+      const rifaNombre=sub2?.config?.rifaName||sub2?.name||'Drop';
+      gateEl.innerHTML=`
+        <div style="text-align:center;padding:8px 0 16px;">
+          <div style="font-size:36px;margin-bottom:8px;">🔒</div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:900;margin-bottom:6px;">Pago pendiente</div>
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:16px;">Debes pagar la rifa <strong>"${rifaNombre}"</strong> antes de dar el ganador</div>
+          <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rads);padding:14px;margin-bottom:14px;text-align:left;">
+            <div style="font-size:22px;font-weight:900;color:var(--a);margin-bottom:8px;">${precio}€</div>
+            <div style="font-size:12px;margin-bottom:6px;">📱 Bizum: <strong>634 XX XX XX</strong></div>
+            <div style="font-size:12px;">🏦 IBAN: <strong>ES65 1583 0001 1590 6984 8933</strong></div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:6px;">Concepto: ${rifaNombre} - ${currentCommId}</div>
+          </div>
+          ${enviado
+            ?'<div style="background:var(--gl);border-radius:var(--rads);padding:10px;font-size:12px;color:var(--g);">✅ Comprobante enviado — esperando confirmación del administrador</div>'
+            :`<button class="btn btn-g" style="width:100%;padding:12px;" onclick="mostrarPantallaPago('${rifaNombre}',${nRifa},${precio},'${currentCommId}','${currentSubId}')">📤 Subir comprobante de pago</button>`
+          }
+        </div>
+      `;
+      // Escuchar confirmación en tiempo real
+      listenRifaPago(currentCommId, currentSubId);
+      return;
+    }
+  }
 
-  // Si no está pagada, mostrar aviso informativo (no bloqueante) encima del sorteo
+  // 4. Todo OK — mostrar sorteo
+  gateEl.style.display='none';
+  deudaEl.style.display='none';
+  contenidoEl.style.display='block';
+
+  // Aviso informativo si plan fijo y hay pago pendiente mensual
   const avisoEl=document.getElementById('sorteo-pago-aviso');
+  if(avisoEl)avisoEl.style.display='none';
+};
   if(avisoEl){
     if(!pagada){
       const { nRifa, precio } = await calcPrecioRifaActual(currentCommId);
@@ -7734,37 +7780,6 @@ window.checkSorteoGate = async function(){
       avisoEl.style.display='none';
     }
   }
-  return;
-  const msgEl = document.getElementById('sorteo-gate-msg');
-  const sub2 = communities[currentCommId]?.subs?.[currentSubId];
-  const rifaNombre = sub2?.config?.rifaName || sub2?.name || 'Drop';
-  if(msgEl) msgEl.innerHTML = `
-    <div style="margin-bottom:12px;">Esta es tu rifa nº<strong>${nRifa}</strong> de este mes — <strong>"${rifaNombre}"</strong></div>
-    <div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #f59e0b;">
-      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">💶 Datos de pago a Drops Oficial</div>
-      <div style="font-size:22px;font-weight:900;color:#f59e0b;margin-bottom:8px;">${precio}€</div>
-      <div style="font-size:13px;margin-bottom:6px;"><strong>Bizum:</strong> 634 XX XX XX</div>
-      <div style="font-size:13px;margin-bottom:10px;"><strong>Transferencia:</strong> ES65 1583 0001 1590 6984 8933</div>
-      <button onclick="navigator.clipboard.writeText('ES65 1583 0001 1590 6984 8933').then(()=>window.toast&&toast('✓ IBAN copiado'))" style="background:#f59e0b;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;width:100%;">📋 Copiar IBAN</button>
-    </div>
-    <div style="font-size:12px;color:#888;">Concepto del pago: <strong>Drops ${rifaNombre} - ${currentCommId}</strong></div>
-  `;
-
-  const sentEl = document.getElementById('sorteo-gate-comprobante-sent');
-  const uploadEl = document.getElementById('sorteo-gate-upload-area');
-  if(enviado){
-    sentEl.style.display = 'block';
-    uploadEl.style.display = 'none';
-  } else {
-    sentEl.style.display = 'none';
-    uploadEl.style.display = 'block';
-  }
-
-  gateEl.style.display = 'block';
-  deudaEl.style.display = 'none';
-  contenidoEl.style.display = 'none';
-};
-
 window.enviarComprobantePagoRifa = async function(){
   if(!window._rifaCompFile){ toast('Selecciona una foto del comprobante'); return; }
   const btn = document.getElementById('btn-enviar-comp-rifa');
